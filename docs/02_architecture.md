@@ -1,0 +1,459 @@
+# Aftelle Desktop · 架构设计 · Stage 7 · v7
+
+> 系统骨架。本文件定义 Stage 7 的模块结构、运行链路、红线与接口契约。
+> 配套:03_dev_plan.md v5 + 06_product_design.md + 04_code_standards.md + 05_dev_guide.md。
+> 文档职责:AGENTS.md 是工作入口;本文件是架构事实源;04_code_standards.md 是代码事实源。冲突时,红线以"02_architecture.md + 04_code_standards.md 一致版本"为准,AGENTS.md 不覆盖架构事实。
+> v7 变更:**G0 由 B(Python sidecar)改为 A(Swift RuntimeCore)**。产品主线与 7.1–7.11 顺序不变;仅把运行底座从 sidecar HTTP 换成 App 内置 Swift RuntimeCore。runtime clock/state/tick、Provider 调用、完整 DR 校验归 RuntimeCore;Provider secret 归 Apple Keychain。
+
+> **G0 已锁定:** Runtime 选 A:**Swift RuntimeCore**(App 内置运行内核);DR 读取以真实 DR v0.3 与 `dr_contract_v0_3.md` 为准;真实 LLM 只能走 `RuntimeCore ProviderRouter → ProviderAdapter → ExecutionEngine`,UI 不直连模型。Studio(Python)是产出 `.digital_resident` 的上游;调度/Agent/未来扩展的核心都在 Aftelle RuntimeCore。
+> **Boundary 权威源:** 4 条 Invariants 的权威定义见 `aftelle_runtime_boundary.md §1`。本文件只做本地化落点说明,不得复制或改写边界。
+
+---
+
+## 1. 一句话定位
+
+Stage 7 做一个 **macOS 桌面展示版**:能运行 DR、能记忆、能说话、能展示粒子生命体、能双居民协作、能做 Aftelle 内部屏幕指导原型,并最终稳定录屏。
+
+Stage 7 分两条口径:
+- **Stage 7 MVP = 7.1–7.5 单居民闭环**:单居民导入、Runtime 对话、最小会话/展示状态、粒子、字幕/TTS、安全边界。
+- **Stage 7 Extended Demo = 7.6–7.11**:行业居民、双居民、屏幕指导、隔离验证、Demo Lock。后半段每段单独 Gate,不作为正式开发基线。
+
+**技术栈定调:** Swift + SwiftUI(外壳)+ Metal(粒子渲染)+ **Swift RuntimeCore(内置运行内核)** + SQLite(本地存储)+ 本地 Provider 配置只保存 `key_ref`(真实 secret 在 Apple Keychain)。Apple 生态优先(LiDAR + Metal);未来非 Apple 端由 Python 承担运行逻辑,身体重做、逻辑经契约复用。
+
+**核心原则:**
+- 最终展示效果不精简;**7.1 工程实现必须精简**(不要为追求视觉完整度而提前撑大 7.1)
+- 架构要精简
+- 未来能力不混进当前实现
+- 身体尽情用 Apple 原生技术;大脑(Runtime)保持平台无关
+- App 用户可见文字遵守 `04_code_standards.md` 的「文字与语言规范」;居民说话语言由 DR 的 `payload.resident_identity.primary_language` 决定。
+
+**Boundary 落点(权威定义见 `aftelle_runtime_boundary.md §1`):**
+- Kernel 是可常驻的循环,不是一次性管线;循环和 Provider 调用在 **Swift RuntimeCore** 内推进(与 UI 同进程)。
+- **RuntimeCore 拥有** runtime clock / live state / scheduler tick;UI 只注入外部事件,不模拟 tick、不拥有调度时间。
+- `.digital_resident` 的基因组与 runtime 活态分开持久化;DR 只读,状态/记忆写入 runtime/session/memory。
+- Execution Engine 是唯一 Runtime 入口;UI、Settings、Aftelle 客户端都不得绕过它调用 Provider/Tool/TTS/Memory 写入。
+- I/O 按 environment→resident 抽象;用户输入只是环境事件的一种,不得把长期架构写死为 user→assistant 二元聊天。
+
+**编排心智模型:** 编排是薄 kernel loop + 按需 consult policy/子系统,不是 Dialogue→Agent→Social 的串行瀑布层。
+
+---
+
+## 2. Stage 7 总体架构
+
+```
+Aftelle Desktop macOS App
+├─ UI Layer
+│  ├─ App Shell
+│  ├─ Chat / Subtitle View
+│  ├─ Particle Life View
+│  ├─ Resident Switcher
+│  ├─ Screen Guide Overlay
+│  └─ Trace Panel
+│
+├─ App Controller
+│  ├─ App Startup Flow
+│  ├─ DR Import Flow
+│  ├─ Session Controller
+│  ├─ Interrupt / Cancel Controller
+│  └─ Demo Mode Controller
+│
+├─ DR Loader
+│  ├─ DR Read
+│  ├─ Schema Validate
+│  ├─ Fixture Validate
+│  ├─ Extract Identity
+│  ├─ Extract Lattice / Visual State Source
+│  ├─ Extract Runtime Requirements
+│  └─ Produce Readonly LoadedDR
+│
+├─ Orchestration Kernel
+│  ├─ Single Resident Pass-through
+│  ├─ Resident Routing Policy
+│  ├─ Speaker Selector
+│  ├─ Dual Resident Turn Control
+│  └─ Trace Reason Output
+│
+├─ RuntimeCore Interface
+│  ├─ RuntimeCore（ExecutionEngine / Scheduler / ProviderRouter
+│  │            / MemoryController / VisualStateMapper / TraceRecorder）
+│  ├─ Response Decode
+│  ├─ Visual / Voice State Bridge
+│  └─ Runtime Trace Bridge
+│
+├─ Local HostEnv
+│  ├─ fs
+│  ├─ memory
+│  ├─ providerConfig
+│  ├─ clock
+│  └─ secureStore
+│
+├─ SessionStore / HostStateStore
+│  ├─ session_state
+│  ├─ interaction_log
+│  ├─ host_state_cache
+│  ├─ avatar_state_cache
+│  └─ schema_version
+│
+├─ Provider Profile Manager
+│  ├─ LLM Profiles
+│  ├─ TTS Profiles
+│  ├─ API Key Secure Storage
+│  └─ Backend Config Bridge
+│
+├─ Avatar State System
+│  ├─ Avatar State Protocol
+│  ├─ Thinking / Speaking / Loading / Error / Idle
+│  ├─ Humanistic Lattice Visual Mapping
+│  ├─ Industry Lattice Visual Mapping
+│  └─ Dual Resident Visual State
+│
+├─ Audio / Subtitle System
+│  ├─ TTS Playback
+│  ├─ Subtitle Timing
+│  ├─ Startup / Import / Exit SFX
+│  └─ Stop Speaking
+│
+├─ Screen Guide Prototype
+│  ├─ macOS Screenshot Capture
+│  ├─ Aftelle UI Recognition
+│  ├─ Button Highlight
+│  ├─ Particle Pointer
+│  └─ User Confirm Only
+│
+└─ Platform Adapter Boundary
+   ├─ macOS Implementation
+   ├─ Windows Readiness Check
+   └─ AR Coordinate Isolation Check
+```
+
+**目录归属(对应代码结构):**
+- `brain/` ← **RuntimeCore**(ExecutionEngine/Scheduler/ProviderRouter/MemoryController/VisualStateMapper/TraceRecorder)/ Orchestration / DR Loader / soul(Avatar State + Particle Logic) / HostEnv 协议。平台无关运行逻辑。
+- `platform-macos/` ← UI Layer / Particle Render(Metal) / Audio / Screen Guide / HostEnv 的 macOS 实现。
+- `shared-protocol/` ← DR schema、协议常量。
+
+---
+
+## 3. 模块实现程度
+
+### 3.1 UI Layer
+完整实现展示版 UI(SwiftUI 外壳 + Metal 粒子)。
+负责:App 外壳、输入框、输出区、字幕区、粒子生命体、双居民展示、主次切换、Trace 面板、屏幕指导 Overlay。
+**不负责**:不直接读 DR、不直接调 LLM、不直接写 Memory、不做业务推理。
+
+### 3.2 App Controller
+完整实现 Stage 7 本地控制流。
+负责:启动、导入 DR、初始化 Runtime、连接 UI 与 Orchestration、管理会话、中断/取消、Demo Lock 流程。
+是 UI 和内核之间的胶水层,不做智能推理。
+
+### 3.3 DR Loader
+完整实现 Stage 7 需要的 DR 加载。
+
+必须支持真实 DR v0.3 字段(字段名/路径以 `dr_contract_v0_3.md` 为准):
+身份相关(`manifest` + `payload.resident_identity`)、运行要求(`runtime_requirements`)、记忆策略(`memory_config` / `memory_policy`)。
+**DR 加载分两层**:UI/DR Loader 侧做契约级浅校验(版本、文件大小、安全 flag、必要字段、未知高危字段);完整 DR schema 校验与加载由 **RuntimeCore** 执行。
+**视觉来源**:不再查找旧视觉字段;Aftelle 优先读取 Runtime `step` 返回的 top-level `visual_state`,`lattice_state` 是来源/同义映射;DR 内静态来源为 `lattice_config` / `lattice_state_schema`。
+**resident_id / revision**:`resident_id` 以 `manifest.resident_id` 为准,`revision` 使用 DR v0.3 的真实顶层字段,不要用 `dr_version` 替代。
+
+必须支持测试 fixture:人文共情居民 DR / 行业专精居民 DR / 错误 DR / 空壳 DR / 双居民组合 DR。
+
+输出 Readonly LoadedDR,包含:resident_id / schema_version / revision / identity / runtime_requirements / lattice visual source / memory_policy。
+
+原则:Runtime 只读 DR;不修改 DR;不把记忆写回 DR;不把 API Key 写进 DR。
+
+### 3.4 Orchestration Kernel
+Stage 7 最小但真实可用。
+- 7.1 只做:单居民透传调度
+- 7.7 做:双居民主次切换、用户指定某居民回答
+- 7.8 做:Speaker Selector、Input Classifier、Resident Routing Policy、单居民回应、双居民补充/轮流/合并、最大轮数限制、调度原因写入 Trace
+
+注意:Stage 7 不是完整 Agent,Orchestration Kernel 只是桌面双居民调度器。
+
+### 3.5 RuntimeCore Interface（App ↔ RuntimeCore Bridge）
+Stage 7 本地完整实现。Apple 端不依赖后端 Runtime;**RuntimeCore 是 Apple 端运行真相源**。
+负责:通过 App Controller 调用 **RuntimeCore** 的加载与单步运行,得到 output_text / visual_state / voice_state / trace / diagnostics,并把结果桥接到 UI、字幕、粒子与 Trace Panel。
+
+核心链路(概念说明,执行在 RuntimeCore ExecutionEngine):
+```
+environment event → App Controller → RuntimeCore.step
+→ RuntimeCore ExecutionEngine(memory/llm/lattice/tts)
+→ output_text + subtitle + visual_state + voice_state + trace
+```
+
+红线(见第 6 节红线 1):RuntimeCore 只做运行逻辑,不写 Metal/UI;UI 不直连 Provider;真实 Provider 调用只经 RuntimeCore ProviderRouter → ProviderAdapter。
+
+### 3.6 Local HostEnv
+Stage 7 本地完整实现。这是 **RuntimeCore 通过 HostEnv 访问平台能力**的入口。
+必须包含:fs / sessionStore / hostStateStore / runtime / providerConfig / appClock。
+其中:fs→读本地 DR/配置;sessionStore/hostStateStore→UI 本地会话与展示状态缓存;runtime→RuntimeCore 运行契约(同进程);providerConfig→Provider 非密钥配置与状态展示;appClock→UI/日志时间戳。
+**Runtime clock / scheduler tick / live state 归 RuntimeCore,不归 UI 层。**
+
+### 3.7 SessionStore / HostStateStore
+完整实现 Stage 7 Aftelle 侧本地缓存。
+必须支持:会话保存、当前居民展示状态恢复、最近对话显示缓存、退出保存、启动恢复、崩溃恢复基础、Avatar State 恢复。
+居民长期记忆读写只经 RuntimeCore MemoryController / ExecutionEngine;UI 不直接写居民长期记忆。
+暂不做:向量数据库、复杂长期记忆、人格成长、多居民社会记忆、云端同步。
+**所有表必须含 schema_version 字段。**
+
+> 用户改的外观/颜色等设置,写入 session_state 的 user_overrides,**不写回 DR**(DR 只读)。
+> 双居民音频:当次居民在主居民未说完时发言,Audio System 按 7.8 规则排队或混流,需有并发队列/锁,避免抢音道。
+
+### 3.8 Provider Profile Manager
+完整实现 Stage 7 本地 Provider 配置。
+支持:LLM/TTS Profiles、RuntimeCore provider 配置入口、API Key 安全引用(key_ref)、模型参数、连接状态展示。
+Provider secret 由 **Apple secure credential store / Keychain** 持有;UI 只提交/更新 `key_ref` 和非密钥配置,RuntimeCore 只用 `key_ref`,不向 UI 暴露 `getSecret`。
+**禁止:Aftelle 直接调用 OpenAI/Claude/Qwen;密钥不进 Aftelle brain / DR / Trace / Memory / 导出文件 / Git / 日志。**
+
+### 3.8.1 ResidentLiveState
+`ResidentLiveState` 是 runtime 活态,独立于 DR 基因组,也独立于 long-term memory。
+Stage 7 只建结构,不实现 drive 逻辑。最小字段:
+- `schema_version`
+- `resident_id`
+- `mood` / `emotion`
+- `energy`
+- `attention`
+- `drives`
+- `current_concerns`
+- `relationship_state`
+- `updated_at`
+
+该结构由 **RuntimeCore** 持有和推进;UI 可缓存展示副本,不得把它写回 DR。
+
+### 3.9 Avatar State System
+完整实现 Stage 7 展示版视觉状态协议。
+统一驱动:粒子颜色/密度、呼吸、Thinking/Speaking/Loading/Error/Exit、鼠标靠近交互、双居民待机、字幕同步。
+
+Avatar State Protocol 至少包含:resident_id / emotion / energy / motion / voice_state / particle_density / color_palette / focus_state / is_primary。
+
+绑定时序:7.3 视觉底座 → 7.4 人文居民情绪 → 7.6 行业居民视觉 → 7.7/7.8 双居民主次。
+
+### 3.10 Audio / Subtitle System
+完整实现 Stage 7 展示版语音体验。
+负责:TTS 请求、音频播放、字幕基础与同步、启动/导入/退出音效、停止/打断说话。
+**打断必须复用 7.1.10 统一中断 / 取消语义。**
+
+### 3.11 Screen Guide Prototype
+只做 Aftelle 内部指导原型。
+负责:屏幕捕获权限、截图、识别 Aftelle 自己的 UI、标注按钮、粒子光标指引、用户确认、错误提示。
+**禁止:不自动点击、不控制电脑、不跨软件、不做通用屏幕 Agent、不做完整 Accessibility 控制。**
+
+### 3.12 Platform Adapter Boundary
+接口完整,非 macOS 只做隔离验证。
+Stage 7 正式实现 macOS Adapter。
+7.10 只检查:业务逻辑无 macOS 硬编码、Runtime 无平台依赖、Avatar State Protocol 固化、粒子坐标抽象、Windows-readiness、AR 坐标隔离。
+不正式开发:Windows App、iOS/Android App、AR 身体、移动端 Runtime。
+
+---
+
+## 4. 对照03_dev_plan.md v5 的架构落点
+
+| 阶段 | 落点 |
+|---|---|
+| 7.1 技术底座+平台抽象+编排薄壳 | App Controller / HostEnv / RuntimeCore Interface / DR Loader / Orchestration / Trace |
+| 7.2 会话与展示状态持久化 | SessionStore / HostStateStore / Session Controller / Avatar State Restore |
+| 7.3 粒子视觉底座+字幕 | UI Layer / Particle Life View / Avatar State System / Subtitle View |
+| 7.4 人文居民打磨 | DR Identity / Runtime Prompt Policy / Avatar Emotion Mapping / Memory Policy |
+| 7.5 TTS/音效/字幕同步 | Provider Profile Manager / Audio System / Subtitle System / Interrupt Controller |
+| 7.6 行业居民基础版 | 第二套 DR / 第二套 lattice visual mapping / 第二套 Prompt Policy |
+| 7.7 双居民导入与主次切换 | Resident Switcher / Resident Manager / Dual Resident Runtime Sessions |
+| 7.8 编排双居民调度 | Orchestration / Speaker Selector / Routing Policy / Trace Reason |
+| 7.9 屏幕捕获指导原型 | Screen Guide Prototype / Overlay / macOS Screenshot Adapter |
+| 7.10 Windows/AR 隔离验证 | Platform Adapter Boundary / Coordinate Abstraction / Runtime Isolation Check |
+| 7.11 Demo Lock+稳定+录屏 | Demo Mode Controller / Trace Panel / Crash Fallback / Performance Pass |
+
+---
+
+## 5. 核心运行链路
+
+**单居民链路:**
+```
+Environment Event → App Controller → Orchestration Kernel → RuntimeCore
+→ RuntimeCore ExecutionEngine → visual_state / voice_state
+→ UI Text + Subtitle + Particle State → Trace Panel
+```
+
+Stage 7 UI 输入在 Swift 内部先包装成:
+```swift
+EnvironmentEvent(type: "user.text", payload: ["input_text": "..."])
+```
+RuntimeCore 契约仍按 `runtime_api_contract.md` 保留 `input_text` 兼容字段(长期内核模型是 environment→resident 事件)。
+
+**双居民链路:**
+```
+Environment Event → Orchestration Kernel → Input Classifier → Speaker Selector
+→ RuntimeCore Session A / B → 单居民/补充/轮流/合并
+→ UI 双居民显示 → Trace 写入调度原因
+```
+
+**屏幕指导链路:**
+```
+用户在 Aftelle 内求助 → App Controller → Screen Guide Prototype
+→ macOS 截图 → 识别 Aftelle UI → Overlay 高亮 → 粒子光标
+→ 用户确认 → 不自动点击
+```
+
+---
+
+## 6. 六条工程红线
+
+**红线 1 · Runtime 大脑不碰平台**
+RuntimeCore 在 App 内同进程运行;平台能力仍经 HostEnv 隔离,逻辑与渲染分层不变。
+禁止 Aftelle 侧 Runtime/brain 直接 import 或调用:Metal / AppKit / SwiftUI / Foundation 的平台文件 API / SQLite 驱动 / Keychain SDK / Provider SDK / 屏幕捕获 / 音频 SDK。
+
+**红线 2 · Memory 自带 schema_version**
+所有本地存储表必须包含 `schema_version` 字段(不强制是第一列,主键/id 可在前),并有一张 `schema_migrations` 表记录版本。Stage 7 不做迁移,但遇到版本不匹配必须有 fallback(见04_code_standards.md),不能直接崩。
+
+**红线 3 · UI / Runtime / DR Loader 三层解耦**
+边界:UI 只调 App Controller → App Controller 调 DR Loader/Orchestration → Orchestration 调 RuntimeCore ExecutionEngine;DR Loader 只读 DR。
+禁止:UI 直接读 DR / 调 LLM / 写居民长期 Memory;DR Loader 调 Provider;RuntimeCore 直接操作 UI/Metal。
+
+**红线 4 · DR 只读 + revision**
+DR Loader 必须读取 schema_version / resident_id,以及 DR v0.3 的真实 `revision` 字段,不把 `dr_version` 当 revision。运行状态写入 runtime_state / trace / session_state,**不修改 DR 文件**。
+
+**红线 5 · 粒子逻辑 / 画法分层**
+粒子逻辑(位置/运动/状态,平台无关)写在 `brain/soul/ParticleLogic`;粒子画法(Metal GPU)写在 `platform-macos/particle-render`。两者隔着 Avatar State Protocol 通信,不混写。
+
+**红线 6 · 交互按意图抽象**
+逻辑层只认 Intent(如 `attentionApproached` / `focusRequested` / `interrupt`),不写死"鼠标移到坐标 X"。各平台把鼠标/触摸/眼神翻译成同一套 Intent。
+
+---
+
+## 7. HostEnv 接口契约(Swift)
+
+> 以下为接口契约示意。实际用 Swift protocol 实现;开工时可按需补充字段,但结构保持平台无关。
+
+```swift
+protocol HostEnv {
+    var fs: FileSystem { get }
+    var sessionStore: SessionStore { get }
+    var hostStateStore: HostStateStore { get }
+    var runtime: RuntimeCore { get }
+    var providerConfig: ProviderConfigStore { get }
+    var appClock: AppClock { get }
+}
+
+protocol FileSystem {
+    // macOS 沙盒:用户文件必须经 NSOpenPanel 取得 URL,持久访问用 Security-Scoped Bookmark。
+    // 不要用裸字符串路径直接读用户文件,否则沙盒下会被系统拒绝。
+    func readText(url: URL) async throws -> String
+    func writeText(url: URL, content: String) async throws
+    func exists(url: URL) async -> Bool
+}
+
+enum HostStateType: String {
+    case interactionLog, sessionState, avatarStateCache
+}
+
+struct StoreReadParams {
+    let schemaVersion: String
+    let residentId: String
+    let namespace: String
+    let stateType: HostStateType
+    let limit: Int?
+}
+
+struct StoreWriteParams {
+    let schemaVersion: String
+    let residentId: String
+    let namespace: String
+    let stateType: HostStateType
+    let data: JSONValue   // 强类型 Codable,不用 [String: Any](后者不可验证、难测试)
+    let createdAt: String
+}
+
+// JSONValue: 一个 Codable 的强类型 JSON 表示,Trace/AvatarState/HostState 统一用它,避免 [String: Any]。
+enum JSONValue: Codable {
+    case string(String), number(Double), bool(Bool)
+    case object([String: JSONValue]), array([JSONValue]), null
+}
+
+protocol SessionStore {
+    func read(_ params: StoreReadParams) async throws -> (schemaVersion: String, entries: [JSONValue])
+    func write(_ params: StoreWriteParams) async throws -> (ok: Bool, id: String)
+}
+
+protocol HostStateStore {
+    func read(_ params: StoreReadParams) async throws -> (schemaVersion: String, entries: [JSONValue])
+    func write(_ params: StoreWriteParams) async throws -> (ok: Bool, id: String)
+}
+
+struct EnvironmentEvent {
+    let type: String        // e.g. "user.text"
+    let payload: JSONValue  // e.g. { "input_text": "你好" }
+}
+
+struct RuntimeStepRequest {
+    let runtimeApiVersion: String
+    let residentId: String
+    let runId: String
+    let event: EnvironmentEvent
+    let inputText: String
+    let namespace: String
+}
+
+struct RuntimeStepResult {
+    let ok: Bool
+    let outputText: String
+    let visualState: JSONValue
+    let voiceState: String
+    let trace: [JSONValue]
+    let error: JSONValue?
+}
+
+protocol RuntimeCore {
+    // App 内置运行内核(同进程)。契约字段与 runtime_api_contract.md 一致;实现由 Swift 承担。
+    func loadDR(_ dr: JSONValue, namespace: String) async throws -> JSONValue
+    func step(_ request: RuntimeStepRequest) async throws -> RuntimeStepResult
+}
+
+struct ProviderProfileSummary {
+    let profileId: String
+    let providerType: String
+    let modelAlias: String
+    let enabled: Bool
+}
+
+protocol ProviderConfigStore {
+    // 只保存/展示 provider 非密钥配置与 key_ref;真实 secret 存 Apple Keychain,调用由 RuntimeCore ProviderRouter 执行。
+    func listProfiles() async throws -> [ProviderProfileSummary]
+    func saveProfile(_ profile: ProviderProfileSummary) async throws
+}
+
+// 取消:Runtime step / TTS 播放等 UI 侧任务都通过 Swift 结构化并发的 Task 取消传播。
+// 中断由 7.1.10 统一语义触发。
+
+protocol AppClock {
+    func nowISO() -> String
+    func nowMs() -> Int
+}
+```
+
+> 中断/取消用 Swift 的 `Task` 取消机制或传入 cancellation token,统一在 7.1.10 定义,LLM/TTS 调用都要支持。
+
+---
+
+## 8. Stage 7 不做的内容
+
+Cloud Runtime、Bridge、Hybrid、移动端、AR 身体、完整 Agent Loop、通用电脑控制、向量记忆、人格成长系统、DR 自动更新、所有权技术实现——全部留到 Stage 8+。
+
+---
+
+## 9. Stage 7 成功标准
+
+1. macOS App 能稳定启动
+2. 能导入人文居民 DR
+3. 能完成中文陪伴对话
+4. 能关闭后恢复上一段会话
+5. 粒子生命体有 Idle / Thinking / Speaking / Loading / Error 状态
+6. TTS 和字幕能同步
+7. Stage 7 MVP 只要求单居民 + `resident_id/session_id` 结构成立
+
+Extended Demo 另行 Gate:
+- 能导入行业居民 DR
+- 能本地双居民主次切换
+- 能按输入类型选择居民回答
+- 能做一次双居民协作回答
+- 能在 Aftelle 内部做按钮指引
+- Demo 连续运行 10 分钟不崩
+- 录屏效果有生命感,不像普通聊天框
+
+> 主观标准(如"有生命感")尽量转成可判定指标:帧率达标、五种状态肉眼可区分、粒子状态日志正确(配合05_dev_guide.md第 6 节粒子盲测)。

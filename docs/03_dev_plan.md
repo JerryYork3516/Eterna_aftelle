@@ -1,0 +1,354 @@
+# Aftelle Desktop · 开发计划 · Stage 7 · v7
+
+> 7.1→7.11 的开发顺序与每阶段内容、验收。与02_architecture.md v5、04_code_standards.md、AGENTS.md 配套。
+> v7 变更:**G0 由 B 改 A(Swift RuntimeCore)**;只改 7.1 底层实现描述,7.2–7.11 产品阶段与顺序不变。secret 归 Apple Keychain。
+
+## 主线顺序
+
+**Stage 7 MVP = 7.1–7.5 单居民闭环。** 正式开发基线只锁 MVP:单居民 + `resident_id/session_id` 结构、Runtime 对话、会话/展示状态、粒子、TTS/字幕与安全边界。
+
+**Stage 7 Extended Demo = 7.6–7.11。** 行业居民、双居民、屏幕指导、隔离验证与 Demo Lock 每段单独 Gate,不作为 MVP 前提。
+
+```
+7.1 技术底座 + 平台抽象 + 编排薄壳
+→ 7.2 记忆与会话持久化
+→ 7.3 粒子生命体视觉底座 + 字幕基础
+→ 7.4 人文共情居民打磨
+→ 7.5 TTS / 音效 / 字幕同步
+→ 7.6 行业专精居民基础版
+→ 7.7 本地双居民导入与主次切换
+→ 7.8 编排系统双居民调度
+→ 7.9 屏幕捕获指导原型
+→ 7.10 Windows / AR 适配隔离验证
+→ 7.11 Demo Lock + 展示版稳定与录屏
+```
+
+---
+
+## 开工前闸门
+
+### G0:阻塞性前置决策(已锁定)
+**G0 已落锤,不再作为当前阻塞项。**
+
+1. **Runtime 策略**:选 A —— **Swift RuntimeCore**(App 内置运行内核)。UI 通过 App Controller 同进程调用 RuntimeCore 的加载/单步运行;调度/Agent/未来扩展的核心都在 RuntimeCore。不落到 schema-only。
+2. **DR 契约对齐**:以 Studio 导出的真实 DR v0.3 envelope + Runtime API 6.11.0 实际返回字段为准。Aftelle 读取 `manifest`、`payload.resident_identity`、`lattice_config`、`lattice_state_schema`、真实顶层 `revision` 等字段。
+3. **真实 LLM 来源**:Stage 7 MVP 可 mock;真实 Provider 只能走 `RuntimeCore ProviderConfig/Profile → ProviderRouter → ProviderAdapter → ExecutionEngine`;UI 不直连 OpenAI/Claude/Qwen。
+
+> `aftelle_runtime_boundary.md` 是边界单一事实源。若后续改动会推翻 G0 或 boundary Invariant,必须单独评审,不能在 Stage 7 开发中顺手修改。
+
+### G1a:最小 DR 字段闸门
+必须先有(**字段路径以 `dr_contract_v0_3.md` 为准**):
+身份(`manifest` + `payload.resident_identity`)、运行要求(`runtime_requirements`)、记忆策略(`memory_config` / `memory_policy`)。
+**视觉来源**:DR 内使用 `lattice_config` / `lattice_state_schema`;运行时 `visual_state` 路径以 `runtime_api_contract.md` 为准。
+**resident_id 路径**:`manifest.resident_id` 优先;**revision** 使用 DR v0.3 的真实顶层 `revision` 字段。
+
+### G1b:安全增强 DR 闸门
+区分两层,别混:
+- **policy flags 已有/可读**:DR v0.3 的 `safety_policy` 等策略标记可读取。
+- **真实验证未实现**:实际的 signature / watermark / license 校验逻辑 **Stage 7 不做**,后置到 7.10 或 Stage 8。不要误以为已有真实签名系统。
+
+### G2:测试 DR fixture
+必须准备:人文共情居民测试 DR / 行业专精居民测试 DR / 错误 DR / 空壳 DR / **两个独立 DR 组成的双居民测试场景**(不是一个文件装两个居民)。
+
+### G3:测试体系(执行层,贯穿全程)
+至少要有:DR fixture 测试、**DR contract 测试(用 Studio 导出的真实 DR 验证字段路径/版本/错误报文)**、粒子 FPS 测试、runtime step 测试、provider fallback 测试、UI smoke 测试(7.1.1 最小 XCUITest:启动→加载 fixture→输入一句→看到状态变更)。
+谁写:AI 写,你验收;fixture 和"什么算通过"由你定。
+具体用例示范(至少各一个):错误 DR 应被拒绝并报明确错误;粒子 FPS 应 ≥ 阈值;双居民记忆应隔离不串。
+
+---
+
+## Stage 7.1 技术底座 + 平台抽象 + 编排薄壳
+
+目标:先把 App 主链路搭对。
+
+**Stage 7.0 Calibration(标定闭环 —— 先做这个,验证工作流,不算正式 Stage 7 开发)**
+- 空 Xcode 项目,屏幕只放约 10 个粒子
+- 用一个测试 DR fixture + mock LLM,走通:加载 DR → 改粒子逻辑 → 看到变化 → 一次 mock 对话 → Trace 输出
+- 目的:只验证开发工作流、AI 成本、Xcode/Metal/DR fixture 能不能跑,**不验证正式功能**
+- 记录:花了多少额度、AI 读了多少文件、卡在哪 → 用它外推整个 Stage 7,并决定要不要升档
+
+> Calibration ≠ 正式 7.1。G0 已拍板后,Calibration 仍可作为工作流标定,但不再因 G0 状态而阻塞。
+
+正式开发:
+7.1.1 Platform Adapter 接口
+7.1.2 macOS Desktop Shell
+7.1.3 App 启动流程
+7.1.4 RuntimeCore 最小运行闭环接入
+7.1.5 DR Loader 读取 / 校验 / 加载(依赖 G1a 字段)
+7.1.6 Runtime Config 本地配置
+7.1.7 RuntimeCore Provider 配置入口
+7.1.8 Provider `key_ref` 配置入口(Apple Keychain 持有真实 secret)
+7.1.9 Avatar State Protocol 契约
+7.1.10 统一中断 / 取消语义
+7.1.11 Orchestration Kernel Skeleton
+7.1.12 单居民透传调度链路
+7.1.13 单居民 `resident_id/session_id` 结构固化
+7.1.14 Runtime Trace 面板
+7.1.15 RuntimeClock/Scheduler 存在性验证(no-op tick 或 trace `system.tick`)
+
+核心链路:
+```
+Aftelle UI → App Controller → Orchestration Kernel → RuntimeCore ExecutionEngine → LLM / Memory / Tool
+```
+
+App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
+
+注意:7.1 的编排只做薄壳,不做复杂智能调度。
+注意:RuntimeCore 拥有 runtime clock/state/tick;UI 只注入外部事件,不模拟 tick、不拥有调度时间。
+
+---
+
+## Stage 7.2 记忆与会话持久化
+
+目标:让居民有连续性。
+
+7.2.1 会话保存
+7.2.2 当前居民状态恢复
+7.2.3 最近对话历史恢复
+7.2.4 简单 key-value 记忆
+7.2.5 退出保存 / 启动恢复
+7.2.6 崩溃恢复基础
+7.2.7 单居民记忆边界
+7.2.8 Avatar State 状态恢复
+
+暂时不做:复杂长期记忆、向量数据库、人格成长系统、多居民社会记忆。
+
+验收:关掉再打开,居民还能接上上一段对话。所有存储表带 schema_version。
+
+---
+
+## Stage 7.3 粒子生命体视觉底座 + 字幕基础
+
+目标:先做高级圆形粒子生命体,不急做人形。
+
+7.3.1 灰白 Aftelle Shell 粒子核心
+7.3.2 呼吸动画
+7.3.3 鼠标靠近交互(经 Intent)
+7.3.4 Thinking 状态
+7.3.5 Speaking 状态
+7.3.6 Loading 状态
+7.3.7 Error 状态
+7.3.8 Exit 发散动画
+7.3.9 DR 导入颜色切换
+7.3.10 绑定 Avatar State Protocol
+7.3.11 字幕基础框架
+7.3.12 粒子状态日志输出(供盲测验证)
+7.3.13 后续人形 / 双居民 / AR 视觉接口预留
+
+验收(可判定):
+- 30FPS 可用,60FPS 为目标
+- 五种状态肉眼可区分
+- **粒子状态日志正确**:数量、坐标范围、颜色、FPS、Avatar State 能打成日志,AI/你据此验证(见05_dev_guide.md第 6 节粒子盲测)
+- 可录屏,视觉不廉价(对照一个明确视觉参照基准)
+
+> 粒子逻辑写在 brain/soul,画法写在 platform-macos(红线 5)。
+
+---
+
+## Stage 7.4 人文共情居民打磨
+
+目标:打磨第一个高完成度数字居民。
+
+7.4.1 Identity
+7.4.2 西安城市象征
+7.4.3 中文主语言
+7.4.4 人格风格
+7.4.5 情绪表达规则
+7.4.6 对话边界
+7.4.7 记忆策略(对接 7.2 持久化)
+7.4.8 首次启动问候
+7.4.9 日常陪伴对话
+7.4.10 情感对话能力
+7.4.11 粒子状态与情绪绑定
+7.4.12 DR 蓝图字段补全
+
+定位:女性 / 西安象征 / 中文为主 / 温柔克制稳定亲近 / 服务情绪、关系、生活、记忆、人文表达。
+
+验收:不像普通 AI 角色扮演,身份和语气稳定,跨会话记忆可延续,**不说 AI 套话**(参照08_product_designer.md 的禁用清单)。
+
+---
+
+## Stage 7.5 TTS / 音效 / 字幕同步
+
+目标:让居民有声音和节奏。
+
+7.5.1 TTS Provider 接入
+7.5.2 人文居民音色
+7.5.3 语速 / 音高 / 情绪参数
+7.5.4 语音输出
+7.5.5 字幕同步
+7.5.6 启动音效
+7.5.7 粒子状态音效
+7.5.8 导入 DR 音效
+7.5.9 退出音效
+7.5.10 打断 / 停止说话
+7.5.11 语音输入预留
+
+注意:打断机制必须复用 7.1.10 的统一中断语义。
+
+验收:文字/声音/字幕/粒子节奏一致;延迟可接受;打断行为与编排层一致。
+
+---
+
+## Stage 7.6 行业专精居民基础版
+
+> Extended Demo,不属于 Stage 7 MVP 基线。
+
+目标:做第二个居民,为双居民系统准备。
+
+7.6.1 Identity
+7.6.2 西雅图城市象征
+7.6.3 英文 / 中英双语策略
+7.6.4 工程化说话风格
+7.6.5 科技 / 产品 / 代码 / 系统能力倾向
+7.6.6 冷蓝 / 银白视觉配置
+7.6.7 基础声音配置
+7.6.8 基础对话能力
+7.6.9 与人文居民能力区分
+7.6.10 第二居民 DR 蓝图
+
+定位:男性 / 西雅图象征 / 英文中英双语 / 理性工程化高效系统化 / 服务企业、科研、工程、产品。
+
+验收:与人文居民明显不同,回答更理性,适合产品/代码/系统/行业问题。
+
+---
+
+## Stage 7.7 本地双居民导入与主次切换
+
+> Extended Demo,不属于 Stage 7 MVP 基线。
+
+目标:支持两个居民同时本地运行。
+
+7.7.1 导入第一个 DR
+7.7.2 导入第二个 DR
+7.7.3 按导入顺序生成主次
+7.7.4 主居民 / 次居民状态
+7.7.5 主次手动切换
+7.7.6 用户指定某居民回答
+7.7.7 双居民视觉布局
+7.7.8 次居民低亮待机
+7.7.9 双居民记忆边界
+7.7.10 双居民 Runtime Trace
+
+规则:第一个导入=当前主居民,第二个=当前次居民;主次只是交互焦点,非身份等级;后续可手动调换。
+
+验收:两居民可同时加载;可切换主次;不抢话;不混淆身份;记忆互不串扰。
+
+---
+
+## Stage 7.8 编排系统双居民调度
+
+> Extended Demo,不属于 Stage 7 MVP 基线。
+
+目标:让双居民可控协作。
+
+7.8.1 Speaker Selector
+7.8.2 Input Classifier
+7.8.3 Resident Routing Policy
+7.8.4 单居民回应模式
+7.8.5 双居民补充模式
+7.8.6 双居民轮流模式
+7.8.7 合并结论模式
+7.8.8 最大发言轮数限制
+7.8.9 用户打断机制(复用 7.1.10)
+7.8.10 冲突处理雏形
+7.8.11 调度原因写入 Trace
+
+调度规则:情绪/关系/生活/人文→人文居民优先;工程/代码/科研/产品→行业居民优先;复杂产品/数字居民系统/创业→双居民协作;用户指定谁→谁优先。
+
+验收:不乱聊;不无限互相讨论;能形成最终结论;Trace 能解释调度原因。
+
+---
+
+## Stage 7.9 屏幕捕获指导原型
+
+> Extended Demo,不属于 Stage 7 MVP 基线。
+
+目标:只指导 Aftelle 自己,不做通用电脑控制。
+
+7.9.1 macOS 屏幕捕获权限
+7.9.2 截图获取
+7.9.3 Aftelle 内部界面识别
+7.9.4 指定按钮标注
+7.9.5 粒子光标指引
+7.9.6 左下角小型粒子核心模式
+7.9.7 用户确认机制
+7.9.8 不自动点击
+7.9.9 错误提示
+7.9.10 Accessibility / Vision 接口预留
+
+范围限制:只指导 Aftelle 自己;不指导所有 App;不自动控制电脑;不跨软件操作。
+
+验收:能标记 Aftelle 内指定区域;用户看得懂;权限流程清楚;不产生安全风险。
+
+---
+
+## Stage 7.10 Windows / AR 适配隔离验证
+
+> Extended Demo,不属于 Stage 7 MVP 基线。
+
+目标:不正式开发 Windows 和 AR,但确保未来不用重写。
+
+7.10.1 Platform Adapter 补全
+7.10.2 检查业务逻辑无 macOS 硬编码
+7.10.3 Avatar State Protocol 版本固化
+7.10.4 检查粒子坐标抽象不阻碍未来 AR
+7.10.5 Windows-readiness 检查
+
+注意:Stage 7 不做真正 AR 身体,不新增 AR/移动端字段或接口;Stage 8 才评审 iOS / Android AR 相机 + 身体形态。
+
+---
+
+## Stage 7.11 Demo Lock + 展示版稳定与录屏
+
+> Extended Demo,不属于 Stage 7 MVP 基线。
+
+目标:冻结演示版本,准备公开视频和投资人展示。
+
+7.11.0 Demo Lock(冻结策略:开 `demo-lock-7.11` 分支 + 打 `v7-demo-YYYYMMDD` tag;录屏只用 release build)
+7.11.1 冻结演示流程
+7.11.2 冻结演示居民
+7.11.3 冻结视觉状态
+7.11.4 冻结对话脚本
+7.11.5 首启演示
+7.11.6 导入 DR 演示
+7.11.7 人文情感对话演示
+7.11.8 行业专业回答演示
+7.11.9 双居民协作演示
+7.11.10 粒子视觉演示
+7.11.11 TTS / 字幕演示
+7.11.12 屏幕指导原型演示
+7.11.13 Bug 修复
+7.11.14 性能优化
+7.11.15 崩溃兜底(对接 7.2.6 崩溃恢复)
+7.11.16 录屏素材准备
+7.11.17 Stage 8 AR 预告素材
+
+验收:连续演示 10 分钟不崩;核心流程可重复录屏;视觉有记忆点;居民有生命感;双居民逻辑可被看懂;能自然预告 Stage 8 AR。
+
+---
+
+## 验收方式
+
+**区分两个标准,别都叫"Stage 7 成功":**
+- **Stage 7 MVP 成立标准(7.1–7.5 单居民闭环)**:加载 DR → Runtime 对话(可 mock,7.4 居民打磨前接真实 LLM) → SessionStore/HostStateStore → 粒子表现 → TTS/字幕最小闭环 → Trace 可见 → 安全边界不破。
+- **Stage 7 Extended Demo 标准(7.6–7.11)**:行业居民、双居民、屏幕指导、隔离验证、录屏展示按各段 Gate 单独评审。
+
+- **小阶段(每个 7.x 做完)**:快速自查,用本阶段验收标准 + 粒子日志/帧率达标。以小阶段勤验收为主。
+- **大阶段(整个 Stage 7)**:先验收 MVP,再逐段进入 Extended Demo。
+
+---
+
+## Stage 8 入口说明
+
+Stage 7 只做 AR 铺垫。Stage 8 才开始:iOS / Android App、AR 相机、空间锚点、粒子身体、身体动作、靠近/跟随、物理遮挡、碰撞、拥抱等身体交互。
+
+---
+
+## V5 总结
+
+Stage 7 MVP = 单居民桌面闭环。核心:能运行、能记忆/缓存会话、能说话、能展示生命感、安全边界不破。
+Stage 7 Extended Demo = 展示扩展。核心:行业居民、双居民、屏幕指导、隔离验证与录屏按段 Gate。
+Stage 8 = 移动端 + AR 身体。核心:数字居民从桌面粒子生命体过渡到现实空间。
+
+**V5 相对 V4 的变化:**收敛 Stage 7 MVP/Extended 口径;补 RuntimeClock/Scheduler no-op tick 存在性;provider secret 归 Apple Keychain;7.10 只做坐标抽象检查,不定义 AR/Mobile 新接口。
