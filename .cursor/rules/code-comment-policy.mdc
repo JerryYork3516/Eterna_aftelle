@@ -1,0 +1,56 @@
+---
+description: 代码注释规则，限制只写必要的边界注释
+---
+
+# 代码注释规则
+
+## 允许写的注释
+
+只在以下位置添加简短注释：
+
+- RuntimeCore 架构边界
+- UI 不得直连 Provider 的边界
+- DR fixture / DR package 只读规则
+- secret / token / api key / base url 禁止进入 DR / Trace / Memory / Git 的规则
+- Stage 7.0 stub 的阶段用途
+- 非显而易见的安全约束或兼容约束
+
+## 不要写的注释
+
+不要添加以下注释：
+
+- 普通变量解释
+- 简单 SwiftUI 布局解释
+- 每一行代码解释
+- “这个函数做什么”的重复性注释
+- AI 生成痕迹式注释
+- 教学式长注释
+
+## 注释原则
+
+- 注释解释“为什么这样限制”
+- 不重复代码表面行为
+- 每条注释尽量不超过 2 行
+- 优先写在类型、协议、边界入口、stub 方法上方
+- 普通实现内部默认不写注释
+
+## 示例
+
+允许：
+
+```swift
+// Stage 7.0: RuntimeCore is the only runtime entry point.
+// UI must not call ProviderRouter or Provider adapters directly.
+
+// DR fixtures are read-only calibration inputs.
+// Runtime state, trace, and memory must not be written back into the DR package.
+```
+
+禁止：
+
+```swift
+// Create a button
+// Set the text color
+// This variable stores the name
+// Loop through the array
+```

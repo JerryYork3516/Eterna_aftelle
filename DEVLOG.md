@@ -66,7 +66,18 @@
 - 2026-07-01 — **G0 技术选型从 B 改为 A(重大决策)** — 底层运行方案由 B(本地 Python sidecar)改为 **A(Swift RuntimeCore,App 内置运行内核)**。**理由**:Apple 生态优先(LiDAR + Metal 极致渲染,iPhone/iPad Pro 亿级装机);调度/Agent/未来扩展的核心应在 Aftelle 原生 RuntimeCore;纯本地零延迟。**旧 B 标记为 superseded,不删除**,转为非 Apple 端/云端参考实现。Vision Pro 降级为加分项(Apple 已收缩其硬件路线)。**产品主线不变**:Stage 7 仍是 Aftelle 数字居民体验版,7.1–7.11 顺序不变,只替换运行底座。
 - 2026-07-01 — **文档套件 v7 升级** — 全套 16 份文档由 B→A:runtime_strategy 重写为 A;boundary 的 clock/tick 归属改为 RuntimeCore(4 Invariants 不变,新 SHA 见上);architecture/dev_plan/entry_gate/api_contract/provider_profile/dr_contract/code_standards/dev_guide/token_control/bug_contract 及 AGENTS/CLAUDE/README 全部把 sidecar/HTTP/RuntimeAPIClient/Python secret 改为 RuntimeCore/同进程/Apple Keychain。产品阶段顺序与 App 体验主线保持不变。Studio(Python)定位为 `.digital_resident` 上游 + 非 Apple/云端参考。
 - 2026-07-01 — **v7 B→A 残留清理(第二轮)** — 按 GPT 复审清单清除首轮遗留的旧口径:README/entry_gate/architecture/dev_plan/dev_guide/CLAUDE 中的"后端 Provider 链路 / Runtime Host Client / 不重写 Runtime Kernel / 重实现 execution_engine"全部改为 RuntimeCore 口径;dr_contract/api_contract 明确"Apple 端同进程契约 vs HTTP 未来云端/非 Apple 兼容层"分层;`brain/`(RuntimeCore)目录约定保持一致并标明 RuntimeCore 归属。产品阶段 7.1–7.11 与 App 体验主线未动。
-- 
+- 2026-07-02 — Stage 7.0 DR fixture 校准完成 — 测试改用本地 `docs/Freezev03.digital_resident`,删除合成 fixture fallback;发现真实 DR 中 `lattice_config.attention = "self"`,后续 loader/合同需按真实样本校准。
+- 2026-07-02 — Stage 7.0-CAL-002 Empty Xcode App bootstrap — 新增 `apps/macos/Aftelle/` 最小 SwiftUI macOS App,仅显示 calibration / runtime not loaded / DR fixture not loaded,未接 RuntimeCore/Provider/LLM。
+- 2026-07-02 — Stage 7.0-CAL-003 RuntimeCore skeleton — 在 `apps/macos/Aftelle/` 下新增最小 RuntimeCore 边界类型与 stub,仅预留 DRLoader / ExecutionEngine / ProviderRouter / TraceRecorder / VisualStateMapper,未接 UI、未接真实 provider、未改 fixture、未改 DR schema。
+- 2026-07-02 — Stage 7.0-CAL-004 load-dr minimal path — UI 只通过 RuntimeCore 加载本地 DR fixture,只读解析 schema_version / resident_id / display_name,未接 Provider / LLM / API,未实现 mock step,未做 trace display,未写回 DR。
+- 2026-07-02 — Stage 7.0.5 mock step path — UI 通过 RuntimeCore.step 输入一句话,内部走 ExecutionEngine / ProviderRouter 的本地 mock 闭环,返回 mock output_text 并展示最小视觉状态变化,未接真实 Provider / LLM / API,未做 trace display。
+- 2026-07-02 — Stage 7.0.6 trace + visual_state display — 在 mock step 基础上显示最小 trace / diagnostics / visual_state 状态变化,trace 包含 runtime.step / provider.mock / visual_state.changed,未接真实 Provider / LLM / API,未写回 DR。
+- 2026-07-02 — Stage 7.0.6-fix pre-review fixes — 新增脱敏 calibration fixture 并接入 Resources,修正 visual_state 最小序列展示,修正 usage log 路径记录,仍未接真实 Provider / LLM / API。
+- 2026-07-02 — Stage 7.0.6-fix log cleanup — 补写 7.0.6-fix 记录到 DEVLOG 和 usage log,保持 Stage 7 仍在最小 calibration/mock/trace 收口内。
+- 2026-07-02 — Stage 7.0 final review fix — 将 App 内 calibration fixture 修正为脱敏 DR v0.3-shaped 结构,DRLoader 浅校验读取 revision / manifest / resident_identity / lattice_config / safety flags,不依赖真实 `.digital_resident`。
+- 2026-07-02 — Stage 7.0 app cleanup — 修正 Bundle 资源查找为 `Freezev03.calibration_fixture.json`,清理旧 `Eterna_aftelle` 模板工程/测试/顶层无效 `Aftelle.xcodeproj`,保留当前 `apps/macos/Aftelle/` 与 `RuntimeCore/`。
+- 2026-07-02 — Stage 7.0 Calibration PASS — 上机验证 Load DR 成功,显示 `schema_canvas` / `Schema Canvas`,mock step / trace / diagnostics 正常;允许合并到 main 并进入 Stage 7.1。
+
 
 ---
 
