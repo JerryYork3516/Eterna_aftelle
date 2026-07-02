@@ -34,3 +34,13 @@ Use this file to record each Codex task before closing the loop.
 - Verification: xcodebuild -list passed; architecture_guard passed; secret_guard passed; xcodebuild build passed with custom -derivedDataPath.
 - Token note: keep RuntimeCore stub minimal; do not wire UI or provider paths.
 - Follow-up: Ready for CAL-004 load-dr minimal path.
+
+## 7.0-CAL-004
+
+- Stage: 7.0-CAL-004
+- Date: 2026-07-02
+- Task: load-dr minimal path
+- Changed files: apps/macos/RuntimeCore/RuntimeCore.swift, apps/macos/RuntimeCore/DRLoader.swift, apps/macos/Aftelle/ContentView.swift
+- Verification: xcodebuild -list passed; architecture_guard passed; secret_guard passed; build passed with custom -derivedDataPath.
+- Token note: keep DR load minimal; no provider, no mock step, no trace display.
+- Follow-up: 7.0-CAL-005 mock step path.

@@ -1,27 +1,5 @@
 import Foundation
 
-public final class RuntimeCore {
-    public let drLoader: DRLoader
-    public let executionEngine: ExecutionEngine
-    public let providerRouter: ProviderRouter
-    public let traceRecorder: TraceRecorder
-    public let visualStateMapper: VisualStateMapper
-
-    public init(
-        drLoader: DRLoader = DRLoader(),
-        executionEngine: ExecutionEngine = ExecutionEngine(),
-        providerRouter: ProviderRouter = ProviderRouter(),
-        traceRecorder: TraceRecorder = TraceRecorder(),
-        visualStateMapper: VisualStateMapper = VisualStateMapper()
-    ) {
-        self.drLoader = drLoader
-        self.executionEngine = executionEngine
-        self.providerRouter = providerRouter
-        self.traceRecorder = traceRecorder
-        self.visualStateMapper = visualStateMapper
-    }
-}
-
 public struct RuntimeStepRequest {
     public var residentID: String
     public var inputText: String
@@ -88,5 +66,42 @@ public struct VisualState {
 
     public init(mode: VisualStateMode) {
         self.mode = mode
+    }
+}
+
+public struct RuntimeLoadResult {
+    public let isLoaded: Bool
+    public let residentID: String
+    public let displayName: String
+    public let statusMessage: String
+    public let diagnostics: String
+}
+
+public final class RuntimeCore {
+    private let drLoader: DRLoader
+
+    public init(drLoader: DRLoader = DRLoader()) {
+        self.drLoader = drLoader
+    }
+
+    public func loadDR(from data: Data) -> RuntimeLoadResult {
+        do {
+            let loadedDR = try drLoader.load(drData: data)
+            return RuntimeLoadResult(
+                isLoaded: true,
+                residentID: loadedDR.residentID,
+                displayName: loadedDR.displayName,
+                statusMessage: "DR loaded",
+                diagnostics: "OK"
+            )
+        } catch {
+            return RuntimeLoadResult(
+                isLoaded: false,
+                residentID: "",
+                displayName: "",
+                statusMessage: "DR load failed",
+                diagnostics: "Read-only fixture load failed"
+            )
+        }
     }
 }
