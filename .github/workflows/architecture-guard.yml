@@ -1,0 +1,15 @@
+name: architecture-guard
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  architecture-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Aftelle architecture guard
+        run: bash tools/architecture_guard/check.sh
