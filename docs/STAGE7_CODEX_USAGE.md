@@ -23,3 +23,14 @@ Use this file to record each Codex task before closing the loop.
 - Verification: `xcodebuild -project apps/macos/Aftelle/Aftelle.xcodeproj -scheme Aftelle -destination 'platform=macOS' -derivedDataPath /tmp/aftelle-cal-002-derived build` passed; built `Aftelle.app` launched and quit successfully; architecture guard and secret guard passed.
 - Token note: keep Xcode output scoped; prefer one final build after file creation.
 - Follow-up: none yet.
+
+## 7.0-CAL-003
+
+- Stage: 7.0-CAL-003
+- Date: 2026-07-02
+- Task: RuntimeCore skeleton.
+- Read scope: `README.md`, `DEVLOG.md`, `docs/stage7_entry_gate.md`, `docs/runtime_api_contract.md`, `docs/aftelle_runtime_boundary.md`, `docs/dr_contract_v0_3.md`, `docs/provider_profile_contract.md`, `docs/02_architecture.md`, `docs/04_code_standards.md`, `docs/05_dev_guide.md`.
+- Changed files: `apps/macos/Aftelle/Aftelle/RuntimeCore/*.swift`, `DEVLOG.md`, this usage log.
+- Verification: pending.
+- Token note: keep RuntimeCore stub minimal; do not wire UI or provider paths.
+- Follow-up: run build and guards after file creation.

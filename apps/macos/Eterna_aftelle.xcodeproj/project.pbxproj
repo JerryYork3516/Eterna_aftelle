@@ -39,6 +39,12 @@
 		F55C39252FF53D2100518C89 /* Eterna_aftelle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Eterna_aftelle.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F55C39322FF53D2200518C89 /* Eterna_aftelleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Eterna_aftelleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F55C393C2FF53D2200518C89 /* Eterna_aftelleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Eterna_aftelleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F55DE87D2FF62963009DA744 /* RuntimeCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeCore.swift; sourceTree = "<group>"; };
+		F55DE87E2FF6296A009DA744 /* DRLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DRLoader.swift; sourceTree = "<group>"; };
+		F55DE87F2FF62970009DA744 /* ExecutionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecutionEngine.swift; sourceTree = "<group>"; };
+		F55DE8802FF62975009DA744 /* ProviderRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderRouter.swift; sourceTree = "<group>"; };
+		F55DE8812FF62981009DA744 /* TraceRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceRecorder.swift; sourceTree = "<group>"; };
+		F55DE8822FF62989009DA744 /* VisualStateMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualStateMapper.swift; sourceTree = "<group>"; };
 		F5D4C5062FF543D0009AEF14 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F5D4C5072FF543D0009AEF14 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		F5D4C5082FF543D0009AEF14 /* Eterna_aftelleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Eterna_aftelleApp.swift; sourceTree = "<group>"; };
@@ -91,6 +97,7 @@
 				F55C39352FF53D2200518C89 /* Eterna_aftelleTests */,
 				F55C393F2FF53D2200518C89 /* Eterna_aftelleUITests */,
 				F55C39262FF53D2100518C89 /* Products */,
+				F55DE87C2FF62955009DA744 /* RuntimeCore */,
 			);
 			sourceTree = "<group>";
 		};
@@ -102,6 +109,19 @@
 				F55C393C2FF53D2200518C89 /* Eterna_aftelleUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		F55DE87C2FF62955009DA744 /* RuntimeCore */ = {
+			isa = PBXGroup;
+			children = (
+				F55DE87D2FF62963009DA744 /* RuntimeCore.swift */,
+				F55DE87E2FF6296A009DA744 /* DRLoader.swift */,
+				F55DE87F2FF62970009DA744 /* ExecutionEngine.swift */,
+				F55DE8802FF62975009DA744 /* ProviderRouter.swift */,
+				F55DE8812FF62981009DA744 /* TraceRecorder.swift */,
+				F55DE8822FF62989009DA744 /* VisualStateMapper.swift */,
+			);
+			path = RuntimeCore;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
