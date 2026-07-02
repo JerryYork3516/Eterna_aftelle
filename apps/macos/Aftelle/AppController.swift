@@ -10,6 +10,7 @@ final class AppController: ObservableObject {
     @Published private(set) var displayName = "display_name: -"
     @Published private(set) var diagnostics = ""
     @Published private(set) var avatarState = AppAvatarState()
+    @Published private(set) var runtimeState: AppRuntimeState = .idle
 
     private let runtimeCore: RuntimeCore
     private var loadedResidentID = ""
@@ -57,7 +58,19 @@ final class AppController: ObservableObject {
     }
 
     func step(inputText: String) -> RuntimeStepResponse {
-        runtimeCore.step(request: RuntimeStepRequest(residentID: loadedResidentID, inputText: inputText))
+        let response = runtimeCore.step(request: RuntimeStepRequest(residentID: loadedResidentID, inputText: inputText))
+        runtimeState = response.cancellationState.isCancelled ? (response.cancellationState.reason == .interrupted ? .interrupted : .cancelled) : .running
+        return response
+    }
+
+    func cancelCurrentStep() {
+        runtimeCore.cancelCurrentStep()
+        runtimeState = .cancelled
+    }
+
+    func interrupt() {
+        runtimeCore.interrupt(request: RuntimeCancellationRequest(reason: .interrupted))
+        runtimeState = .interrupted
     }
 
     private func applyFailure(runtimeMessage: String, diagnosticsMessage: String) {
@@ -67,6 +80,7 @@ final class AppController: ObservableObject {
         residentID = "resident_id: -"
         displayName = "display_name: -"
         avatarState = AppAvatarState()
+        runtimeState = .idle
         diagnostics = diagnosticsMessage
         startupState = .failed
     }

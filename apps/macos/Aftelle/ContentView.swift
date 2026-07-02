@@ -36,6 +36,7 @@ struct ContentView: View {
             Text("avatar_mood_hint: \(controller.avatarState.moodHint)")
             Text("avatar_activity_hint: \(controller.avatarState.activityHint)")
             Text("avatar_particle_hint: \(controller.avatarState.particleHint)")
+            Text("runtime_state: \(String(describing: controller.runtimeState))")
 
             if !controller.diagnostics.isEmpty {
                 Text(controller.diagnostics)

@@ -15,33 +15,37 @@ public final class ExecutionEngine {
         self.visualStateMapper = visualStateMapper
     }
 
-    public func step(request: RuntimeStepRequest) -> RuntimeStepResponse {
+    public func step(request: RuntimeStepRequest, cancellationState: RuntimeCancellationState = .none) -> RuntimeStepResponse {
         let hasInput = !request.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let traceEvents = [
             TraceEvent(type: .runtimeStep, message: hasInput ? "Received runtime step request." : "Received empty runtime step request."),
             TraceEvent(type: .providerMock, message: "Mock provider routed inside RuntimeCore."),
-            TraceEvent(type: .visualStateChanged, message: "Visual state mapped for runtime response.")
+            TraceEvent(type: .visualStateChanged, message: "Visual state mapped for runtime response."),
+            TraceEvent(type: .runtimeStep, message: cancellationState.isCancelled ? "Runtime step cancelled." : "Runtime step active.")
         ]
 
         traceEvents.forEach { traceRecorder.record($0) }
 
-        let visualState = visualStateMapper.map(mode: .speaking)
-        let avatarState = AvatarState(
+        let visualState = visualStateMapper.map(mode: cancellationState.isCancelled ? .idle : .speaking)
+        let avatarState = visualStateMapper.mapAvatarState(
+            visualState: visualState,
             residentID: request.residentID,
-            displayName: "Schema Canvas",
-            mode: "speaking",
-            presence: "active",
-            moodHint: "expressive",
-            activityHint: "speaking",
-            particleHint: "calibration_speaking"
+            displayName: "Schema Canvas"
+        )
+        let outputText = cancellationState.isCancelled ? "Runtime step cancelled." : providerRouter.routeMockProvider()
+        let diagnostics = RuntimeDiagnostics(
+            runtimeStepCount: 1,
+            providerMode: "mock",
+            cancellationState: cancellationState.isCancelled ? (cancellationState.reason?.rawValue ?? "cancelled") : "none"
         )
 
         return RuntimeStepResponse(
-            outputText: providerRouter.routeMockProvider(),
+            outputText: outputText,
             visualState: visualState,
             avatarState: avatarState,
+            cancellationState: cancellationState,
             traceEvents: traceEvents,
-            diagnostics: RuntimeDiagnostics(runtimeStepCount: 1, providerMode: "mock")
+            diagnostics: diagnostics
         )
     }
 }

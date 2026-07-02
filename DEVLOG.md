@@ -109,6 +109,7 @@
 - 2026-07-02 — Stage 7.1.7 RuntimeCore Provider 配置入口 — 新增 ProviderRuntimeConfig 与 ProviderRouter 脱敏诊断入口,Provider 配置引用仅收口在 RuntimeCore 内,不接真实 ProviderAdapter/网络调用,不泄露 secret 值。
 - 2026-07-02 — Stage 7.1.8 Provider key_ref / Keychain 入口：完成 Provider secret 引用边界。RuntimeConfig 仅保存 key_ref / secret_ref，不保存 secret 值；新增 SecretReferenceState / SecretResolutionStatus 与 no-op resolver；HostEnv / PlatformAdapter 保留 SecureSecretReferenceAccess 边界；ProviderRouter diagnostics 仅暴露 providerProfileID、secretRefPresent、keyRefPresent、mode；未接真实 Keychain、未接真实 Provider、未输出 secret value；xcodebuild、architecture_guard、secret_guard 均通过。
 - 2026-07-02 — Stage 7.1.9 Avatar State Protocol 契约：完成最小 AvatarState 只读状态契约。在现有文件内为 RuntimeCore 的 load / step response 增加 avatarState 输出，由 VisualStateMapper 负责最小映射，AppController 只转发只读状态，ContentView 只展示状态；未新增 Swift 文件，未修改 project.pbxproj，未写回 DR，未接真实 Provider / Keychain，未做 Metal / scheduler；xcodebuild、architecture_guard、secret_guard 均通过。
+- 2026-07-02 — Stage 7.1.10 统一取消 / 中断语义：完成 RuntimeCore 最小 cancel / interrupt 语义。新增 cancelCurrentStep() / interrupt(request:) 公共入口，ExecutionEngine 可返回 cancelled / interrupted 结果，RuntimeStepResponse 与 diagnostics 携带 cancellationState，Trace 仅记录脱敏取消事件；AppController 只调用 RuntimeCore 公共入口，ContentView 只展示只读状态；未新增 Swift 文件，未修改 project.pbxproj，未接真实 Provider / Keychain，未做 scheduler / tick；xcodebuild、architecture_guard、secret_guard 均通过。
 
 ---
 

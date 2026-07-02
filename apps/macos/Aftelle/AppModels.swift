@@ -7,6 +7,13 @@ public enum AppStartupState {
     case failed
 }
 
+public enum AppRuntimeState: Equatable {
+    case idle
+    case running
+    case cancelled
+    case interrupted
+}
+
 public struct AppAvatarState: Equatable {
     public var residentID: String
     public var displayName: String
