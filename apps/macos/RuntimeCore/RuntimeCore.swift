@@ -99,13 +99,23 @@ public final class RuntimeCore {
 
     public func loadDR(from data: Data) -> RuntimeLoadResult {
         do {
-            let loadedDR = try drLoader.load(drData: data)
+            let result = try drLoader.load(request: DRLoadRequest(drData: data))
+            guard let loadedDR = result.loadedDR, result.isLoaded else {
+                return RuntimeLoadResult(
+                    isLoaded: false,
+                    residentID: "",
+                    displayName: "",
+                    statusMessage: "DR load failed",
+                    diagnostics: result.diagnostics
+                )
+            }
+
             return RuntimeLoadResult(
                 isLoaded: true,
                 residentID: loadedDR.residentID,
                 displayName: loadedDR.displayName,
                 statusMessage: "DR loaded",
-                diagnostics: "OK"
+                diagnostics: result.diagnostics
             )
         } catch {
             return RuntimeLoadResult(
@@ -113,7 +123,7 @@ public final class RuntimeCore {
                 residentID: "",
                 displayName: "",
                 statusMessage: "DR load failed",
-                diagnostics: "Read-only fixture load failed"
+                diagnostics: "DR load failed"
             )
         }
     }

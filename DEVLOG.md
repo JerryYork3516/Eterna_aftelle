@@ -10,11 +10,17 @@
 
 ## 📌 当前状态(每次更新,粘给 AI 时就粘这一段)
 
-- **现在在做**:Stage 7.1.4 —— RuntimeCore 最小运行闭环接入
-- **上一步刚完成**:Stage 7.1.3 App 启动流程,7.1.4 轻量边界审核修复中
+- **现在在做**:Stage 7.1.5 —— DR Loader 读取 / 浅校验 / 加载边界
+- **上一步刚完成**:Stage 7.1.4 RuntimeCore 最小运行闭环已接入,开始正规化 DR 只读加载边界
 - **当前卡在**:无
-- **下一步**:7.1.4 修复验收后,等待确认再进 7.1.5
-- **额度情况**:保持最小启动路径,不碰运行闭环
+- **下一步**:只做 7.1.5 验收与记录,不进 7.1.6
+- **额度情况**:保持最小加载路径,不碰执行层扩展
+
+> - **现在在做**:Stage 7.1.4 —— RuntimeCore 最小运行闭环接入
+> - **上一步刚完成**:Stage 7.1.3 App 启动流程,7.1.4 轻量边界审核修复中
+> - **当前卡在**:无
+> - **下一步**:7.1.4 修复验收后,等待确认再进 7.1.5
+> - **额度情况**:保持最小启动路径,不碰运行闭环
 
 > - **现在在做**:Stage 7.1.2 —— macOS Desktop Shell 整理
 > - **上一步刚完成**:Stage 7.1.1 Platform Adapter boundary 已就绪,开始收口 App shell
@@ -85,8 +91,9 @@
 - 2026-07-02 — Stage 7.0 Calibration PASS — 上机验证 Load DR 成功,显示 `schema_canvas` / `Schema Canvas`,mock step / trace / diagnostics 正常;允许合并到 main 并进入 Stage 7.1。
 - 2026-07-02 — Stage 7.1.1 Platform Adapter boundary — 新增最小 `HostEnv` / `PlatformAdapter` 协议与 noop 实现,RuntimeCore 通过平台无关接口预留 clock / file access / runtime config / provider profile reference / secure secret reference,未接真实平台实现,未引入 SwiftUI / AppKit / Metal。
 - 2026-07-02 — Stage 7.1.2 macOS Desktop Shell — 收敛 Aftelle App 为最小 Desktop Shell,只保留启动壳/窗口壳/加载 DR 的状态展示入口,不再暴露输入/响应/trace 粒子演示,继续通过 RuntimeCore 加载本地 calibration fixture,不接真实 Provider/DR 写回。
-- 2026-07-02 — Stage 7.1.3 App 启动流程 — 引入 `AppController` 作为 UI 与 RuntimeCore 之间的启动边界,App 启动时自动加载 bundled calibration fixture 并把只读状态下发到 ContentView,ContentView 不再承担读取/启动逻辑。
-- 2026-07-02 — Stage 7.1.4 RuntimeCore minimal loop review fix — 保持 UI→AppController→RuntimeCore→ExecutionEngine 最小闭环,将 load request 命名从 fixture 语义收回为 DR data,AppController 独立保存 loaded resident_id,消除 MainActor 初始化 warning;仍未接真实 Provider/LLM/API,未写回 DR,未进入 7.1.5。
+- 2026-07-02 — Stage 7.1.3 App 启动流程 — App 启动改为 App Controller 统一负责,由壳层触发加载 bundled calibration fixture,再通过 RuntimeCore 公共入口读取 DR 并展示只读启动状态,不让 ContentView 直接承担启动逻辑。
+- 2026-07-02 — Stage 7.1.4 RuntimeCore 最小运行闭环接入 — RuntimeCore 成为运行真相源入口,App Controller 仅调 RuntimeCore 公共入口,ExecutionEngine 继续作为唯一内部 step 入口,保留 mock/calibration step 及 diagnostics/trace/visual_state 返回,不接真实 Provider。
+- 2026-07-02 — Stage 7.1.5 DR Loader 读取 / 浅校验 / 加载边界 — DRLoader 只负责只读读取与浅校验,通过 RuntimeCore 公共入口接入,返回脱敏 diagnostics,不直连 ExecutionEngine / ProviderRouter / Provider,不改 fixture、不改 schema。
 
 
 ---
