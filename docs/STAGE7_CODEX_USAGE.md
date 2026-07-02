@@ -13,6 +13,17 @@ Use this file to record each Codex task before closing the loop.
 - Token note:
 - Follow-up:
 
+## 7.1.1-platform-adapter-boundary
+
+- Stage: 7.1.1
+- Date: 2026-07-02
+- Task: Add the minimal Platform Adapter / HostEnv boundary in RuntimeCore.
+- Read scope: `AGENTS.md`, `README.md`, `DEVLOG.md`, `docs/03_dev_plan.md`, `docs/02_architecture.md`, `docs/runtime_api_contract.md`, `docs/04_code_standards.md`, `apps/macos/RuntimeCore/*.swift`, `apps/macos/Aftelle/Aftelle.xcodeproj/project.pbxproj`.
+- Changed files: `apps/macos/RuntimeCore/PlatformAdapter.swift`, `apps/macos/Aftelle/Aftelle.xcodeproj/project.pbxproj`, `DEVLOG.md`, this usage log.
+- Verification: pending xcodebuild + architecture_guard + secret_guard.
+- Token note: keep the boundary additive and platform-free; no real provider, no UI changes.
+- Follow-up: verify build and guards, then move to the next 7.1 item only if approved.
+
 ## 7.1-livestate-doc-gate
 
 - Stage: 7.1

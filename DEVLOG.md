@@ -10,11 +10,11 @@
 
 ## 📌 当前状态(每次更新,粘给 AI 时就粘这一段)
 
-- **现在在做**:Stage 7.x —— [一句话:具体哪一步]
-- **上一步刚完成**:[做完了什么]
-- **当前卡在**:[如果有卡点,写在这;没有就写"无"]
-- **下一步**:[接下来要做什么]
-- **额度情况**:[这周大概用了多少 / 还够不够]
+- **现在在做**:Stage 7.1 —— Platform Adapter / HostEnv 接口底座
+- **上一步刚完成**:Stage 7.0 Calibration PASS,开始 7.1.1 最小平台抽象
+- **当前卡在**:无
+- **下一步**:继续按 Stage 7.1 顺序推进,不碰 7.1.2 之后内容
+- **额度情况**:进入 7.1,继续控范围和文件读取
 
 > - **现在在做**: v7 文档收口(G0 改 A / Swift RuntimeCore),准备进 Stage 7.0 Calibration
 > - **上一步刚完成**: Stage 6.11 Freeze Audit，后端 pytest 208 passed，前端 typecheck passed，6.7–6.10 手动验收完成
@@ -77,6 +77,7 @@
 - 2026-07-02 — Stage 7.0 final review fix — 将 App 内 calibration fixture 修正为脱敏 DR v0.3-shaped 结构,DRLoader 浅校验读取 revision / manifest / resident_identity / lattice_config / safety flags,不依赖真实 `.digital_resident`。
 - 2026-07-02 — Stage 7.0 app cleanup — 修正 Bundle 资源查找为 `Freezev03.calibration_fixture.json`,清理旧 `Eterna_aftelle` 模板工程/测试/顶层无效 `Aftelle.xcodeproj`,保留当前 `apps/macos/Aftelle/` 与 `RuntimeCore/`。
 - 2026-07-02 — Stage 7.0 Calibration PASS — 上机验证 Load DR 成功,显示 `schema_canvas` / `Schema Canvas`,mock step / trace / diagnostics 正常;允许合并到 main 并进入 Stage 7.1。
+- 2026-07-02 — Stage 7.1.1 Platform Adapter boundary — 新增最小 `HostEnv` / `PlatformAdapter` 协议与 noop 实现,RuntimeCore 通过平台无关接口预留 clock / file access / runtime config / provider profile reference / secure secret reference,未接真实平台实现,未引入 SwiftUI / AppKit / Metal。
 
 
 ---

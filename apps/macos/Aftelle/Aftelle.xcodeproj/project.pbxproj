@@ -15,6 +15,7 @@
 		A070C000000000000000001A /* ProviderRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C000000000000000001B /* ProviderRouter.swift */; };
 		A070C000000000000000001C /* TraceRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C000000000000000001D /* TraceRecorder.swift */; };
 		A070C000000000000000001E /* VisualStateMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C000000000000000001F /* VisualStateMapper.swift */; };
+		A070C0000000000000000024 /* PlatformAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000025 /* PlatformAdapter.swift */; };
 		A070C0000000000000000020 /* Freezev03.calibration_fixture.json in Resources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000021 /* Freezev03.calibration_fixture.json */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +29,7 @@
 		A070C000000000000000001B /* ProviderRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/ProviderRouter.swift; sourceTree = SOURCE_ROOT; };
 		A070C000000000000000001D /* TraceRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/TraceRecorder.swift; sourceTree = SOURCE_ROOT; };
 		A070C000000000000000001F /* VisualStateMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/VisualStateMapper.swift; sourceTree = SOURCE_ROOT; };
+		A070C0000000000000000025 /* PlatformAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/PlatformAdapter.swift; sourceTree = SOURCE_ROOT; };
 		A070C0000000000000000021 /* Freezev03.calibration_fixture.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = Freezev03.calibration_fixture.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -78,6 +80,7 @@
 				A070C000000000000000001B /* ProviderRouter.swift */,
 				A070C000000000000000001D /* TraceRecorder.swift */,
 				A070C000000000000000001F /* VisualStateMapper.swift */,
+				A070C0000000000000000025 /* PlatformAdapter.swift */,
 			);
 			path = ../RuntimeCore;
 			sourceTree = SOURCE_ROOT;
@@ -163,6 +166,7 @@
 				A070C000000000000000001A /* ProviderRouter.swift in Sources */,
 				A070C000000000000000001C /* TraceRecorder.swift in Sources */,
 				A070C000000000000000001E /* VisualStateMapper.swift in Sources */,
+				A070C0000000000000000024 /* PlatformAdapter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
