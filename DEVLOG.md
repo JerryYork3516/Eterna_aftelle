@@ -10,10 +10,10 @@
 
 ## 📌 当前状态(每次更新,粘给 AI 时就粘这一段)
 
-- **现在在做**:Stage 7.1.3 —— App 启动流程
-- **上一步刚完成**:Stage 7.1.2 Desktop Shell 收口,准备把启动逻辑上移到 App Controller
+- **现在在做**:Stage 7.1.4 —— RuntimeCore 最小运行闭环接入
+- **上一步刚完成**:Stage 7.1.3 App 启动流程,7.1.4 轻量边界审核修复中
 - **当前卡在**:无
-- **下一步**:只做 7.1.3 验收,不进 7.1.4
+- **下一步**:7.1.4 修复验收后,等待确认再进 7.1.5
 - **额度情况**:保持最小启动路径,不碰运行闭环
 
 > - **现在在做**:Stage 7.1.2 —— macOS Desktop Shell 整理
@@ -86,6 +86,7 @@
 - 2026-07-02 — Stage 7.1.1 Platform Adapter boundary — 新增最小 `HostEnv` / `PlatformAdapter` 协议与 noop 实现,RuntimeCore 通过平台无关接口预留 clock / file access / runtime config / provider profile reference / secure secret reference,未接真实平台实现,未引入 SwiftUI / AppKit / Metal。
 - 2026-07-02 — Stage 7.1.2 macOS Desktop Shell — 收敛 Aftelle App 为最小 Desktop Shell,只保留启动壳/窗口壳/加载 DR 的状态展示入口,不再暴露输入/响应/trace 粒子演示,继续通过 RuntimeCore 加载本地 calibration fixture,不接真实 Provider/DR 写回。
 - 2026-07-02 — Stage 7.1.3 App 启动流程 — 引入 `AppController` 作为 UI 与 RuntimeCore 之间的启动边界,App 启动时自动加载 bundled calibration fixture 并把只读状态下发到 ContentView,ContentView 不再承担读取/启动逻辑。
+- 2026-07-02 — Stage 7.1.4 RuntimeCore minimal loop review fix — 保持 UI→AppController→RuntimeCore→ExecutionEngine 最小闭环,将 load request 命名从 fixture 语义收回为 DR data,AppController 独立保存 loaded resident_id,消除 MainActor 初始化 warning;仍未接真实 Provider/LLM/API,未写回 DR,未进入 7.1.5。
 
 
 ---

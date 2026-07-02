@@ -11,10 +11,10 @@ public struct RuntimeStepRequest {
 }
 
 public struct RuntimeLoadRequest {
-    public var fixtureData: Data
+    public var drData: Data
 
-    public init(fixtureData: Data) {
-        self.fixtureData = fixtureData
+    public init(drData: Data) {
+        self.drData = drData
     }
 }
 
@@ -119,7 +119,7 @@ public final class RuntimeCore {
     }
 
     public func loadDR(request: RuntimeLoadRequest) -> RuntimeLoadResult {
-        loadDR(from: request.fixtureData)
+        loadDR(from: request.drData)
     }
 
     public func step(inputText: String) -> RuntimeStepResponse {

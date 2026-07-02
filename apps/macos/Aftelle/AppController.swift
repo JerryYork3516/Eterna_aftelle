@@ -11,8 +11,13 @@ final class AppController: ObservableObject {
     @Published private(set) var diagnostics = ""
 
     private let runtimeCore: RuntimeCore
+    private var loadedResidentID = ""
 
-    init(runtimeCore: RuntimeCore = RuntimeCore()) {
+    init() {
+        self.runtimeCore = RuntimeCore()
+    }
+
+    init(runtimeCore: RuntimeCore) {
         self.runtimeCore = runtimeCore
     }
 
@@ -29,7 +34,8 @@ final class AppController: ObservableObject {
             return
         }
 
-        let result = runtimeCore.loadDR(request: RuntimeLoadRequest(fixtureData: fixtureData))
+        let result = runtimeCore.loadDR(request: RuntimeLoadRequest(drData: fixtureData))
+        loadedResidentID = result.isLoaded ? result.residentID : ""
         runtimeStatus = "Runtime status: \(result.statusMessage)"
         fixtureStatus = result.isLoaded ? "DR fixture: loaded" : "DR fixture: not loaded"
         residentID = "resident_id: \(result.residentID.isEmpty ? "-" : result.residentID)"
@@ -39,12 +45,13 @@ final class AppController: ObservableObject {
     }
 
     func step(inputText: String) -> RuntimeStepResponse {
-        runtimeCore.step(request: RuntimeStepRequest(residentID: residentID.replacingOccurrences(of: "resident_id: ", with: ""), inputText: inputText))
+        runtimeCore.step(request: RuntimeStepRequest(residentID: loadedResidentID, inputText: inputText))
     }
 
     private func applyFailure(runtimeMessage: String, diagnosticsMessage: String) {
         runtimeStatus = runtimeMessage
         fixtureStatus = "DR fixture: not loaded"
+        loadedResidentID = ""
         residentID = "resident_id: -"
         displayName = "display_name: -"
         diagnostics = diagnosticsMessage
