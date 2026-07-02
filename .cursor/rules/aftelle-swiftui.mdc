@@ -1,0 +1,45 @@
+---
+description: Aftelle macOS Swift / SwiftUI / Metal / Xcode 修改规则
+globs: platform-macos/**/*.swift,platform-macos/**/*.metal,platform-macos/**/*.xcodeproj/**,platform-macos/**/*.xcworkspace/**
+---
+
+# Aftelle SwiftUI
+
+用于 Aftelle macOS body 的 Swift、SwiftUI、Metal-facing glue、HostEnv adapter、设置、字幕、Trace、Xcode 工程修改。
+
+## 架构规则
+
+- 保持 UI -> Controller -> Orchestration -> RuntimeCore ExecutionEngine。
+- `brain/` 必须平台无关，不能出现 Metal、AppKit、SwiftUI、Keychain、直接 SQLite 等 Apple 或平台依赖。
+- 粒子逻辑和 Metal 渲染分离：逻辑在平台无关层，绘制在 macOS renderer。
+- 用户选择文件必须用 NSOpenPanel URL + security bookmark；不要依赖裸字符串路径。
+- UI 可以展示 provider 配置，但 secret 只在 Apple Keychain；RuntimeCore 只消费 `key_ref`。
+
+## Swift 风格
+
+- 先看现有本地风格，跟随已有类型和命名。
+- 使用 Swift 习惯命名和清晰领域名。
+- 函数短而聚焦。
+- 避免 AI 味：过度注释、死防御代码、未使用抽象、大范围格式化。
+- 一个文件尽量一个主类型，文件名匹配主类型。
+
+## SwiftUI 规则
+
+- SwiftUI 是设置、字幕、导入流、状态、Trace/debug 的 shell；主体验仍是粒子生命体。
+- View 保持薄，行为走 controller/view model，并遵守 RuntimeCore 边界。
+- 不要在 view 里散落硬编码用户可见文案；使用现有本地化机制。
+- 当前 surface 需要时，明确处理 idle、loading、thinking、speaking、error、empty、cancelled 状态。
+- 不做固定宽度假设；中英文都要能放下。
+
+## Store 和安全
+
+- 所有建表必须包含 `schema_version`。
+- Stage 7 没有迁移时，版本不匹配应清空重建并记录日志，不崩溃。
+- 不记录 API key、provider secret、完整 provider response、完整敏感 prompt、真实 `.digital_resident` 内容。
+- 不提交真实 `.digital_resident` 文件或 secrets。
+
+## Xcode 验证
+
+- 能用 Xcode build 时，优先跑 build 验证。
+- 粒子视觉改动必须用结构化日志验证；有条件再加 Preview 或截图。
+- 如果没有跑 build/test，完成总结里必须明确说明。

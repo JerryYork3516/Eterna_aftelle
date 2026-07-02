@@ -1,0 +1,40 @@
+---
+description: Aftelle 仓库上下文读取纪律；任何代码、规划、审核任务前使用
+alwaysApply: true
+---
+
+# Aftelle Context Mode
+
+Cursor 在本仓库工作时，先遵守 `AGENTS.md`，再按当前任务读取最少必要文件。不要为了“理解全局”扫描全仓或一次性读取所有文档。
+
+## 默认读取范围
+
+- 每次工作前先读 `AGENTS.md`。
+- 写代码时读 `docs/04_code_standards.md`。
+- 涉及执行、测试、粒子验证、改 bug 流程时读 `docs/05_dev_guide.md`。
+- 涉及 UI、交互、可见产品行为时读 `docs/06_product_design.md`。
+- 涉及模块边界、HostEnv、RuntimeCore、运行链路时读 `docs/02_architecture.md`；有边界风险时再读 `docs/aftelle_runtime_boundary.md`。
+- 涉及 DR 字段或 Runtime API 时，只读任务点名的 contract 文件。
+
+## 必须执行的流程
+
+1. 先报告预计读取哪些文件、范围多大、为什么需要。
+2. 多文件搜索或多文件修改前，等待用户确认。
+3. 搜索优先用 `rg` / `rg --files`。
+4. 不重复读取未变化文件。
+5. 任务范围扩大时，停下来报告新的读取或修改范围。
+
+## 范围红线
+
+- 不要一次性读取全部 docs。
+- 未经用户明确批准，不要在一个任务里同时深入 `brain/` 和 `platform-macos/` 内部实现。
+- Codex/Cursor 默认主要处理 `platform-macos/`；`brain/` 属于平台无关大脑，除接口同步或用户明确要求外不要改。
+- 跨文件修改前，先做本地 checkpoint commit。
+
+## 编辑前简报
+
+动手前简短说明：
+
+- 目标任务和文件范围。
+- 可能影响哪条 Aftelle 红线。
+- 是否触碰 DR 只读、Provider secrets、RuntimeCore 入口、Store schema_version、粒子逻辑/画法分层、Intent 边界。

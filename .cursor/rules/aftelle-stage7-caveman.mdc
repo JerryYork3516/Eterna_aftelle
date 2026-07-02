@@ -1,0 +1,51 @@
+---
+description: Aftelle Stage 7 极简实现规则；防止过度设计、大改和提前做 Stage 8/9
+alwaysApply: true
+---
+
+# Aftelle Stage 7 Caveman
+
+优先交付 Stage 7 的最小可信闭环，不做泛化平台，不提前搭 Stage 8/9。
+
+## 极简偏置
+
+- 先跑通最小 Stage 7 闭环。
+- 优先加窄的新代码，不重写旧系统。
+- 用朴素 Swift 和显式数据流，少造协议、服务、抽象层。
+- 如果 50 行能干净解决，不写 500 行。
+- 不为了未来双居民、屏幕指导、云端、AR、社交行为提前加依赖或框架。
+
+## MVP 优先链路
+
+保持这条链路优先稳定：
+
+`Load DR v0.3 -> App Controller -> RuntimeCore -> dialogue/mock step -> SessionStore/HostStateStore -> particle state -> Trace -> safety boundary`
+
+链路之外的功能都算次要，除非当前任务明确点名。
+
+## 六条红线
+
+- `brain/` 不 import Metal/AppKit/SwiftUI/Keychain/平台 SQLite；外部访问走 HostEnv。
+- Store 建表必须含 `schema_version`；版本不匹配时清空重建并记录日志，不崩溃。
+- UI 不直连 LLM、Provider、DR、Memory；保持 UI -> Controller -> Orchestration -> RuntimeCore ExecutionEngine。
+- DR 只读，保留真实 `revision`；状态、记忆、Key 不写回 `.digital_resident`。
+- 粒子逻辑和 Metal 画法分层。
+- 交互逻辑只认 Intent，不写坐标级鼠标动作。
+
+## 必须停下来问
+
+- 要改变 `docs/aftelle_runtime_boundary.md` 中的架构不变量。
+- UI 准备直接调用 Provider、Memory、Tool、TTS 或 DR internals。
+- 准备写回 `.digital_resident`。
+- 准备新增存储但没有 `schema_version`。
+- 准备把粒子数学和 Metal 渲染混在一起。
+- 准备用坐标级输入替代 Intent。
+
+## 验收输出
+
+完成时说明：
+
+- 最小实现路径。
+- 明确推迟了什么。
+- 运行了什么 build/test/log/screenshot 验证。
+- 六条红线检查结果。

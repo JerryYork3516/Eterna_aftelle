@@ -1,0 +1,39 @@
+---
+description: Aftelle macOS 可见 UI、交互、字幕、Trace、设置、粒子体验设计规则
+globs: platform-macos/**/*.swift,platform-macos/**/*.metal,platform-macos/**/Resources/**,platform-macos/**/*.strings
+---
+
+# Aftelle Frontend Design
+
+用于 Aftelle 可见 macOS 体验。目标是 Stage 7 单居民运行容器，不是通用 SaaS，也不是传统聊天客户端。
+
+## 产品形态
+
+- Aftelle 是 `.digital_resident` runtime container，粒子生命体是主表面。
+- 不要把它做成普通 chat app；优先电影感字幕、极简输入、状态提示、设置 drawer、Trace/debug surface。
+- Stage 7 MVP 聚焦单居民：启动 shell、导入 DR、运行对话、缓存状态、展示粒子状态、暴露 Trace。
+- 双居民、屏幕指导、星图设置等属于后续或扩展示范，除非当前任务明确要求。
+
+## UI 规则
+
+- 编辑 app 代码时，用户可见文案集中到本地化机制，不散落硬编码文案。
+- 尊重 DR 驱动的居民语言和视觉映射；不要把某个居民的语气、颜色、停顿、情绪行为写死进 kernel。
+- Stage 7 设置优先传统可用 UI；星图/神经元设置不是 MVP。
+- Screen-guide UI 只表达 intent 和 highlight，不在未确认时自动点击或控制电脑。
+- Trace/debug UI 不展示 API key、完整 provider response、包含敏感内容的完整 prompt、本地绝对路径。
+
+## 视觉验证
+
+- 粒子相关 UI 完成前，必须提供结构化日志或 Xcode preview/screenshot 证据。
+- 粒子日志必须降频：状态切换或每秒聚合，禁止逐帧/逐粒子日志。
+- 检查粒子数量、坐标范围、主颜色、FPS、Avatar State、状态切换。
+
+## 设计自检
+
+- 首屏是否明确呈现 resident/shell 状态。
+- 粒子生命体是否仍是主视觉。
+- 是否避免营销卡片或通用聊天应用构图。
+- loading、thinking、speaking、error、empty 状态是否清楚。
+- 中英文文本是否不会因固定宽度溢出。
+- 交互是否表达 Intent，而不是裸坐标动作。
+- 是否仍在 UI -> Controller -> Orchestration -> RuntimeCore 边界内。
