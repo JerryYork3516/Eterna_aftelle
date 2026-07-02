@@ -44,3 +44,13 @@ Use this file to record each Codex task before closing the loop.
 - Verification: xcodebuild -list passed; architecture_guard passed; secret_guard passed; build passed with custom -derivedDataPath.
 - Token note: keep DR load minimal; no provider, no mock step, no trace display.
 - Follow-up: 7.0-CAL-005 mock step path.
+
+## 7.0.5
+
+- Stage: 7.0.5
+- Date: 2026-07-02
+- Task: mock step path
+- Changed files: apps/macos/RuntimeCore/RuntimeCore.swift, apps/macos/RuntimeCore/ExecutionEngine.swift, apps/macos/RuntimeCore/ProviderRouter.swift, apps/macos/RuntimeCore/TraceRecorder.swift, apps/macos/RuntimeCore/VisualStateMapper.swift, apps/macos/Aftelle/ContentView.swift
+- Verification: xcodebuild -list passed; architecture_guard passed; secret_guard passed; build passed with custom -derivedDataPath.
+- Token note: keep mock step local; no real provider, no trace UI.
+- Follow-up: Stage 7.0.6 trace display.

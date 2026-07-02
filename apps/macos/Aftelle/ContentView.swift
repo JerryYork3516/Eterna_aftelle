@@ -7,6 +7,8 @@ struct ContentView: View {
     @State private var residentID = "resident_id: -"
     @State private var displayName = "display_name: -"
     @State private var diagnostics = ""
+    @State private var inputText = ""
+    @State private var responseText = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -19,6 +21,17 @@ struct ContentView: View {
             Text(residentID)
             Text(displayName)
 
+            TextField("Enter a message", text: $inputText)
+                .textFieldStyle(.roundedBorder)
+
+            Button(String(localized: "Send")) {
+                sendMessage()
+            }
+
+            if !responseText.isEmpty {
+                Text(responseText)
+            }
+
             if !diagnostics.isEmpty {
                 Text(diagnostics)
                     .foregroundStyle(.secondary)
@@ -29,7 +42,7 @@ struct ContentView: View {
             }
         }
         .padding(32)
-        .frame(minWidth: 360, minHeight: 220)
+        .frame(minWidth: 420, minHeight: 280)
     }
 
     private func loadFixture() {
@@ -53,6 +66,12 @@ struct ContentView: View {
         residentID = "resident_id: \(result.residentID.isEmpty ? "-" : result.residentID)"
         displayName = "display_name: \(result.displayName.isEmpty ? "-" : result.displayName)"
         diagnostics = result.diagnostics
+    }
+
+    private func sendMessage() {
+        let result = runtimeCore.step(inputText: inputText)
+        responseText = result.outputText
+        diagnostics = result.diagnostics.providerMode
     }
 }
 

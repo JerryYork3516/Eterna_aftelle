@@ -4,6 +4,6 @@ public final class ProviderRouter {
     public init() {}
 
     public func routeMockProvider() -> String {
-        "provider.mock"
+        "Mock response received."
     }
 }

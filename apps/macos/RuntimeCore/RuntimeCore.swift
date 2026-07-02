@@ -79,9 +79,14 @@ public struct RuntimeLoadResult {
 
 public final class RuntimeCore {
     private let drLoader: DRLoader
+    private let executionEngine: ExecutionEngine
 
-    public init(drLoader: DRLoader = DRLoader()) {
+    public init(
+        drLoader: DRLoader = DRLoader(),
+        executionEngine: ExecutionEngine = ExecutionEngine()
+    ) {
         self.drLoader = drLoader
+        self.executionEngine = executionEngine
     }
 
     public func loadDR(from data: Data) -> RuntimeLoadResult {
@@ -103,5 +108,10 @@ public final class RuntimeCore {
                 diagnostics: "Read-only fixture load failed"
             )
         }
+    }
+
+    public func step(inputText: String) -> RuntimeStepResponse {
+        let request = RuntimeStepRequest(residentID: "", inputText: inputText)
+        return executionEngine.step(request: request)
     }
 }
