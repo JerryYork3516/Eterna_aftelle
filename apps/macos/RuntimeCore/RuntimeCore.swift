@@ -88,13 +88,16 @@ public struct RuntimeLoadResult {
 public final class RuntimeCore {
     private let drLoader: DRLoader
     private let executionEngine: ExecutionEngine
+    private let hostEnv: HostEnv
 
     public init(
         drLoader: DRLoader = DRLoader(),
-        executionEngine: ExecutionEngine = ExecutionEngine()
+        executionEngine: ExecutionEngine = ExecutionEngine(),
+        hostEnv: HostEnv = DefaultHostEnv()
     ) {
         self.drLoader = drLoader
         self.executionEngine = executionEngine
+        self.hostEnv = hostEnv
     }
 
     public func loadDR(from data: Data) -> RuntimeLoadResult {
@@ -139,5 +142,9 @@ public final class RuntimeCore {
 
     public func step(request: RuntimeStepRequest) -> RuntimeStepResponse {
         executionEngine.step(request: request)
+    }
+
+    public func currentRuntimeConfig() -> RuntimeConfig {
+        hostEnv.runtimeConfig.currentRuntimeConfig()
     }
 }

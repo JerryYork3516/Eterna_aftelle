@@ -37,14 +37,18 @@ public struct NoopFileAccess: FileAccess {
 }
 
 public protocol RuntimeConfigAccess {
-    func currentRuntimeConfig() -> [String: String]
+    func currentRuntimeConfig() -> RuntimeConfig
 }
 
 public struct NoopRuntimeConfigAccess: RuntimeConfigAccess {
-    public init() {}
+    private let provider: RuntimeConfigProviding
 
-    public func currentRuntimeConfig() -> [String: String] {
-        [:]
+    public init(provider: RuntimeConfigProviding = NoopRuntimeConfigProvider()) {
+        self.provider = provider
+    }
+
+    public func currentRuntimeConfig() -> RuntimeConfig {
+        provider.currentRuntimeConfig()
     }
 }
 
