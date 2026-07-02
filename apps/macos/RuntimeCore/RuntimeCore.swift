@@ -40,10 +40,22 @@ public struct RuntimeStepResponse {
 public struct RuntimeDiagnostics {
     public var runtimeStepCount: Int
     public var providerMode: String
+    public var providerProfileID: String?
+    public var providerSecretRefPresent: Bool
+    public var providerKeyRefPresent: Bool
 
-    public init(runtimeStepCount: Int = 0, providerMode: String = "mock") {
+    public init(
+        runtimeStepCount: Int = 0,
+        providerMode: String = "mock",
+        providerProfileID: String? = nil,
+        providerSecretRefPresent: Bool = false,
+        providerKeyRefPresent: Bool = false
+    ) {
         self.runtimeStepCount = runtimeStepCount
         self.providerMode = providerMode
+        self.providerProfileID = providerProfileID
+        self.providerSecretRefPresent = providerSecretRefPresent
+        self.providerKeyRefPresent = providerKeyRefPresent
     }
 }
 
@@ -88,15 +100,19 @@ public struct RuntimeLoadResult {
 public final class RuntimeCore {
     private let drLoader: DRLoader
     private let executionEngine: ExecutionEngine
+    private let providerRouter: ProviderRouter
     private let hostEnv: HostEnv
+    private let secretResolver = NoopSecretReferenceResolver()
 
     public init(
         drLoader: DRLoader = DRLoader(),
         executionEngine: ExecutionEngine = ExecutionEngine(),
+        providerRouter: ProviderRouter = ProviderRouter(),
         hostEnv: HostEnv = DefaultHostEnv()
     ) {
         self.drLoader = drLoader
         self.executionEngine = executionEngine
+        self.providerRouter = providerRouter
         self.hostEnv = hostEnv
     }
 
@@ -146,5 +162,13 @@ public final class RuntimeCore {
 
     public func currentRuntimeConfig() -> RuntimeConfig {
         hostEnv.runtimeConfig.currentRuntimeConfig()
+    }
+
+    public func providerRoutingDiagnostics() -> ProviderRoutingDiagnostics {
+        let config = currentRuntimeConfig().provider
+        let keyRef = hostEnv.secureSecretReference.currentKeyRef()
+        let secretRef = hostEnv.secureSecretReference.currentSecureSecretReference() ?? config.secretRef
+        let secretState = secretResolver.resolve(keyRef: keyRef, secretRef: secretRef)
+        return providerRouter.diagnostics(for: config, secretState: secretState)
     }
 }

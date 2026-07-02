@@ -3,18 +3,24 @@
 > 这份是给我自己的,不是给 AI 自动读的。
 > 三个作用:① 提醒我做到哪、为什么这么定;② 每次开 GPT/Dify/新对话时,把"当前状态"那段粘过去当背景;③ 防止我忘了当初的决定又推翻重来。
 > **规则:每次做完一件事、或讨论出一个结论、或改完一个 bug,就来记一笔。不用长,几行即可。**
->
+> 
 > **boundary 基线 SHA-256(改动即报警)**：`275b95889f55646e3ae99ceb2a12cc0e974fd5338aa23c7311cccff0d2d041a6`（v7 更新:G0 改 A,仅 clock/tick 归属改为 RuntimeCore,4 条 Invariants 不变;旧 v6 基线 f043f4b5…）
 
 ---
 
 ## 📌 当前状态(每次更新,粘给 AI 时就粘这一段)
 
-- **现在在做**:Stage 7.1.6 —— Runtime Config 本地配置边界
-- **上一步刚完成**:Stage 7.1.5 DR Loader 读取 / 浅校验 / 加载边界已正规化
+- **现在在做**:Stage 7.1.7 —— RuntimeCore Provider 配置入口
+- **上一步刚完成**:Stage 7.1.6 Runtime Config 本地配置边界已就绪,准备只追加 provider 配置入口
 - **当前卡在**:无
-- **下一步**:只做 7.1.6 验收与记录,不进 7.1.7
-- **额度情况**:保持本地 mock 配置,不接真实 provider
+- **下一步**:只做 7.1.7 验收与记录,不进 7.1.8
+- **额度情况**:保持 provider 配置入口仅在 RuntimeCore 内,不接真实 provider
+
+> - **现在在做**:Stage 7.1.6 —— Runtime Config 本地配置边界
+> - **上一步刚完成**:Stage 7.1.5 DR Loader 读取 / 浅校验 / 加载边界已正规化
+> - **当前卡在**:无
+> - **下一步**:只做 7.1.6 验收与记录,不进 7.1.7
+> - **额度情况**:保持本地 mock 配置,不接真实 provider
 
 > - **现在在做**:Stage 7.1.5 —— DR Loader 读取 / 浅校验 / 加载边界
 > - **上一步刚完成**:Stage 7.1.4 RuntimeCore 最小运行闭环已接入,开始正规化 DR 只读加载边界
@@ -39,7 +45,6 @@
 > - **当前卡在**: Stage 7 Gate 缺少冻结文档：DEVLOG.md、runtime_api_contract.md、aftelle_runtime_boundary.md
 > - **下一步**:补齐 Gate 文档后，让 Cursor 重新验收 Stage 7 Entry Gate
 > - **额度情况**:进入 Stage 7 前先控 token，只做文档冻结，不改代码
-
 
 ## ✅ 我现在要做的事(开工清单,做完打勾)
 
@@ -100,14 +105,16 @@
 - 2026-07-02 — Stage 7.1.3 App 启动流程 — App 启动改为 App Controller 统一负责,由壳层触发加载 bundled calibration fixture,再通过 RuntimeCore 公共入口读取 DR 并展示只读启动状态,不让 ContentView 直接承担启动逻辑。
 - 2026-07-02 — Stage 7.1.4 RuntimeCore 最小运行闭环接入 — RuntimeCore 成为运行真相源入口,App Controller 仅调 RuntimeCore 公共入口,ExecutionEngine 继续作为唯一内部 step 入口,保留 mock/calibration step 及 diagnostics/trace/visual_state 返回,不接真实 Provider。
 - 2026-07-02 — Stage 7.1.5 DR Loader 读取 / 浅校验 / 加载边界 — DRLoader 只负责只读读取与浅校验,通过 RuntimeCore 公共入口接入,返回脱敏 diagnostics,不直连 ExecutionEngine / ProviderRouter / Provider,不改 fixture、不改 schema。
-- 2026-07-02 — Stage 7.1.6 Runtime Config 本地配置边界 — 新增最小 RuntimeConfig 本地配置模型并通过 HostEnv / PlatformAdapter 读取,仅保留 mock / placeholder / no-op 配置引用,不含真实 secret / token / base_url / credential,不进 7.1.7 Provider 配置入口。
-
+- 2026-07-02 — Stage 7.1.6 Runtime Config 本地配置边界 — 新增本地 RuntimeConfig 模型与 no-op provider,RuntimeCore 通过 HostEnv / PlatformAdapter 读取配置,配置不含真实 secret/token/base_url/credential,不接真实 provider。
+- 2026-07-02 — Stage 7.1.7 RuntimeCore Provider 配置入口 — 新增 ProviderRuntimeConfig 与 ProviderRouter 脱敏诊断入口,Provider 配置引用仅收口在 RuntimeCore 内,不接真实 ProviderAdapter/网络调用,不泄露 secret 值。
+- 2026-07-02 — Stage 7.1.8 Provider key_ref / Keychain 入口：完成 Provider secret 引用边界。RuntimeConfig 仅保存 key_ref / secret_ref，不保存 secret 值；新增 SecretReferenceState / SecretResolutionStatus 与 no-op resolver；HostEnv / PlatformAdapter 保留 SecureSecretReferenceAccess 边界；ProviderRouter diagnostics 仅暴露 providerProfileID、secretRefPresent、keyRefPresent、mode；未接真实 Keychain、未接真实 Provider、未输出 secret value；xcodebuild、architecture_guard、secret_guard 均通过。
 
 ---
 
 ## 🧊 Stage 7 Gate 冻结文档清单
 
 进入 Stage 7 的冻结文档(Gate 用):
+
 - Runtime 策略：`runtime_strategy.md`
 - Runtime API 契约：`runtime_api_contract.md`
 - DR v0.3 契约：`dr_contract_v0_3.md`
@@ -144,6 +151,13 @@ Stage 6.11 Freeze：Backend pytest 208 passed / Web typecheck passed / 6.7 Memor
 - 付费/登录/云端 → Stage 9
 - Android/Windows 移植 → 远期,大脑现成只重做身体
 - AR / Vision Pro 身体 → Stage 8
+- Stage 7：单机数字居民 Runtime 闭环（生命体诞生）
+  
+  Stage 8：iOS / iPadOS 随身化 + AR现实叠加 + 用户体系（进入现实世界）
+  
+  Stage 9：visionOS 空间居民（空间生命体）
+  
+  Stage 10：Apple 全平台统一生命体 + 结构化 Agent 系统（跨设备智能体）
 - [继续往下扔...]
 
 ---

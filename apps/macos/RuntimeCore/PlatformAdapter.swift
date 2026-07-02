@@ -66,12 +66,17 @@ public struct NoopProviderProfileReferenceAccess: ProviderProfileReferenceAccess
 
 public protocol SecureSecretReferenceAccess {
     func currentSecureSecretReference() -> String?
+    func currentKeyRef() -> String?
 }
 
 public struct NoopSecureSecretReferenceAccess: SecureSecretReferenceAccess {
     public init() {}
 
     public func currentSecureSecretReference() -> String? {
+        nil
+    }
+
+    public func currentKeyRef() -> String? {
         nil
     }
 }
