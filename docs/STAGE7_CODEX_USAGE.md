@@ -13,17 +13,6 @@ Use this file to record each Codex task before closing the loop.
 - Token note:
 - Follow-up:
 
-## 7.1.1-platform-adapter-boundary
-
-- Stage: 7.1.1
-- Date: 2026-07-02
-- Task: Add the minimal Platform Adapter / HostEnv boundary in RuntimeCore.
-- Read scope: `AGENTS.md`, `README.md`, `DEVLOG.md`, `docs/03_dev_plan.md`, `docs/02_architecture.md`, `docs/runtime_api_contract.md`, `docs/04_code_standards.md`, `apps/macos/RuntimeCore/*.swift`, `apps/macos/Aftelle/Aftelle.xcodeproj/project.pbxproj`.
-- Changed files: `apps/macos/RuntimeCore/PlatformAdapter.swift`, `apps/macos/Aftelle/Aftelle.xcodeproj/project.pbxproj`, `DEVLOG.md`, this usage log.
-- Verification: pending xcodebuild + architecture_guard + secret_guard.
-- Token note: keep the boundary additive and platform-free; no real provider, no UI changes.
-- Follow-up: verify build and guards, then move to the next 7.1 item only if approved.
-
 ## 7.1-livestate-doc-gate
 
 - Stage: 7.1
@@ -126,3 +115,25 @@ Use this file to record each Codex task before closing the loop.
 - Verification: JSON lint passed; Aftelle build passed; architecture_guard passed; secret_guard passed; no Eterna references remain under apps/macos.
 - Token note: keep cleanup scoped to macOS app tree only.
 - Follow-up: none.
+
+## 7.1.1
+
+- Stage: 7.1.1
+- Date: 2026-07-02
+- Task: Add Platform Adapter boundary.
+- Read scope: `AGENTS.md`, `README.md`, `DEVLOG.md`, `docs/03_dev_plan.md`, `docs/04_code_standards.md`, `docs/STAGE7_CODEX_USAGE.md`, `apps/macos/RuntimeCore/*`, `apps/macos/Aftelle/Aftelle.xcodeproj/project.pbxproj`.
+- Changed files: `apps/macos/RuntimeCore/PlatformAdapter.swift`, `apps/macos/Aftelle/Aftelle.xcodeproj/project.pbxproj`, `DEVLOG.md`, this usage log.
+- Verification: `xcodebuild -project apps/macos/Aftelle/Aftelle.xcodeproj -scheme Aftelle -destination 'platform=macOS' -derivedDataPath /tmp/aftelle-7-1-1-derived build` passed; `tools/architecture_guard/check.sh` ok; `tools/secret_guard/check.sh` ok.
+- Token note: keep platform boundary no-op and platform-independent.
+- Follow-up: proceed to 7.1.2 desktop shell only.
+
+## 7.1.2
+
+- Stage: 7.1.2
+- Date: 2026-07-02
+- Task: Organize macOS desktop shell.
+- Read scope: `AGENTS.md`, `README.md`, `DEVLOG.md`, `.cursor/rules/*`, `docs/03_dev_plan.md`, `docs/02_architecture.md`, `docs/aftelle_runtime_boundary.md`, `docs/04_code_standards.md`, `apps/macos/Aftelle/*`, `apps/macos/RuntimeCore/*`.
+- Changed files: `apps/macos/Aftelle/AftelleApp.swift`, `apps/macos/Aftelle/ContentView.swift`, `DEVLOG.md`, this usage log.
+- Verification: `xcodebuild -project apps/macos/Aftelle/Aftelle.xcodeproj -scheme Aftelle -destination 'platform=macOS' -derivedDataPath /tmp/aftelle-7-1-2-derived build` passed; `tools/architecture_guard/check.sh` ok; `tools/secret_guard/check.sh` ok.
+- Token note: keep shell thin; do not add startup flow or provider wiring.
+- Follow-up: 7.1.3 startup flow only when explicitly started.
