@@ -3,7 +3,7 @@
 > 这份是给我自己的,不是给 AI 自动读的。
 > 三个作用:① 提醒我做到哪、为什么这么定;② 每次开 GPT/Dify/新对话时,把"当前状态"那段粘过去当背景;③ 防止我忘了当初的决定又推翻重来。
 > **规则:每次做完一件事、或讨论出一个结论、或改完一个 bug,就来记一笔。不用长,几行即可。**
->
+> 
 > **boundary 基线 SHA-256(改动即报警)**：`275b95889f55646e3ae99ceb2a12cc0e974fd5338aa23c7311cccff0d2d041a6`（v7 更新:G0 改 A,仅 clock/tick 归属改为 RuntimeCore,4 条 Invariants 不变;旧 v6 基线 f043f4b5…）
 
 ---
@@ -110,6 +110,7 @@
 - 2026-07-02 — Stage 7.1.8 Provider key_ref / Keychain 入口：完成 Provider secret 引用边界。RuntimeConfig 仅保存 key_ref / secret_ref，不保存 secret 值；新增 SecretReferenceState / SecretResolutionStatus 与 no-op resolver；HostEnv / PlatformAdapter 保留 SecureSecretReferenceAccess 边界；ProviderRouter diagnostics 仅暴露 providerProfileID、secretRefPresent、keyRefPresent、mode；未接真实 Keychain、未接真实 Provider、未输出 secret value；xcodebuild、architecture_guard、secret_guard 均通过。
 - 2026-07-02 — Stage 7.1.9 Avatar State Protocol 契约：完成最小 AvatarState 只读状态契约。在现有文件内为 RuntimeCore 的 load / step response 增加 avatarState 输出，由 VisualStateMapper 负责最小映射，AppController 只转发只读状态，ContentView 只展示状态；未新增 Swift 文件，未修改 project.pbxproj，未写回 DR，未接真实 Provider / Keychain，未做 Metal / scheduler；xcodebuild、architecture_guard、secret_guard 均通过。
 - 2026-07-02 — Stage 7.1.10 统一取消 / 中断语义：完成 RuntimeCore 最小 cancel / interrupt 语义。新增 cancelCurrentStep() / interrupt(request:) 公共入口，ExecutionEngine 可返回 cancelled / interrupted 结果，RuntimeStepResponse 与 diagnostics 携带 cancellationState，Trace 仅记录脱敏取消事件；AppController 只调用 RuntimeCore 公共入口，ContentView 只展示只读状态；未新增 Swift 文件，未修改 project.pbxproj，未接真实 Provider / Keychain，未做 scheduler / tick；xcodebuild、architecture_guard、secret_guard 均通过。
+- 2026-07-03 — Stage 7.1.11 Orchestration Kernel Skeleton：完成最小 OrchestrationKernel 骨架。Kernel 位于 AppController 与 RuntimeCore 之间，只保存 RuntimeCore 公共入口引用，并提供 prepare / loadResident / step 的薄壳边界；AppController 已通过 OrchestrationKernel 组织运行入口，Kernel 不直连 DRLoader / ExecutionEngine / ProviderRouter / Provider；未新增 Swift 文件，未修改 project.pbxproj，未做 scheduler / planner / 多居民 / tool selection；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
 
 ---
 
@@ -150,16 +151,21 @@ Stage 6.11 Freeze：Backend pytest 208 passed / Web typecheck passed / 6.7 Memor
 > 任何"想到但现在不该做"的,扔这里,别立刻去做
 
 - 双居民复杂互动 → Stage 7 后半段
+
 - 付费/登录/云端 → Stage 9
+
 - Android/Windows 移植 → 远期,大脑现成只重做身体
+
 - AR / Vision Pro 身体 → Stage 8
+
 - Stage 7：单机数字居民 Runtime 闭环（生命体诞生）
-
+  
   Stage 8：iOS / iPadOS 随身化 + AR现实叠加 + 用户体系（进入现实世界）
-
+  
   Stage 9：visionOS 空间居民（空间生命体）
-
+  
   Stage 10：Apple 全平台统一生命体 + 结构化 Agent 系统（跨设备智能体）
+
 - [继续往下扔...]
 
 ---

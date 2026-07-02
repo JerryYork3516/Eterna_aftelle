@@ -41,3 +41,51 @@ public struct AppAvatarState: Equatable {
         self.particleHint = particleHint
     }
 }
+
+public struct OrchestrationKernelDiagnostics: Equatable {
+    public var stateSummary: String
+
+    public init(stateSummary: String = "unprepared") {
+        self.stateSummary = stateSummary
+    }
+}
+
+@MainActor
+public final class OrchestrationKernel {
+    private let runtimeCore: RuntimeCore
+    private var isPrepared = false
+    private var lastDiagnostics = OrchestrationKernelDiagnostics()
+
+    public init(runtimeCore: RuntimeCore = RuntimeCore()) {
+        self.runtimeCore = runtimeCore
+    }
+
+    public func prepare() {
+        isPrepared = true
+        lastDiagnostics = OrchestrationKernelDiagnostics(stateSummary: "prepared")
+    }
+
+    public func currentDiagnostics() -> OrchestrationKernelDiagnostics {
+        lastDiagnostics
+    }
+
+    public func loadResident(fixtureData: Data) -> RuntimeLoadResult {
+        prepare()
+        let result = runtimeCore.loadDR(request: RuntimeLoadRequest(drData: fixtureData))
+        lastDiagnostics = OrchestrationKernelDiagnostics(stateSummary: result.isLoaded ? "resident_loaded" : "resident_load_failed")
+        return result
+    }
+
+    public func step(residentID: String, inputText: String) -> RuntimeStepResponse {
+        prepare()
+        return runtimeCore.step(request: RuntimeStepRequest(residentID: residentID, inputText: inputText))
+    }
+
+    public func cancelCurrentStep() {
+        runtimeCore.cancelCurrentStep()
+    }
+
+    public func interrupt() {
+        runtimeCore.interrupt(request: RuntimeCancellationRequest(reason: .interrupted))
+    }
+}

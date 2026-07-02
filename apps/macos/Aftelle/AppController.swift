@@ -12,15 +12,15 @@ final class AppController: ObservableObject {
     @Published private(set) var avatarState = AppAvatarState()
     @Published private(set) var runtimeState: AppRuntimeState = .idle
 
-    private let runtimeCore: RuntimeCore
+    private let orchestrationKernel: OrchestrationKernel
     private var loadedResidentID = ""
 
     init() {
-        self.runtimeCore = RuntimeCore()
+        self.orchestrationKernel = OrchestrationKernel()
     }
 
-    init(runtimeCore: RuntimeCore) {
-        self.runtimeCore = runtimeCore
+    init(orchestrationKernel: OrchestrationKernel) {
+        self.orchestrationKernel = orchestrationKernel
     }
 
     func start() {
@@ -36,7 +36,7 @@ final class AppController: ObservableObject {
             return
         }
 
-        let result = runtimeCore.loadDR(request: RuntimeLoadRequest(drData: fixtureData))
+        let result = orchestrationKernel.loadResident(fixtureData: fixtureData)
         loadedResidentID = result.isLoaded ? result.residentID : ""
         runtimeStatus = "Runtime status: \(result.statusMessage)"
         fixtureStatus = result.isLoaded ? "DR fixture: loaded" : "DR fixture: not loaded"
@@ -58,18 +58,18 @@ final class AppController: ObservableObject {
     }
 
     func step(inputText: String) -> RuntimeStepResponse {
-        let response = runtimeCore.step(request: RuntimeStepRequest(residentID: loadedResidentID, inputText: inputText))
+        let response = orchestrationKernel.step(residentID: loadedResidentID, inputText: inputText)
         runtimeState = response.cancellationState.isCancelled ? (response.cancellationState.reason == .interrupted ? .interrupted : .cancelled) : .running
         return response
     }
 
     func cancelCurrentStep() {
-        runtimeCore.cancelCurrentStep()
+        orchestrationKernel.cancelCurrentStep()
         runtimeState = .cancelled
     }
 
     func interrupt() {
-        runtimeCore.interrupt(request: RuntimeCancellationRequest(reason: .interrupted))
+        orchestrationKernel.interrupt()
         runtimeState = .interrupted
     }
 
