@@ -15,6 +15,7 @@
 		A070C000000000000000001A /* ProviderRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C000000000000000001B /* ProviderRouter.swift */; };
 		A070C000000000000000001C /* TraceRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C000000000000000001D /* TraceRecorder.swift */; };
 		A070C000000000000000001E /* VisualStateMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C000000000000000001F /* VisualStateMapper.swift */; };
+		A070C0000000000000000020 /* Freezev03.calibration_fixture.json in Resources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000021 /* Freezev03.calibration_fixture.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +28,7 @@
 		A070C000000000000000001B /* ProviderRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/ProviderRouter.swift; sourceTree = SOURCE_ROOT; };
 		A070C000000000000000001D /* TraceRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/TraceRecorder.swift; sourceTree = SOURCE_ROOT; };
 		A070C000000000000000001F /* VisualStateMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/VisualStateMapper.swift; sourceTree = SOURCE_ROOT; };
+		A070C0000000000000000021 /* Freezev03.calibration_fixture.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = Freezev03.calibration_fixture.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -45,9 +47,18 @@
 			children = (
 				A070C0000000000000000002 /* AftelleApp.swift */,
 				A070C0000000000000000005 /* ContentView.swift */,
+				A070C0000000000000000022 /* Fixtures */,
 				A070C0000000000000000017 /* RuntimeCore */,
 				A070C0000000000000000009 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		A070C0000000000000000022 /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				A070C0000000000000000021 /* Freezev03.calibration_fixture.json */,
+			);
+			path = Fixtures;
 			sourceTree = "<group>";
 		};
 		A070C0000000000000000009 /* Products */ = {
@@ -133,6 +144,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A070C0000000000000000020 /* Freezev03.calibration_fixture.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

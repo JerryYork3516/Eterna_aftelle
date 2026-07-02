@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var responseText = ""
     @State private var visualStateText = "visual_state: idle"
     @State private var traceLines: [String] = []
+    @State private var particleState: ParticleState = .idle
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -22,6 +23,8 @@ struct ContentView: View {
             Text(fixtureStatusMessage)
             Text(residentID)
             Text(displayName)
+
+            particleStrip
 
             TextField("Enter a message", text: $inputText)
                 .textFieldStyle(.roundedBorder)
@@ -59,7 +62,7 @@ struct ContentView: View {
     }
 
     private func loadFixture() {
-        guard let fixtureURL = Bundle.main.url(forResource: "Freezev03", withExtension: "digital_resident") else {
+        guard let fixtureURL = Bundle.main.url(forResource: "Freezev03", withExtension: "calibration_fixture", subdirectory: "Fixtures") else {
             statusMessage = "Runtime status: DR load failed"
             fixtureStatusMessage = "DR fixture: not loaded"
             diagnostics = "Fixture not found"
@@ -84,10 +87,50 @@ struct ContentView: View {
     private func sendMessage() {
         let result = runtimeCore.step(inputText: inputText)
         responseText = result.outputText
-        visualStateText = "visual_state: \(result.visualState.mode.rawValue)"
+        visualStateText = "visual_state: idle → thinking → speaking → idle"
+        particleState = .thinking
         traceLines = result.traceEvents.map { "\($0.type.rawValue): \($0.message)" }
         diagnostics = "diagnostics: \(result.diagnostics.providerMode), steps: \(result.diagnostics.runtimeStepCount)"
+        particleState = .speaking
     }
+
+    private var particleStrip: some View {
+        HStack(spacing: 8) {
+            ForEach(0..<10, id: \.self) { index in
+                Circle()
+                    .fill(Color.accentColor.opacity(particleOpacity(for: index)))
+                    .frame(width: particleSize(for: index), height: particleSize(for: index))
+            }
+        }
+    }
+
+    private func particleOpacity(for index: Int) -> Double {
+        switch particleState {
+        case .idle:
+            return 0.45
+        case .thinking:
+            return index.isMultiple(of: 2) ? 0.7 : 0.5
+        case .speaking:
+            return index.isMultiple(of: 3) ? 1.0 : 0.85
+        }
+    }
+
+    private func particleSize(for index: Int) -> CGFloat {
+        switch particleState {
+        case .idle:
+            return 8
+        case .thinking:
+            return index.isMultiple(of: 2) ? 10 : 9
+        case .speaking:
+            return index.isMultiple(of: 3) ? 12 : 9
+        }
+    }
+}
+
+private enum ParticleState {
+    case idle
+    case thinking
+    case speaking
 }
 
 #Preview {

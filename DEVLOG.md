@@ -72,6 +72,8 @@
 - 2026-07-02 — Stage 7.0-CAL-004 load-dr minimal path — UI 只通过 RuntimeCore 加载本地 DR fixture,只读解析 schema_version / resident_id / display_name,未接 Provider / LLM / API,未实现 mock step,未做 trace display,未写回 DR。
 - 2026-07-02 — Stage 7.0.5 mock step path — UI 通过 RuntimeCore.step 输入一句话,内部走 ExecutionEngine / ProviderRouter 的本地 mock 闭环,返回 mock output_text 并展示最小视觉状态变化,未接真实 Provider / LLM / API,未做 trace display。
 - 2026-07-02 — Stage 7.0.6 trace + visual_state display — 在 mock step 基础上显示最小 trace / diagnostics / visual_state 状态变化,trace 包含 runtime.step / provider.mock / visual_state.changed,未接真实 Provider / LLM / API,未写回 DR。
+- 2026-07-02 — Stage 7.0.6-fix pre-review fixes — 新增脱敏 calibration fixture 并接入 Resources,修正 visual_state 最小序列展示,修正 usage log 路径记录,仍未接真实 Provider / LLM / API。
+- 2026-07-02 — Stage 7.0.6-fix log cleanup — 补写 7.0.6-fix 记录到 DEVLOG 和 usage log,保持 Stage 7 仍在最小 calibration/mock/trace 收口内。
 
 
 ---

@@ -30,7 +30,7 @@ Use this file to record each Codex task before closing the loop.
 - Date: 2026-07-02
 - Task: RuntimeCore skeleton.
 - Read scope: `README.md`, `DEVLOG.md`, `docs/stage7_entry_gate.md`, `docs/runtime_api_contract.md`, `docs/aftelle_runtime_boundary.md`, `docs/dr_contract_v0_3.md`, `docs/provider_profile_contract.md`, `docs/02_architecture.md`, `docs/04_code_standards.md`, `docs/05_dev_guide.md`.
-- Changed files: `apps/macos/Aftelle/Aftelle/RuntimeCore/*.swift`, `DEVLOG.md`, this usage log.
+- Changed files: `apps/macos/RuntimeCore/*.swift`, `DEVLOG.md`, this usage log.
 - Verification: xcodebuild -list passed; architecture_guard passed; secret_guard passed; xcodebuild build passed with custom -derivedDataPath.
 - Token note: keep RuntimeCore stub minimal; do not wire UI or provider paths.
 - Follow-up: Ready for CAL-004 load-dr minimal path.
@@ -64,3 +64,23 @@ Use this file to record each Codex task before closing the loop.
 - Verification: xcodebuild -list passed; architecture_guard passed; secret_guard passed; build passed with custom -derivedDataPath.
 - Token note: keep trace display minimal; no real provider, no DR writes.
 - Follow-up: Stage 7.0.7 polish.
+
+## 7.0.6-fix
+
+- Stage: 7.0.6-fix
+- Date: 2026-07-02
+- Task: pre-review fixes
+- Changed files: apps/macos/Aftelle/ContentView.swift, apps/macos/RuntimeCore/RuntimeCore.swift, apps/macos/RuntimeCore/DRLoader.swift, apps/macos/RuntimeCore/ExecutionEngine.swift, apps/macos/Aftelle/Aftelle.xcodeproj/project.pbxproj, docs/STAGE7_CODEX_USAGE.md, DEVLOG.md, apps/macos/Aftelle/Fixtures/Freezev03.calibration_fixture.json
+- Verification: build passed with custom -derivedDataPath; architecture_guard passed; secret_guard passed.
+- Token note: keep calibration fixture minimal and safe; no real .digital_resident.
+- Follow-up: none.
+
+## 7.0.6-fix-log-cleanup
+
+- Stage: 7.0.6-fix
+- Date: 2026-07-02
+- Task: log cleanup
+- Changed files: DEVLOG.md, docs/STAGE7_CODEX_USAGE.md
+- Verification: not rerun per request.
+- Token note: keep logs aligned with current 7.0 calibration state.
+- Follow-up: none.

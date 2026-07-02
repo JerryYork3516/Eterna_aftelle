@@ -26,7 +26,7 @@ public final class ExecutionEngine {
 
         return RuntimeStepResponse(
             outputText: providerRouter.routeMockProvider(),
-            visualState: visualStateMapper.map(mode: .thinking),
+            visualState: visualStateMapper.map(mode: .speaking),
             traceEvents: traceEvents,
             diagnostics: RuntimeDiagnostics(runtimeStepCount: 1, providerMode: "mock")
         )
