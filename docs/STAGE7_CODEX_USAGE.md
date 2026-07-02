@@ -105,3 +105,13 @@ Use this file to record each Codex task before closing the loop.
 - Verification: JSON lint passed; Aftelle build passed; architecture_guard passed; secret_guard passed; calibration unit test passed during full Eterna_aftelle test run, while old UI test runner failed to initialize automation mode.
 - Token note: keep final review fix narrow; avoid old UI test scheme for routine calibration checks.
 - Follow-up: use Aftelle scheme for manual Stage 7.0 verification.
+
+## 7.0-app-cleanup
+
+- Stage: 7.0 app cleanup
+- Date: 2026-07-02
+- Task: fix bundled fixture lookup and remove old Eterna template project files.
+- Changed files: apps/macos/Aftelle/ContentView.swift, deleted old apps/macos/Eterna_aftelle* files, deleted top-level apps/macos/Aftelle.xcodeproj shell, DEVLOG.md, this usage log.
+- Verification: JSON lint passed; Aftelle build passed; architecture_guard passed; secret_guard passed; no Eterna references remain under apps/macos.
+- Token note: keep cleanup scoped to macOS app tree only.
+- Follow-up: none.

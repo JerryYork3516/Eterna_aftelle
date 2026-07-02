@@ -75,6 +75,7 @@
 - 2026-07-02 — Stage 7.0.6-fix pre-review fixes — 新增脱敏 calibration fixture 并接入 Resources,修正 visual_state 最小序列展示,修正 usage log 路径记录,仍未接真实 Provider / LLM / API。
 - 2026-07-02 — Stage 7.0.6-fix log cleanup — 补写 7.0.6-fix 记录到 DEVLOG 和 usage log,保持 Stage 7 仍在最小 calibration/mock/trace 收口内。
 - 2026-07-02 — Stage 7.0 final review fix — 将 App 内 calibration fixture 修正为脱敏 DR v0.3-shaped 结构,DRLoader 浅校验读取 revision / manifest / resident_identity / lattice_config / safety flags,不依赖真实 `.digital_resident`。
+- 2026-07-02 — Stage 7.0 app cleanup — 修正 Bundle 资源查找为 `Freezev03.calibration_fixture.json`,清理旧 `Eterna_aftelle` 模板工程/测试/顶层无效 `Aftelle.xcodeproj`,保留当前 `apps/macos/Aftelle/` 与 `RuntimeCore/`。
 
 
 ---

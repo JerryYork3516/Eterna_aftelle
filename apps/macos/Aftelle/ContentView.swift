@@ -62,7 +62,7 @@ struct ContentView: View {
     }
 
     private func loadFixture() {
-        guard let fixtureURL = Bundle.main.url(forResource: "Freezev03", withExtension: "calibration_fixture", subdirectory: "Fixtures") else {
+        guard let fixtureURL = Bundle.main.url(forResource: "Freezev03.calibration_fixture", withExtension: "json") else {
             statusMessage = "Runtime status: DR load failed"
             fixtureStatusMessage = "DR fixture: not loaded"
             diagnostics = "Fixture not found"
