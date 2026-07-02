@@ -16,9 +16,6 @@ public final class ExecutionEngine {
     }
 
     public func step(request: RuntimeStepRequest) -> RuntimeStepResponse {
-        let thinkingState = visualStateMapper.map(mode: .thinking)
-        let speakingState = visualStateMapper.map(mode: .speaking)
-        let outputText = providerRouter.routeMockProvider()
         let traceEvents = [
             TraceEvent(type: .runtimeStep, message: "Received runtime step request."),
             TraceEvent(type: .providerMock, message: "Mock provider routed inside RuntimeCore."),
@@ -28,8 +25,8 @@ public final class ExecutionEngine {
         traceEvents.forEach { traceRecorder.record($0) }
 
         return RuntimeStepResponse(
-            outputText: outputText,
-            visualState: visualStateMapper.map(mode: speakingState.mode == .speaking ? .idle : thinkingState.mode),
+            outputText: providerRouter.routeMockProvider(),
+            visualState: visualStateMapper.map(mode: .thinking),
             traceEvents: traceEvents,
             diagnostics: RuntimeDiagnostics(runtimeStepCount: 1, providerMode: "mock")
         )

@@ -9,6 +9,8 @@ struct ContentView: View {
     @State private var diagnostics = ""
     @State private var inputText = ""
     @State private var responseText = ""
+    @State private var visualStateText = "visual_state: idle"
+    @State private var traceLines: [String] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -30,6 +32,17 @@ struct ContentView: View {
 
             if !responseText.isEmpty {
                 Text(responseText)
+            }
+
+            Text(visualStateText)
+
+            if !traceLines.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(traceLines, id: \.self) { line in
+                        Text(line)
+                    }
+                }
+                .font(.caption)
             }
 
             if !diagnostics.isEmpty {
@@ -71,7 +84,9 @@ struct ContentView: View {
     private func sendMessage() {
         let result = runtimeCore.step(inputText: inputText)
         responseText = result.outputText
-        diagnostics = result.diagnostics.providerMode
+        visualStateText = "visual_state: \(result.visualState.mode.rawValue)"
+        traceLines = result.traceEvents.map { "\($0.type.rawValue): \($0.message)" }
+        diagnostics = "diagnostics: \(result.diagnostics.providerMode), steps: \(result.diagnostics.runtimeStepCount)"
     }
 }
 
