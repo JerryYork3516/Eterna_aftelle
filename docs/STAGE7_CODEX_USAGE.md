@@ -31,6 +31,6 @@ Use this file to record each Codex task before closing the loop.
 - Task: RuntimeCore skeleton.
 - Read scope: `README.md`, `DEVLOG.md`, `docs/stage7_entry_gate.md`, `docs/runtime_api_contract.md`, `docs/aftelle_runtime_boundary.md`, `docs/dr_contract_v0_3.md`, `docs/provider_profile_contract.md`, `docs/02_architecture.md`, `docs/04_code_standards.md`, `docs/05_dev_guide.md`.
 - Changed files: `apps/macos/Aftelle/Aftelle/RuntimeCore/*.swift`, `DEVLOG.md`, this usage log.
-- Verification: pending.
+- Verification: xcodebuild -list passed; architecture_guard passed; secret_guard passed; xcodebuild build passed with custom -derivedDataPath.
 - Token note: keep RuntimeCore stub minimal; do not wire UI or provider paths.
-- Follow-up: run build and guards after file creation.
+- Follow-up: Ready for CAL-004 load-dr minimal path.
