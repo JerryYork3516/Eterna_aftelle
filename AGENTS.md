@@ -46,6 +46,7 @@
 | 07_dr_blueprint.md | 造/改数字居民时才读 |
 | 08_product_designer.md | 不在写代码场景读;它是给 GPT/Dify 讨论产品用的 |
 | 09_skills_plugins.md | 配置工具时才读 |
+| feature_livestate.md | 评估 Stage 7 live-state 相关功能、MVP/Extended 分层、禁止项检查时读 |
 | runtime_api_contract.md / dr_contract_v0_3.md | 涉及 Runtime/DR 字段时读 |
 | aftelle_runtime_boundary.md | 判断架构边界是否越界时读;只读不改 |
 | DEVLOG.md | 需要了解当前进度/历史决策时读 |
@@ -111,6 +112,7 @@ shared-protocol/  → 共享定义。改动需双方同步。
 
 - **Provider secret 由 Apple Keychain 持有**;UI 只提交/更新 `key_ref` 和非密钥配置,RuntimeCore 只用 `key_ref`,不向 UI 暴露 `getSecret`。Key / Base URL / Model 都不进 DR / Slot / Trace / Memory / Git / 日志。
 - DR 加载时 UI/DR Loader 只做契约级浅校验(版本/大小/安全 flag/必要字段/未知高危字段),**拒绝加载未知高危字段**;完整 DR schema 校验由 RuntimeCore 执行。
+- Stage 7 live-state 相关功能先过 `docs/feature_livestate.md` 禁止项检查:默认不改 DR schema;Runtime API 只做 additive 扩展;Aftelle 只读/展示/播放/缓存展示快照,不拥有 Provider、Scheduler、Memory Kernel。
 - 崩溃日志、权限边界只预留接口,Stage 7 不实现完整逻辑。
 
 ---

@@ -13,6 +13,17 @@ Use this file to record each Codex task before closing the loop.
 - Token note:
 - Follow-up:
 
+## 7.1-livestate-doc-gate
+
+- Stage: 7.1
+- Date: 2026-07-02
+- Task: Add Stage 7 live-state feature gate and align planning/boundary docs.
+- Read scope: `AGENTS.md`, `CLAUDE.md`, `docs/03_dev_plan.md`, `docs/aftelle_runtime_boundary.md`, `docs/STAGE7_CODEX_USAGE.md`.
+- Changed files: `docs/feature_livestate.md`, `AGENTS.md`, `CLAUDE.md`, `docs/03_dev_plan.md`, `docs/aftelle_runtime_boundary.md`, this usage log.
+- Verification: documentation-only change; checked git diff and searched for `feature_livestate` references.
+- Token note: do not duplicate the full 12-card table across plan/boundary docs.
+- Follow-up: update Runtime API / DR contract only when implementing the specific feature card.
+
 ## 7.0-CAL-002
 
 - Stage: 7.0-CAL-002

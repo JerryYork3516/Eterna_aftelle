@@ -6,6 +6,7 @@
 ## 主线顺序
 
 **Stage 7 MVP = 7.1–7.5 单居民闭环。** 正式开发基线只锁 MVP:单居民 + `resident_id/session_id` 结构、Runtime 对话、会话/展示状态、粒子、TTS/字幕与安全边界。
+Live-state 相关功能按 `feature_livestate.md` 分层:1/2/3/4/5/7/11/12 只做最小版;6 可在 7.4 后半评审但不进 MVP 验收线;8/9/10 只属于 Extended Demo。
 
 **Stage 7 Extended Demo = 7.6–7.11。** 行业居民、双居民、屏幕指导、隔离验证与 Demo Lock 每段单独 Gate,不作为 MVP 前提。
 
@@ -55,6 +56,13 @@
 谁写:AI 写,你验收;fixture 和"什么算通过"由你定。
 具体用例示范(至少各一个):错误 DR 应被拒绝并报明确错误;粒子 FPS 应 ≥ 阈值;双居民记忆应隔离不串。
 
+### G4:Stage 7 功能准入检查
+每个新增功能先过 `docs/feature_livestate.md` 的禁止项检查:
+- 是否改 Runtime API;若改,只能 additive,必须有默认值和版本策略。
+- 是否改 DR schema;默认不改,活态不写回 `.digital_resident`。
+- 是否让 Aftelle 拥有 Provider、Scheduler、Memory Kernel 或长期 live state;若是,不得进 MVP。
+- 是否引入后台主动发送、跨 App 操作、真实工具执行或无界双居民调度;若是,降级为 Extended Demo 或后移。
+
 ---
 
 ## Stage 7.1 技术底座 + 平台抽象 + 编排薄壳
@@ -85,6 +93,9 @@
 7.1.13 单居民 `resident_id/session_id` 结构固化
 7.1.14 Runtime Trace 面板
 7.1.15 RuntimeClock/Scheduler 存在性验证(no-op tick 或 trace `system.tick`)
+7.1.16 `resident_state` 基础字段最小版(additive Runtime response,默认值,不写 DR)
+7.1.17 Debug Panel 生命状态面板(只读 Runtime 返回,不编辑、不触发 Provider)
+7.1.18 Stage 7 禁止项检查器(文档/PR checklist,不做代码系统)
 
 核心链路:
 ```
@@ -111,6 +122,8 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 7.2.7 单居民记忆边界
 7.2.8 Avatar State 状态恢复
 
+边界:SessionStore/HostStateStore 只保存 session/display cache;RuntimeCore / MemoryController 拥有 live state 和 memory 写入。Aftelle 不做 Memory Kernel。
+
 暂时不做:复杂长期记忆、向量数据库、人格成长系统、多居民社会记忆。
 
 验收:关掉再打开,居民还能接上上一段对话。所有存储表带 schema_version。
@@ -134,6 +147,8 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 7.3.11 字幕基础框架
 7.3.12 粒子状态日志输出(供盲测验证)
 7.3.13 后续人形 / 双居民 / AR 视觉接口预留
+
+边界:优先消费 Runtime 返回的 `visual_state`;PAD 只作为辅助输入。Stage 7 只锁 idle / thinking / speaking / sleeping / error 五种状态,不在 Aftelle 推演复杂心理状态。
 
 验收(可判定):
 - 30FPS 可用,60FPS 为目标
@@ -161,8 +176,12 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 7.4.10 情感对话能力
 7.4.11 粒子状态与情绪绑定
 7.4.12 DR 蓝图字段补全
+7.4.13 关系模式最小版(companion / friend / partner;不做 intimate_partner 默认演示)
+7.4.14 叙事记忆最小版(recent important_moments;summary 可 mock;不做向量记忆)
 
 定位:女性 / 西安象征 / 中文为主 / 温柔克制稳定亲近 / 服务情绪、关系、生活、记忆、人文表达。
+
+可选但不进 MVP 验收线:主动分享建议只能由 RuntimeCore 在 step 或前台事件后返回 hint;Aftelle 只显示轻提示,不能后台自动发送。
 
 验收:不像普通 AI 角色扮演,身份和语气稳定,跨会话记忆可延续,**不说 AI 套话**(参照08_product_designer.md 的禁用清单)。
 
@@ -185,6 +204,7 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 7.5.11 语音输入预留
 
 注意:打断机制必须复用 7.1.10 的统一中断语义。
+注意:真实 TTS 必须走 `RuntimeCore ProviderRouter → ProviderAdapter → ExecutionEngine`;Aftelle 只播放 RuntimeCore 返回的音频/字幕载荷,不直连 TTS Provider。
 
 验收:文字/声音/字幕/粒子节奏一致;延迟可接受;打断行为与编排层一致。
 
@@ -206,6 +226,8 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 7.6.8 基础对话能力
 7.6.9 与人文居民能力区分
 7.6.10 第二居民 DR 蓝图
+
+边界:只做分类、拆解、总结、下一步建议;`tool_intent` 只能写入 Trace,不触发真实工具或跨 App 操作。
 
 定位:男性 / 西雅图象征 / 英文中英双语 / 理性工程化高效系统化 / 服务企业、科研、工程、产品。
 
@@ -231,6 +253,7 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 7.7.10 双居民 Runtime Trace
 
 规则:第一个导入=当前主居民,第二个=当前次居民;主次只是交互焦点,非身份等级;后续可手动调换。
+实现边界:先用两个单居民 Runtime session;两个 DR、两个 `resident_id`、两个 `session_id`、两个 state、两个 memory namespace,不做社会关系。
 
 验收:两居民可同时加载;可切换主次;不抢话;不混淆身份;记忆互不串扰。
 
@@ -255,6 +278,7 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 7.8.11 调度原因写入 Trace
 
 调度规则:情绪/关系/生活/人文→人文居民优先;工程/代码/科研/产品→行业居民优先;复杂产品/数字居民系统/创业→双居民协作;用户指定谁→谁优先。
+实现边界:必须等 7.7 状态隔离稳定后再做;最多 2 居民、最多 2 轮、必须合并结论、必须写 `orchestration_trace`;调度在 RuntimeCore / Orchestration Kernel 内,Aftelle 不做复杂 scheduler。
 
 验收:不乱聊;不无限互相讨论;能形成最终结论;Trace 能解释调度原因。
 

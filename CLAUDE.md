@@ -61,6 +61,7 @@ AGENTS.md 里有你必须遵守的全部核心规则,包括:
 - 执行流程、粒子盲测、测试、改 bug → 05_dev_guide.md / bug_contract.md
 - 当前阶段做什么 → 03_dev_plan.md
 - 造/改居民 → 07_dr_blueprint.md
+- 评估 Stage 7 live-state 功能、MVP/Extended 分层、禁止项 → feature_livestate.md
 - Runtime/DR 字段 → runtime_api_contract.md / dr_contract_v0_3.md
 - 架构边界判断 → aftelle_runtime_boundary.md(只读不改)
 - 当前进度/历史决策 → DEVLOG 的"当前状态"段
