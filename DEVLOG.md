@@ -66,6 +66,7 @@
 - 2026-07-01 — **G0 技术选型从 B 改为 A(重大决策)** — 底层运行方案由 B(本地 Python sidecar)改为 **A(Swift RuntimeCore,App 内置运行内核)**。**理由**:Apple 生态优先(LiDAR + Metal 极致渲染,iPhone/iPad Pro 亿级装机);调度/Agent/未来扩展的核心应在 Aftelle 原生 RuntimeCore;纯本地零延迟。**旧 B 标记为 superseded,不删除**,转为非 Apple 端/云端参考实现。Vision Pro 降级为加分项(Apple 已收缩其硬件路线)。**产品主线不变**:Stage 7 仍是 Aftelle 数字居民体验版,7.1–7.11 顺序不变,只替换运行底座。
 - 2026-07-01 — **文档套件 v7 升级** — 全套 16 份文档由 B→A:runtime_strategy 重写为 A;boundary 的 clock/tick 归属改为 RuntimeCore(4 Invariants 不变,新 SHA 见上);architecture/dev_plan/entry_gate/api_contract/provider_profile/dr_contract/code_standards/dev_guide/token_control/bug_contract 及 AGENTS/CLAUDE/README 全部把 sidecar/HTTP/RuntimeAPIClient/Python secret 改为 RuntimeCore/同进程/Apple Keychain。产品阶段顺序与 App 体验主线保持不变。Studio(Python)定位为 `.digital_resident` 上游 + 非 Apple/云端参考。
 - 2026-07-01 — **v7 B→A 残留清理(第二轮)** — 按 GPT 复审清单清除首轮遗留的旧口径:README/entry_gate/architecture/dev_plan/dev_guide/CLAUDE 中的"后端 Provider 链路 / Runtime Host Client / 不重写 Runtime Kernel / 重实现 execution_engine"全部改为 RuntimeCore 口径;dr_contract/api_contract 明确"Apple 端同进程契约 vs HTTP 未来云端/非 Apple 兼容层"分层;`brain/`(RuntimeCore)目录约定保持一致并标明 RuntimeCore 归属。产品阶段 7.1–7.11 与 App 体验主线未动。
+- 2026-07-02 — Stage 7.0 DR fixture 校准完成 — 测试改用本地 `docs/Freezev03.digital_resident`,删除合成 fixture fallback;发现真实 DR 中 `lattice_config.attention = "self"`,后续 loader/合同需按真实样本校准。
 - 
 
 ---
