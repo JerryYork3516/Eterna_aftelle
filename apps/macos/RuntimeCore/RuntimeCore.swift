@@ -236,7 +236,9 @@ public final class RuntimeCore {
     }
 
     public func step(request: RuntimeStepRequest) -> RuntimeStepResponse {
-        executionEngine.step(request: request, cancellationState: cancellationState)
+        let pendingCancellation = cancellationState
+        cancellationState = .none
+        return executionEngine.step(request: request, cancellationState: pendingCancellation)
     }
 
     public func cancelCurrentStep() {
