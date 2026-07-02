@@ -84,3 +84,13 @@ Use this file to record each Codex task before closing the loop.
 - Verification: not rerun per request.
 - Token note: keep logs aligned with current 7.0 calibration state.
 - Follow-up: none.
+
+## 7.0-final-review-fix
+
+- Stage: 7.0 final review fix
+- Date: 2026-07-02
+- Task: align calibration fixture and DRLoader with DR v0.3 key fields.
+- Changed files: apps/macos/Aftelle/Fixtures/Freezev03.calibration_fixture.json, apps/macos/RuntimeCore/DRLoader.swift, apps/macos/Eterna_aftelleTests/Eterna_aftelleTests.swift, DEVLOG.md, this usage log.
+- Verification: JSON lint passed; Aftelle build passed; architecture_guard passed; secret_guard passed; calibration unit test passed during full Eterna_aftelle test run, while old UI test runner failed to initialize automation mode.
+- Token note: keep final review fix narrow; avoid old UI test scheme for routine calibration checks.
+- Follow-up: use Aftelle scheme for manual Stage 7.0 verification.

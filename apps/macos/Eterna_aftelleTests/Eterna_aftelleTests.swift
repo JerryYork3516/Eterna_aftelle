@@ -65,13 +65,14 @@ struct Eterna_aftelleTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-        let sourceURL = repositoryRoot.appendingPathComponent("docs/Freezev03.digital_resident")
+        let sourceURL = repositoryRoot
+            .appendingPathComponent("apps/macos/Aftelle/Fixtures/Freezev03.calibration_fixture.json")
 
         guard FileManager.default.fileExists(atPath: sourceURL.path) else {
             throw CocoaError(.fileNoSuchFile, userInfo: [NSFilePathErrorKey: sourceURL.path])
         }
 
-        print("stage7_calibration_fixture=\(sourceURL.path)")
+        print("stage7_calibration_fixture=Freezev03.calibration_fixture.json")
 
         let data = try Data(contentsOf: sourceURL)
         let object = try JSONSerialization.jsonObject(with: data)

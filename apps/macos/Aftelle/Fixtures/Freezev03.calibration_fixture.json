@@ -1,5 +1,87 @@
 {
+  "file_type": "digital_resident",
+  "dr_version": "0.3",
+  "dr_schema_version": "0.3.0",
   "schema_version": "0.4.0",
-  "resident_id": "schema_canvas",
-  "display_name": "Schema Canvas"
+  "revision": "1",
+  "created_at": "2026-07-02T00:00:00Z",
+  "updated_at": "2026-07-02T00:00:00Z",
+  "not_executable": true,
+  "manifest": {
+    "resident_id": "schema_canvas",
+    "display_name": "Schema Canvas",
+    "required_capabilities": [
+      "lattice",
+      "memory",
+      "tts",
+      "screen"
+    ]
+  },
+  "payload": {
+    "resident_identity": {
+      "resident_id": "schema_canvas",
+      "name": "Schema Canvas",
+      "primary_language": "zh",
+      "city_symbol": "Aftelle",
+      "symbolic_origin": "Eterna Studio",
+      "personality_summary": "A synthetic calibration resident for Stage 7.0 fixture loading.",
+      "domain_focus": [
+        "memory",
+        "lattice",
+        "voice",
+        "screen_guidance"
+      ]
+    }
+  },
+  "lattice_config": {
+    "emotion": "neutral",
+    "energy": 0.5,
+    "attention": "self",
+    "motion": "idle_breathing",
+    "voice_state": "idle",
+    "particle_density": 0.5,
+    "focus_target": "none",
+    "color_palette": [
+      "#7aa2f7",
+      "#5dd39e",
+      "#f2a65a"
+    ],
+    "state_transition_policy": "mock_transition"
+  },
+  "runtime_requirements": {
+    "required_slot_types": [
+      "ar",
+      "avatar",
+      "lattice",
+      "llm",
+      "memory",
+      "tool",
+      "tts"
+    ],
+    "required_engines": [
+      "llm_mock",
+      "memory_mock",
+      "tts_mock",
+      "avatar_mock",
+      "lattice_mock",
+      "screen_mock"
+    ],
+    "required_provider_types": [
+      "llm",
+      "memory",
+      "tts",
+      "avatar",
+      "screen"
+    ],
+    "runtime_api_version": "0.4.0",
+    "execution_mode": "mock",
+    "fallback_mode": "mock_fallback"
+  },
+  "safety_policy": {
+    "no_secret_in_dr": true,
+    "no_direct_provider_binding": true,
+    "mock_screen_only": true,
+    "user_data_not_embedded": true,
+    "not_executable": true
+  }
 }
