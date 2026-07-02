@@ -9,6 +9,7 @@ final class AppController: ObservableObject {
     @Published private(set) var residentID = "resident_id: -"
     @Published private(set) var displayName = "display_name: -"
     @Published private(set) var diagnostics = ""
+    @Published private(set) var avatarState = AppAvatarState()
 
     private let runtimeCore: RuntimeCore
     private var loadedResidentID = ""
@@ -40,6 +41,17 @@ final class AppController: ObservableObject {
         fixtureStatus = result.isLoaded ? "DR fixture: loaded" : "DR fixture: not loaded"
         residentID = "resident_id: \(result.residentID.isEmpty ? "-" : result.residentID)"
         displayName = "display_name: \(result.displayName.isEmpty ? "-" : result.displayName)"
+        avatarState = result.avatarState.map {
+            AppAvatarState(
+                residentID: $0.residentID,
+                displayName: $0.displayName,
+                mode: $0.mode,
+                presence: $0.presence,
+                moodHint: $0.moodHint,
+                activityHint: $0.activityHint,
+                particleHint: $0.particleHint
+            )
+        } ?? AppAvatarState(residentID: result.residentID, displayName: result.displayName)
         diagnostics = result.diagnostics
         startupState = result.isLoaded ? .loaded : .failed
     }
@@ -54,6 +66,7 @@ final class AppController: ObservableObject {
         loadedResidentID = ""
         residentID = "resident_id: -"
         displayName = "display_name: -"
+        avatarState = AppAvatarState()
         diagnostics = diagnosticsMessage
         startupState = .failed
     }

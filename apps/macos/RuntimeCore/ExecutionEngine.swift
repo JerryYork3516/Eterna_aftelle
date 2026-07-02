@@ -25,9 +25,21 @@ public final class ExecutionEngine {
 
         traceEvents.forEach { traceRecorder.record($0) }
 
+        let visualState = visualStateMapper.map(mode: .speaking)
+        let avatarState = AvatarState(
+            residentID: request.residentID,
+            displayName: "Schema Canvas",
+            mode: "speaking",
+            presence: "active",
+            moodHint: "expressive",
+            activityHint: "speaking",
+            particleHint: "calibration_speaking"
+        )
+
         return RuntimeStepResponse(
             outputText: providerRouter.routeMockProvider(),
-            visualState: visualStateMapper.map(mode: .speaking),
+            visualState: visualState,
+            avatarState: avatarState,
             traceEvents: traceEvents,
             diagnostics: RuntimeDiagnostics(runtimeStepCount: 1, providerMode: "mock")
         )

@@ -18,20 +18,54 @@ public struct RuntimeLoadRequest {
     }
 }
 
+public struct AvatarState {
+    public var residentID: String
+    public var displayName: String
+    public var mode: String
+    public var presence: String
+    public var moodHint: String
+    public var activityHint: String
+    public var particleHint: String
+    public var updatedAt: Date
+
+    public init(
+        residentID: String,
+        displayName: String,
+        mode: String,
+        presence: String,
+        moodHint: String,
+        activityHint: String,
+        particleHint: String,
+        updatedAt: Date = Date()
+    ) {
+        self.residentID = residentID
+        self.displayName = displayName
+        self.mode = mode
+        self.presence = presence
+        self.moodHint = moodHint
+        self.activityHint = activityHint
+        self.particleHint = particleHint
+        self.updatedAt = updatedAt
+    }
+}
+
 public struct RuntimeStepResponse {
     public var outputText: String
     public var visualState: VisualState
+    public var avatarState: AvatarState
     public var traceEvents: [TraceEvent]
     public var diagnostics: RuntimeDiagnostics
 
     public init(
         outputText: String,
         visualState: VisualState,
+        avatarState: AvatarState,
         traceEvents: [TraceEvent],
         diagnostics: RuntimeDiagnostics
     ) {
         self.outputText = outputText
         self.visualState = visualState
+        self.avatarState = avatarState
         self.traceEvents = traceEvents
         self.diagnostics = diagnostics
     }
@@ -95,6 +129,7 @@ public struct RuntimeLoadResult {
     public let displayName: String
     public let statusMessage: String
     public let diagnostics: String
+    public let avatarState: AvatarState?
 }
 
 public final class RuntimeCore {
@@ -102,7 +137,6 @@ public final class RuntimeCore {
     private let executionEngine: ExecutionEngine
     private let providerRouter: ProviderRouter
     private let hostEnv: HostEnv
-    private let secretResolver = NoopSecretReferenceResolver()
 
     public init(
         drLoader: DRLoader = DRLoader(),
@@ -125,16 +159,28 @@ public final class RuntimeCore {
                     residentID: "",
                     displayName: "",
                     statusMessage: "DR load failed",
-                    diagnostics: result.diagnostics
+                    diagnostics: result.diagnostics,
+                    avatarState: nil
                 )
             }
+
+            let avatarState = AvatarState(
+                residentID: loadedDR.residentID,
+                displayName: loadedDR.displayName,
+                mode: "idle",
+                presence: "present",
+                moodHint: "calm",
+                activityHint: "ready",
+                particleHint: "calibration_idle"
+            )
 
             return RuntimeLoadResult(
                 isLoaded: true,
                 residentID: loadedDR.residentID,
                 displayName: loadedDR.displayName,
                 statusMessage: "DR loaded",
-                diagnostics: result.diagnostics
+                diagnostics: result.diagnostics,
+                avatarState: avatarState
             )
         } catch {
             return RuntimeLoadResult(
@@ -142,7 +188,8 @@ public final class RuntimeCore {
                 residentID: "",
                 displayName: "",
                 statusMessage: "DR load failed",
-                diagnostics: "DR load failed"
+                diagnostics: "DR load failed",
+                avatarState: nil
             )
         }
     }
@@ -164,11 +211,4 @@ public final class RuntimeCore {
         hostEnv.runtimeConfig.currentRuntimeConfig()
     }
 
-    public func providerRoutingDiagnostics() -> ProviderRoutingDiagnostics {
-        let config = currentRuntimeConfig().provider
-        let keyRef = hostEnv.secureSecretReference.currentKeyRef()
-        let secretRef = hostEnv.secureSecretReference.currentSecureSecretReference() ?? config.secretRef
-        let secretState = secretResolver.resolve(keyRef: keyRef, secretRef: secretRef)
-        return providerRouter.diagnostics(for: config, secretState: secretState)
-    }
 }

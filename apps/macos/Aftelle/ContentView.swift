@@ -31,6 +31,11 @@ struct ContentView: View {
             Text(controller.fixtureStatus)
             Text(controller.residentID)
             Text(controller.displayName)
+            Text("avatar_mode: \(controller.avatarState.mode)")
+            Text("avatar_presence: \(controller.avatarState.presence)")
+            Text("avatar_mood_hint: \(controller.avatarState.moodHint)")
+            Text("avatar_activity_hint: \(controller.avatarState.activityHint)")
+            Text("avatar_particle_hint: \(controller.avatarState.particleHint)")
 
             if !controller.diagnostics.isEmpty {
                 Text(controller.diagnostics)
