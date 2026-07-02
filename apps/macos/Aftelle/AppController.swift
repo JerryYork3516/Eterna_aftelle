@@ -29,13 +29,17 @@ final class AppController: ObservableObject {
             return
         }
 
-        let result = runtimeCore.loadDR(from: fixtureData)
+        let result = runtimeCore.loadDR(request: RuntimeLoadRequest(fixtureData: fixtureData))
         runtimeStatus = "Runtime status: \(result.statusMessage)"
         fixtureStatus = result.isLoaded ? "DR fixture: loaded" : "DR fixture: not loaded"
         residentID = "resident_id: \(result.residentID.isEmpty ? "-" : result.residentID)"
         displayName = "display_name: \(result.displayName.isEmpty ? "-" : result.displayName)"
         diagnostics = result.diagnostics
         startupState = result.isLoaded ? .loaded : .failed
+    }
+
+    func step(inputText: String) -> RuntimeStepResponse {
+        runtimeCore.step(request: RuntimeStepRequest(residentID: residentID.replacingOccurrences(of: "resident_id: ", with: ""), inputText: inputText))
     }
 
     private func applyFailure(runtimeMessage: String, diagnosticsMessage: String) {

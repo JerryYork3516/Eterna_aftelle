@@ -10,6 +10,14 @@ public struct RuntimeStepRequest {
     }
 }
 
+public struct RuntimeLoadRequest {
+    public var fixtureData: Data
+
+    public init(fixtureData: Data) {
+        self.fixtureData = fixtureData
+    }
+}
+
 public struct RuntimeStepResponse {
     public var outputText: String
     public var visualState: VisualState
@@ -110,8 +118,16 @@ public final class RuntimeCore {
         }
     }
 
+    public func loadDR(request: RuntimeLoadRequest) -> RuntimeLoadResult {
+        loadDR(from: request.fixtureData)
+    }
+
     public func step(inputText: String) -> RuntimeStepResponse {
         let request = RuntimeStepRequest(residentID: "", inputText: inputText)
         return executionEngine.step(request: request)
+    }
+
+    public func step(request: RuntimeStepRequest) -> RuntimeStepResponse {
+        executionEngine.step(request: request)
     }
 }

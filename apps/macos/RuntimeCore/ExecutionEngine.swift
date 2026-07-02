@@ -16,8 +16,9 @@ public final class ExecutionEngine {
     }
 
     public func step(request: RuntimeStepRequest) -> RuntimeStepResponse {
+        let hasInput = !request.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let traceEvents = [
-            TraceEvent(type: .runtimeStep, message: "Received runtime step request."),
+            TraceEvent(type: .runtimeStep, message: hasInput ? "Received runtime step request." : "Received empty runtime step request."),
             TraceEvent(type: .providerMock, message: "Mock provider routed inside RuntimeCore."),
             TraceEvent(type: .visualStateChanged, message: "Visual state mapped for runtime response.")
         ]
