@@ -10,11 +10,17 @@
 
 ## 📌 当前状态(每次更新,粘给 AI 时就粘这一段)
 
-- **现在在做**:Stage 7.1.2 —— macOS Desktop Shell 整理
-- **上一步刚完成**:Stage 7.1.1 Platform Adapter boundary 已就绪,开始收口 App shell
+- **现在在做**:Stage 7.1.3 —— App 启动流程
+- **上一步刚完成**:Stage 7.1.2 Desktop Shell 收口,准备把启动逻辑上移到 App Controller
 - **当前卡在**:无
-- **下一步**:只做 7.1.2 验收与记录,不进 7.1.3
-- **额度情况**:按节点推进,保持最小 shell 改动
+- **下一步**:只做 7.1.3 验收,不进 7.1.4
+- **额度情况**:保持最小启动路径,不碰运行闭环
+
+> - **现在在做**:Stage 7.1.2 —— macOS Desktop Shell 整理
+> - **上一步刚完成**:Stage 7.1.1 Platform Adapter boundary 已就绪,开始收口 App shell
+> - **当前卡在**:无
+> - **下一步**:只做 7.1.2 验收与记录,不进 7.1.3
+> - **额度情况**:按节点推进,保持最小 shell 改动
 
 > - **现在在做**: v7 文档收口(G0 改 A / Swift RuntimeCore),准备进 Stage 7.0 Calibration
 > - **上一步刚完成**: Stage 6.11 Freeze Audit，后端 pytest 208 passed，前端 typecheck passed，6.7–6.10 手动验收完成
@@ -79,6 +85,7 @@
 - 2026-07-02 — Stage 7.0 Calibration PASS — 上机验证 Load DR 成功,显示 `schema_canvas` / `Schema Canvas`,mock step / trace / diagnostics 正常;允许合并到 main 并进入 Stage 7.1。
 - 2026-07-02 — Stage 7.1.1 Platform Adapter boundary — 新增最小 `HostEnv` / `PlatformAdapter` 协议与 noop 实现,RuntimeCore 通过平台无关接口预留 clock / file access / runtime config / provider profile reference / secure secret reference,未接真实平台实现,未引入 SwiftUI / AppKit / Metal。
 - 2026-07-02 — Stage 7.1.2 macOS Desktop Shell — 收敛 Aftelle App 为最小 Desktop Shell,只保留启动壳/窗口壳/加载 DR 的状态展示入口,不再暴露输入/响应/trace 粒子演示,继续通过 RuntimeCore 加载本地 calibration fixture,不接真实 Provider/DR 写回。
+- 2026-07-02 — Stage 7.1.3 App 启动流程 — 引入 `AppController` 作为 UI 与 RuntimeCore 之间的启动边界,App 启动时自动加载 bundled calibration fixture 并把只读状态下发到 ContentView,ContentView 不再承担读取/启动逻辑。
 
 
 ---

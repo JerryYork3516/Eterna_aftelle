@@ -1,12 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    private let runtimeCore = RuntimeCore()
-    @State private var runtimeStatus = "Runtime status: not loaded"
-    @State private var fixtureStatus = "DR fixture: not loaded"
-    @State private var residentID = "resident_id: -"
-    @State private var displayName = "display_name: -"
-    @State private var diagnostics = ""
+    @ObservedObject var controller: AppController
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -26,19 +21,19 @@ struct ContentView: View {
         .padding(32)
         .frame(minWidth: 420, minHeight: 220)
         .task {
-            loadFixture()
+            controller.start()
         }
     }
 
     private var shellStatusCard: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(runtimeStatus)
-            Text(fixtureStatus)
-            Text(residentID)
-            Text(displayName)
+            Text(controller.runtimeStatus)
+            Text(controller.fixtureStatus)
+            Text(controller.residentID)
+            Text(controller.displayName)
 
-            if !diagnostics.isEmpty {
-                Text(diagnostics)
+            if !controller.diagnostics.isEmpty {
+                Text(controller.diagnostics)
                     .foregroundStyle(.secondary)
             }
         }
@@ -46,31 +41,8 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 12))
     }
-
-    private func loadFixture() {
-        guard let fixtureURL = Bundle.main.url(forResource: "Freezev03.calibration_fixture", withExtension: "json") else {
-            runtimeStatus = "Runtime status: DR load failed"
-            fixtureStatus = "DR fixture: not loaded"
-            diagnostics = "Fixture not found"
-            return
-        }
-
-        guard let fixtureData = try? Data(contentsOf: fixtureURL) else {
-            runtimeStatus = "Runtime status: DR load failed"
-            fixtureStatus = "DR fixture: not loaded"
-            diagnostics = "Fixture unreadable"
-            return
-        }
-
-        let result = runtimeCore.loadDR(from: fixtureData)
-        runtimeStatus = "Runtime status: \(result.statusMessage)"
-        fixtureStatus = result.isLoaded ? "DR fixture: loaded" : "DR fixture: not loaded"
-        residentID = "resident_id: \(result.residentID.isEmpty ? "-" : result.residentID)"
-        displayName = "display_name: \(result.displayName.isEmpty ? "-" : result.displayName)"
-        diagnostics = result.diagnostics
-    }
 }
 
 #Preview {
-    ContentView()
+    ContentView(controller: AppController())
 }
