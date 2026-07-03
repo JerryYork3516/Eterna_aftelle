@@ -11,7 +11,9 @@ final class AppController: ObservableObject {
     @Published private(set) var diagnostics = ""
     @Published private(set) var sessionState = AppSessionState()
     @Published private(set) var avatarState = AppAvatarState()
+    @Published private(set) var residentState = AppResidentState()
     @Published private(set) var traceState = RuntimeTraceViewState()
+    @Published private(set) var clockState = RuntimeClockViewState()
     @Published private(set) var runtimeState: AppRuntimeState = .idle
 
     private let orchestrationKernel: OrchestrationKernel
@@ -59,6 +61,17 @@ final class AppController: ObservableObject {
                 particleHint: $0.particleHint
             )
         } ?? AppAvatarState(residentID: result.residentID, displayName: result.displayName)
+        residentState = result.residentState.map {
+            AppResidentState(
+                residentID: $0.residentID,
+                sessionID: $0.sessionID,
+                lifecycleStatus: $0.lifecycleStatus,
+                presence: $0.presence,
+                lastActivitySummary: $0.lastActivitySummary,
+                lastUpdatedAt: ISO8601DateFormatter().string(from: $0.lastUpdatedAt),
+                avatarMode: $0.avatarMode ?? ""
+            )
+        } ?? AppResidentState(residentID: result.residentID, sessionID: result.sessionID?.rawValue ?? "")
         diagnostics = result.diagnostics
         traceState = RuntimeTraceViewState(summary: result.diagnostics, entries: [])
         startupState = result.isLoaded ? .loaded : .failed
@@ -67,6 +80,15 @@ final class AppController: ObservableObject {
     func step(inputText: String) -> RuntimeStepResponse {
         let response = orchestrationKernel.step(residentID: loadedResidentID, inputText: inputText)
         runtimeState = response.cancellationState.isCancelled ? (response.cancellationState.reason == .interrupted ? .interrupted : .cancelled) : .running
+        residentState = AppResidentState(
+            residentID: response.residentState.residentID,
+            sessionID: response.residentState.sessionID,
+            lifecycleStatus: response.residentState.lifecycleStatus,
+            presence: response.residentState.presence,
+            lastActivitySummary: response.residentState.lastActivitySummary,
+            lastUpdatedAt: ISO8601DateFormatter().string(from: response.residentState.lastUpdatedAt),
+            avatarMode: response.residentState.avatarMode ?? ""
+        )
         traceState = RuntimeTraceViewState(
             summary: response.diagnostics.cancellationState,
             entries: response.traceEvents.enumerated().map {
@@ -84,6 +106,20 @@ final class AppController: ObservableObject {
     func interrupt() {
         orchestrationKernel.interrupt()
         runtimeState = .interrupted
+    }
+
+    func runtimeTick() {
+        let response = orchestrationKernel.runtimeTick()
+        clockState = RuntimeClockViewState(
+            tickCount: response.clockState.tickCount,
+            lastTickSummary: response.traceEvent.message
+        )
+        traceState = RuntimeTraceViewState(
+            summary: response.diagnostics.cancellationState,
+            entries: [
+                RuntimeTraceEntryViewState(id: "tick-\(response.clockState.tickCount)", type: response.traceEvent.type.rawValue, message: response.traceEvent.message)
+            ]
+        )
     }
 
     private func applyFailure(runtimeMessage: String, diagnosticsMessage: String) {

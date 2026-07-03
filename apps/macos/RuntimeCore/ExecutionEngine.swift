@@ -32,6 +32,14 @@ public final class ExecutionEngine {
             residentID: request.residentID,
             displayName: "Schema Canvas"
         )
+        let residentState = RuntimeResidentState(
+            residentID: request.residentID,
+            sessionID: request.residentID.isEmpty ? "" : RuntimeSessionID.make().rawValue,
+            lifecycleStatus: cancellationState.isCancelled ? cancellationState.reason?.rawValue ?? "interrupted" : "stepping",
+            presence: cancellationState.isCancelled ? "idle" : "available",
+            lastActivitySummary: cancellationState.isCancelled ? "Runtime step cancelled." : (hasInput ? "Processed resident input." : "Processed empty resident input."),
+            avatarMode: avatarState.mode
+        )
         let outputText = cancellationState.isCancelled ? "Runtime step cancelled." : providerRouter.routeMockProvider()
         let diagnostics = RuntimeDiagnostics(
             runtimeStepCount: 1,
@@ -43,6 +51,7 @@ public final class ExecutionEngine {
             outputText: outputText,
             visualState: visualState,
             avatarState: avatarState,
+            residentState: residentState,
             cancellationState: cancellationState,
             traceEvents: traceEvents,
             diagnostics: diagnostics

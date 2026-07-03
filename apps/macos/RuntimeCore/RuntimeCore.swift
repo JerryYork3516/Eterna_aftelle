@@ -74,10 +74,39 @@ public struct AvatarState {
     }
 }
 
+public struct RuntimeResidentState {
+    public var residentID: String
+    public var sessionID: String
+    public var lifecycleStatus: String
+    public var presence: String
+    public var lastActivitySummary: String
+    public var lastUpdatedAt: Date
+    public var avatarMode: String?
+
+    public init(
+        residentID: String,
+        sessionID: String,
+        lifecycleStatus: String,
+        presence: String,
+        lastActivitySummary: String,
+        lastUpdatedAt: Date = Date(),
+        avatarMode: String? = nil
+    ) {
+        self.residentID = residentID
+        self.sessionID = sessionID
+        self.lifecycleStatus = lifecycleStatus
+        self.presence = presence
+        self.lastActivitySummary = lastActivitySummary
+        self.lastUpdatedAt = lastUpdatedAt
+        self.avatarMode = avatarMode
+    }
+}
+
 public struct RuntimeStepResponse {
     public var outputText: String
     public var visualState: VisualState
     public var avatarState: AvatarState
+    public var residentState: RuntimeResidentState
     public var cancellationState: RuntimeCancellationState
     public var traceEvents: [TraceEvent]
     public var diagnostics: RuntimeDiagnostics
@@ -86,6 +115,7 @@ public struct RuntimeStepResponse {
         outputText: String,
         visualState: VisualState,
         avatarState: AvatarState,
+        residentState: RuntimeResidentState,
         cancellationState: RuntimeCancellationState = .none,
         traceEvents: [TraceEvent],
         diagnostics: RuntimeDiagnostics
@@ -93,6 +123,7 @@ public struct RuntimeStepResponse {
         self.outputText = outputText
         self.visualState = visualState
         self.avatarState = avatarState
+        self.residentState = residentState
         self.cancellationState = cancellationState
         self.traceEvents = traceEvents
         self.diagnostics = diagnostics
@@ -176,6 +207,36 @@ public struct RuntimeSessionContext: Equatable {
     }
 }
 
+public struct RuntimeClockState: Equatable {
+    public var tickCount: Int
+    public var lastTickAt: Date?
+
+    public init(tickCount: Int = 0, lastTickAt: Date? = nil) {
+        self.tickCount = tickCount
+        self.lastTickAt = lastTickAt
+    }
+}
+
+public struct RuntimeTickRequest {
+    public var reason: String
+
+    public init(reason: String = "noop") {
+        self.reason = reason
+    }
+}
+
+public struct RuntimeTickResponse {
+    public var clockState: RuntimeClockState
+    public var traceEvent: TraceEvent
+    public var diagnostics: RuntimeDiagnostics
+
+    public init(clockState: RuntimeClockState, traceEvent: TraceEvent, diagnostics: RuntimeDiagnostics) {
+        self.clockState = clockState
+        self.traceEvent = traceEvent
+        self.diagnostics = diagnostics
+    }
+}
+
 public struct RuntimeLoadResult {
     public let isLoaded: Bool
     public let residentID: String
@@ -184,6 +245,7 @@ public struct RuntimeLoadResult {
     public let statusMessage: String
     public let diagnostics: String
     public let avatarState: AvatarState?
+    public let residentState: RuntimeResidentState?
 }
 
 public final class RuntimeCore {
@@ -193,6 +255,7 @@ public final class RuntimeCore {
     private let hostEnv: HostEnv
     private var cancellationState = RuntimeCancellationState.none
     private var sessionContext: RuntimeSessionContext?
+    private var clockState = RuntimeClockState()
 
     public init(
         drLoader: DRLoader = DRLoader(),
@@ -217,7 +280,8 @@ public final class RuntimeCore {
                     displayName: "",
                     statusMessage: "DR load failed",
                     diagnostics: result.diagnostics,
-                    avatarState: nil
+                    avatarState: nil,
+                    residentState: nil
                 )
             }
 
@@ -232,6 +296,14 @@ public final class RuntimeCore {
                 activityHint: "ready",
                 particleHint: "calibration_idle"
             )
+            let residentState = RuntimeResidentState(
+                residentID: loadedDR.residentID,
+                sessionID: sessionID.rawValue,
+                lifecycleStatus: "loaded",
+                presence: "available",
+                lastActivitySummary: "DR loaded",
+                avatarMode: avatarState.mode
+            )
 
             return RuntimeLoadResult(
                 isLoaded: true,
@@ -240,7 +312,8 @@ public final class RuntimeCore {
                 displayName: loadedDR.displayName,
                 statusMessage: "DR loaded",
                 diagnostics: result.diagnostics,
-                avatarState: avatarState
+                avatarState: avatarState,
+                residentState: residentState
             )
         } catch {
             return RuntimeLoadResult(
@@ -250,7 +323,8 @@ public final class RuntimeCore {
                 displayName: "",
                 statusMessage: "DR load failed",
                 diagnostics: "DR load failed",
-                avatarState: nil
+                avatarState: nil,
+                residentState: nil
             )
         }
     }
@@ -279,6 +353,13 @@ public final class RuntimeCore {
 
     public func interrupt(request: RuntimeCancellationRequest) {
         cancellationState = RuntimeCancellationState(isCancelled: true, reason: request.reason)
+    }
+
+    public func runtimeTick(request: RuntimeTickRequest = RuntimeTickRequest()) -> RuntimeTickResponse {
+        clockState = RuntimeClockState(tickCount: clockState.tickCount + 1, lastTickAt: Date())
+        let traceEvent = TraceEvent(type: .runtimeStep, message: "system.tick no-op")
+        let diagnostics = RuntimeDiagnostics(cancellationState: "none")
+        return RuntimeTickResponse(clockState: clockState, traceEvent: traceEvent, diagnostics: diagnostics)
     }
 
     public func currentRuntimeConfig() -> RuntimeConfig {

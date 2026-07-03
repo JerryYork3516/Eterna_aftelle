@@ -52,6 +52,34 @@ public struct AppAvatarState: Equatable {
     }
 }
 
+public struct AppResidentState: Equatable {
+    public var residentID: String
+    public var sessionID: String
+    public var lifecycleStatus: String
+    public var presence: String
+    public var lastActivitySummary: String
+    public var lastUpdatedAt: String
+    public var avatarMode: String
+
+    public init(
+        residentID: String = "",
+        sessionID: String = "",
+        lifecycleStatus: String = "loaded",
+        presence: String = "unknown",
+        lastActivitySummary: String = "",
+        lastUpdatedAt: String = "",
+        avatarMode: String = ""
+    ) {
+        self.residentID = residentID
+        self.sessionID = sessionID
+        self.lifecycleStatus = lifecycleStatus
+        self.presence = presence
+        self.lastActivitySummary = lastActivitySummary
+        self.lastUpdatedAt = lastUpdatedAt
+        self.avatarMode = avatarMode
+    }
+}
+
 public struct RuntimeTraceEntryViewState: Equatable, Identifiable {
     public var id: String
     public var type: String
@@ -71,6 +99,16 @@ public struct RuntimeTraceViewState: Equatable {
     public init(summary: String = "", entries: [RuntimeTraceEntryViewState] = []) {
         self.summary = summary
         self.entries = entries
+    }
+}
+
+public struct RuntimeClockViewState: Equatable {
+    public var tickCount: Int
+    public var lastTickSummary: String
+
+    public init(tickCount: Int = 0, lastTickSummary: String = "") {
+        self.tickCount = tickCount
+        self.lastTickSummary = lastTickSummary
     }
 }
 
@@ -125,5 +163,9 @@ public final class OrchestrationKernel {
 
     public func interrupt() {
         runtimeCore.interrupt(request: RuntimeCancellationRequest(reason: .interrupted))
+    }
+
+    public func runtimeTick() -> RuntimeTickResponse {
+        runtimeCore.runtimeTick()
     }
 }

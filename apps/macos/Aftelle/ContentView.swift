@@ -36,9 +36,14 @@ struct ContentView: View {
             Text("\(String(localized: "avatar_mood_hint:")) \(controller.avatarState.moodHint)")
             Text("\(String(localized: "avatar_activity_hint:")) \(controller.avatarState.activityHint)")
             Text("\(String(localized: "avatar_particle_hint:")) \(controller.avatarState.particleHint)")
+            Text("\(String(localized: "resident_lifecycle_status:")) \(controller.residentState.lifecycleStatus)")
+            Text("\(String(localized: "resident_presence:")) \(controller.residentState.presence)")
+            Text("\(String(localized: "resident_last_activity:")) \(controller.residentState.lastActivitySummary)")
+            Text("\(String(localized: "resident_last_updated_at:")) \(controller.residentState.lastUpdatedAt)")
             Text("\(String(localized: "runtime_state:")) \(String(describing: controller.runtimeState))")
 
             tracePanel
+            tickPanel
 
             if !controller.diagnostics.isEmpty {
                 Text(controller.diagnostics)
@@ -65,6 +70,18 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+        }
+        .padding(.top, 8)
+    }
+
+    private var tickPanel: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "Runtime Clock"))
+                .fontWeight(.semibold)
+            Text("\(String(localized: "tick_count:")) \(controller.clockState.tickCount)")
+                .foregroundStyle(.secondary)
+            Text("\(String(localized: "tick_summary:")) \(controller.clockState.lastTickSummary)")
+                .foregroundStyle(.secondary)
         }
         .padding(.top, 8)
     }
