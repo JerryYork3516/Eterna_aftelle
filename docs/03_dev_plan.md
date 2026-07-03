@@ -149,20 +149,20 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 
 7.3.1 灰白 Aftelle Shell 粒子核心
 7.3.2 呼吸动画
-7.3.3 鼠标靠近交互(经 Intent)
+<mark>7.3.3 鼠标靠近交互(经 Intent) codex审核</mark>
 7.3.4 Thinking 状态
 7.3.5 Speaking 状态
 7.3.6 Loading 状态
-7.3.7 Error 状态
+<mark>7.3.7 Error 状态 codex审核</mark>
 7.3.8 Exit 发散动画
 7.3.9 DR 导入颜色切换
-7.3.10 绑定 Avatar State Protocol
+<mark>7.3.10 绑定 Avatar State Protocol codex审核</mark>
 7.3.11 字幕基础框架
 7.3.12 粒子状态日志输出(供盲测验证)
-7.3.13 `particle_core` 默认形态固化
+<mark>7.3.13 `particle_core` 默认形态固化 codex审核</mark>
 7.3.14 `avatar_mode: particle_core / abstract_bust` 本地 UI / 渲染层预留
 7.3.15 粒子渲染切换接口预留
-7.3.16 后续抽象半身 / 双居民 / AR 视觉接口预留
+<mark>7.3.16 后续抽象半身 / 双居民 / AR 视觉接口预留</mark>
 
 边界:优先消费 Runtime 返回的 `visual_state`;PAD 只作为辅助输入。Stage 7 只锁 idle / thinking / speaking / sleeping / error 五种状态,不在 Aftelle 推演复杂心理状态。
 边界:`avatar_mode` 是 platform-macos 本地 UI / 渲染层模式,不进入 DR schema / Runtime API contract / Provider Profile。7.3 不实现完整 Abstract Bust Avatar,不做人格轮廓、嘴部同步、写实脸、骨骼、Blendshape、AR / 3D 数字人或 Avatar 编辑器。
