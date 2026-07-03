@@ -20,6 +20,7 @@ final class AppController: ObservableObject {
     private let orchestrationKernel: OrchestrationKernel
     private var loadedResidentID = ""
     private var loadedSessionID = ""
+    private var dialogueEntries: [AppDialogueEntryState] = []
 
     init() {
         self.orchestrationKernel = OrchestrationKernel()
@@ -36,6 +37,14 @@ final class AppController: ObservableObject {
         if restoreResult.didRestore {
             loadedResidentID = restoreResult.residentID
             loadedSessionID = restoreResult.sessionID
+            dialogueEntries = restoreResult.dialogueEntries.map {
+                AppDialogueEntryState(
+                    id: "\($0.role)-\(Int($0.timestamp.timeIntervalSince1970))",
+                    role: $0.role,
+                    text: $0.text,
+                    timestamp: ISO8601DateFormatter().string(from: $0.timestamp)
+                )
+            }
             runtimeStatus = "Runtime status: session restored"
             fixtureStatus = "DR fixture: loaded"
             residentID = "resident_id: \(restoreResult.residentID.isEmpty ? "-" : restoreResult.residentID)"
@@ -46,14 +55,7 @@ final class AppController: ObservableObject {
                 lastUserInput: restoreResult.lastUserInput,
                 lastResidentOutput: restoreResult.lastResidentOutput,
                 lastActivity: restoreResult.lastActivity,
-                dialogueEntries: restoreResult.dialogueEntries.map {
-                    AppDialogueEntryState(
-                        id: "\($0.role)-\(Int($0.timestamp.timeIntervalSince1970))",
-                        role: $0.role,
-                        text: $0.text,
-                        timestamp: ISO8601DateFormatter().string(from: $0.timestamp)
-                    )
-                }
+                dialogueEntries: dialogueEntries
             )
             residentState = AppResidentState(
                 residentID: restoreResult.residentID,
@@ -94,6 +96,7 @@ final class AppController: ObservableObject {
             sessionID: loadedSessionID,
             lastActivity: result.residentState?.lastActivitySummary ?? ""
         )
+        dialogueEntries = []
         avatarState = result.avatarState.map {
             AppAvatarState(
                 residentID: $0.residentID,
@@ -125,6 +128,25 @@ final class AppController: ObservableObject {
     func step(inputText: String) -> RuntimeStepResponse {
         let response = orchestrationKernel.step(residentID: loadedResidentID, inputText: inputText)
         runtimeState = response.cancellationState.isCancelled ? (response.cancellationState.reason == .interrupted ? .interrupted : .cancelled) : .running
+        dialogueEntries.append(
+            AppDialogueEntryState(
+                id: "user-\(dialogueEntries.count)",
+                role: "user",
+                text: inputText,
+                timestamp: ISO8601DateFormatter().string(from: response.residentState.lastUpdatedAt)
+            )
+        )
+        dialogueEntries.append(
+            AppDialogueEntryState(
+                id: "resident-\(dialogueEntries.count)",
+                role: "resident",
+                text: response.outputText,
+                timestamp: ISO8601DateFormatter().string(from: response.residentState.lastUpdatedAt)
+            )
+        )
+        if dialogueEntries.count > 20 {
+            dialogueEntries = Array(dialogueEntries.suffix(20))
+        }
         residentState = AppResidentState(
             residentID: response.residentState.residentID,
             sessionID: response.residentState.sessionID,
@@ -134,7 +156,14 @@ final class AppController: ObservableObject {
             lastUpdatedAt: ISO8601DateFormatter().string(from: response.residentState.lastUpdatedAt),
             avatarMode: response.residentState.avatarMode ?? ""
         )
-        sessionState = AppSessionState(residentID: response.residentState.residentID, sessionID: response.residentState.sessionID)
+        sessionState = AppSessionState(
+            residentID: response.residentState.residentID,
+            sessionID: response.residentState.sessionID,
+            lastUserInput: inputText,
+            lastResidentOutput: response.outputText,
+            lastActivity: response.residentState.lastActivitySummary,
+            dialogueEntries: dialogueEntries
+        )
         loadedSessionID = response.residentState.sessionID
         traceState = RuntimeTraceViewState(
             summary: response.diagnostics.cancellationState,
@@ -171,6 +200,19 @@ final class AppController: ObservableObject {
         refreshDebugPanelState()
     }
 
+    func persistCurrentSessionIfPossible() {
+        guard !loadedResidentID.isEmpty, !loadedSessionID.isEmpty else { return }
+        orchestrationKernel.saveCurrentSession(
+            lastUserInput: sessionState.lastUserInput,
+            lastResidentOutput: sessionState.lastResidentOutput,
+            lastActivity: sessionState.lastActivity,
+            dialogueEntries: dialogueEntries.compactMap {
+                guard let timestamp = ISO8601DateFormatter().date(from: $0.timestamp) else { return nil }
+                return RuntimeDialogueEntryState(role: $0.role, text: $0.text, timestamp: timestamp)
+            }
+        )
+    }
+
     private func refreshDebugPanelState() {
         debugPanelState = DebugPanelViewState(
             residentID: residentState.residentID,
@@ -190,9 +232,11 @@ final class AppController: ObservableObject {
         runtimeStatus = runtimeMessage
         fixtureStatus = "DR fixture: not loaded"
         loadedResidentID = ""
+        loadedSessionID = ""
         residentID = "resident_id: -"
         displayName = "display_name: -"
         sessionState = AppSessionState()
+        dialogueEntries = []
         avatarState = AppAvatarState()
         traceState = RuntimeTraceViewState(summary: diagnosticsMessage, entries: [])
         runtimeState = .idle

@@ -405,6 +405,30 @@ public final class RuntimeCore {
         )
     }
 
+    func saveCurrentSession(
+        lastUserInput: String,
+        lastResidentOutput: String,
+        lastActivity: String,
+        dialogueEntries: [RuntimeDialogueEntryState]
+    ) {
+        guard let context = sessionContext else { return }
+        let now = Date()
+        let record = SessionStoreRecord(
+            residentID: context.residentID,
+            sessionID: context.sessionID.rawValue,
+            createdAt: now,
+            updatedAt: now,
+            lastUserInput: lastUserInput,
+            lastResidentOutput: lastResidentOutput,
+            lastActivity: lastActivity
+        )
+        try? sessionStore.save(record: record)
+        let entries = dialogueEntries.map {
+            SessionDialogueEntry(role: $0.role, text: $0.text, timestamp: $0.timestamp)
+        }
+        try? sessionStore.saveDialogueEntries(entries, for: context.sessionID.rawValue)
+    }
+
     public func step(inputText: String) -> RuntimeStepResponse {
         let residentID = sessionContext?.residentID ?? ""
         let request = RuntimeStepRequest(residentID: residentID, inputText: inputText)

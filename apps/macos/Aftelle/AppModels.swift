@@ -224,6 +224,20 @@ public final class OrchestrationKernel {
         return result
     }
 
+    func saveCurrentSession(
+        lastUserInput: String,
+        lastResidentOutput: String,
+        lastActivity: String,
+        dialogueEntries: [RuntimeDialogueEntryState]
+    ) {
+        runtimeCore.saveCurrentSession(
+            lastUserInput: lastUserInput,
+            lastResidentOutput: lastResidentOutput,
+            lastActivity: lastActivity,
+            dialogueEntries: dialogueEntries
+        )
+    }
+
     public func step(residentID: String, inputText: String) -> RuntimeStepResponse {
         prepare()
         lastDiagnostics = OrchestrationKernelDiagnostics(stateSummary: "passthrough_step")
