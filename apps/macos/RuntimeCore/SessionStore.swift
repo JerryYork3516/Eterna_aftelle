@@ -56,6 +56,18 @@ public struct SessionDisplayCache: Equatable {
     }
 }
 
+public struct SessionDialogueEntry: Codable, Equatable {
+    public var role: String
+    public var text: String
+    public var timestamp: Date
+
+    public init(role: String, text: String, timestamp: Date) {
+        self.role = role
+        self.text = text
+        self.timestamp = timestamp
+    }
+}
+
 public final class SessionStore {
     public static let schemaVersion = "0.1.0"
 
@@ -108,6 +120,21 @@ public final class SessionStore {
         return nil
     }
 
+    public func loadMostRecentDialogueEntries(limit: Int = 10) throws -> [SessionDialogueEntry] {
+        guard let record = try loadMostRecentRecord() else { return [] }
+        let historyURL = historyURL(for: record.sessionID)
+        guard fileManager.fileExists(atPath: historyURL.path) else { return [] }
+        let data = try Data(contentsOf: historyURL)
+        guard let entries = try? decoder.decode([SessionDialogueEntry].self, from: data) else { return [] }
+        return Array(entries.suffix(limit))
+    }
+
+    public func saveDialogueEntries(_ entries: [SessionDialogueEntry], for sessionID: String) throws {
+        try ensureDirectoryExists()
+        let data = try encoder.encode(entries)
+        try data.write(to: historyURL(for: sessionID), options: [.atomic])
+    }
+
     private func ensureDirectoryExists() throws {
         if !fileManager.fileExists(atPath: baseURL.path) {
             try fileManager.createDirectory(at: baseURL, withIntermediateDirectories: true)
@@ -116,5 +143,9 @@ public final class SessionStore {
 
     private func fileURL(for sessionID: String) -> URL {
         baseURL.appendingPathComponent("\(sessionID).json", isDirectory: false)
+    }
+
+    private func historyURL(for sessionID: String) -> URL {
+        baseURL.appendingPathComponent("\(sessionID).history.json", isDirectory: false)
     }
 }

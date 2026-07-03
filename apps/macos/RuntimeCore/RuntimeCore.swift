@@ -248,6 +248,18 @@ public struct RuntimeLoadResult {
     public let residentState: RuntimeResidentState?
 }
 
+public struct RuntimeDialogueEntryState {
+    public var role: String
+    public var text: String
+    public var timestamp: Date
+
+    public init(role: String, text: String, timestamp: Date) {
+        self.role = role
+        self.text = text
+        self.timestamp = timestamp
+    }
+}
+
 public struct RuntimeSessionRestoreResult {
     public let didRestore: Bool
     public let residentID: String
@@ -255,6 +267,7 @@ public struct RuntimeSessionRestoreResult {
     public let lastUserInput: String
     public let lastResidentOutput: String
     public let lastActivity: String
+    public let dialogueEntries: [RuntimeDialogueEntryState]
 
     public init(
         didRestore: Bool,
@@ -262,7 +275,8 @@ public struct RuntimeSessionRestoreResult {
         sessionID: String = "",
         lastUserInput: String = "",
         lastResidentOutput: String = "",
-        lastActivity: String = ""
+        lastActivity: String = "",
+        dialogueEntries: [RuntimeDialogueEntryState] = []
     ) {
         self.didRestore = didRestore
         self.residentID = residentID
@@ -270,6 +284,7 @@ public struct RuntimeSessionRestoreResult {
         self.lastUserInput = lastUserInput
         self.lastResidentOutput = lastResidentOutput
         self.lastActivity = lastActivity
+        self.dialogueEntries = dialogueEntries
     }
 }
 
@@ -369,6 +384,7 @@ public final class RuntimeCore {
         guard record.schemaVersion == SessionStore.schemaVersion else {
             return RuntimeSessionRestoreResult(didRestore: false)
         }
+        let dialogueEntries = (try? sessionStore.loadMostRecentDialogueEntries()) ?? []
         sessionContext = RuntimeSessionContext(
             residentID: record.residentID,
             sessionID: RuntimeSessionID(rawValue: record.sessionID)
@@ -379,7 +395,10 @@ public final class RuntimeCore {
             sessionID: record.sessionID,
             lastUserInput: record.lastUserInput,
             lastResidentOutput: record.lastResidentOutput,
-            lastActivity: record.lastActivity
+            lastActivity: record.lastActivity,
+            dialogueEntries: dialogueEntries.map {
+                RuntimeDialogueEntryState(role: $0.role, text: $0.text, timestamp: $0.timestamp)
+            }
         )
     }
 
@@ -410,6 +429,14 @@ public final class RuntimeCore {
             lastActivity: response.residentState.lastActivitySummary
         )
         try? sessionStore.save(record: record)
+
+        var dialogueEntries = (try? sessionStore.loadMostRecentDialogueEntries()) ?? []
+        dialogueEntries.append(SessionDialogueEntry(role: "user", text: inputText, timestamp: response.residentState.lastUpdatedAt))
+        dialogueEntries.append(SessionDialogueEntry(role: "resident", text: response.outputText, timestamp: response.residentState.lastUpdatedAt))
+        if dialogueEntries.count > 20 {
+            dialogueEntries = Array(dialogueEntries.suffix(20))
+        }
+        try? sessionStore.saveDialogueEntries(dialogueEntries, for: context.sessionID.rawValue)
     }
 
     public func cancelCurrentStep() {

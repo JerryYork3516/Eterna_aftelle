@@ -14,25 +14,42 @@ public enum AppRuntimeState: Equatable {
     case interrupted
 }
 
+public struct AppDialogueEntryState: Equatable, Identifiable {
+    public var id: String
+    public var role: String
+    public var text: String
+    public var timestamp: String
+
+    public init(id: String, role: String, text: String, timestamp: String) {
+        self.id = id
+        self.role = role
+        self.text = text
+        self.timestamp = timestamp
+    }
+}
+
 public struct AppSessionState: Equatable {
     public var residentID: String
     public var sessionID: String
     public var lastUserInput: String
     public var lastResidentOutput: String
     public var lastActivity: String
+    public var dialogueEntries: [AppDialogueEntryState]
 
     public init(
         residentID: String = "",
         sessionID: String = "",
         lastUserInput: String = "",
         lastResidentOutput: String = "",
-        lastActivity: String = ""
+        lastActivity: String = "",
+        dialogueEntries: [AppDialogueEntryState] = []
     ) {
         self.residentID = residentID
         self.sessionID = sessionID
         self.lastUserInput = lastUserInput
         self.lastResidentOutput = lastResidentOutput
         self.lastActivity = lastActivity
+        self.dialogueEntries = dialogueEntries
     }
 }
 

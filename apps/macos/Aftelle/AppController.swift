@@ -45,7 +45,15 @@ final class AppController: ObservableObject {
                 sessionID: restoreResult.sessionID,
                 lastUserInput: restoreResult.lastUserInput,
                 lastResidentOutput: restoreResult.lastResidentOutput,
-                lastActivity: restoreResult.lastActivity
+                lastActivity: restoreResult.lastActivity,
+                dialogueEntries: restoreResult.dialogueEntries.map {
+                    AppDialogueEntryState(
+                        id: "\($0.role)-\(Int($0.timestamp.timeIntervalSince1970))",
+                        role: $0.role,
+                        text: $0.text,
+                        timestamp: ISO8601DateFormatter().string(from: $0.timestamp)
+                    )
+                }
             )
             residentState = AppResidentState(
                 residentID: restoreResult.residentID,
