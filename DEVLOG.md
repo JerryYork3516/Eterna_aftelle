@@ -3,7 +3,7 @@
 > 这份是给我自己的,不是给 AI 自动读的。
 > 三个作用:① 提醒我做到哪、为什么这么定;② 每次开 GPT/Dify/新对话时,把"当前状态"那段粘过去当背景;③ 防止我忘了当初的决定又推翻重来。
 > **规则:每次做完一件事、或讨论出一个结论、或改完一个 bug,就来记一笔。不用长,几行即可。**
->
+> 
 > **boundary 基线 SHA-256(改动即报警)**：`275b95889f55646e3ae99ceb2a12cc0e974fd5338aa23c7311cccff0d2d041a6`（v7 更新:G0 改 A,仅 clock/tick 归属改为 RuntimeCore,4 条 Invariants 不变;旧 v6 基线 f043f4b5…）
 
 ---
@@ -119,6 +119,7 @@
 - 2026-07-03 — Stage 7.1.17 Debug Panel 生命状态面板：完成最小只读 Debug Panel。AppController 聚合 resident_state、session_id、avatar_state、trace summary、clock、cancellation 为 debugPanelState，ContentView 仅展示只读摘要，不直连 RuntimeCore 内部组件；面板不编辑、不持久化、不写回 DR，不显示 secret / token / base_url / provider config / key_ref / secret_ref 具体值；未做 LiveState / Memory / Trace / SessionStore / HostStateStore 持久化；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
 - 2026-07-03 — Stage 7.1-DOC-APPLE-HOST-RESERVE Apple 全生态 Host 预留文档调整：完成 Apple 全生态 Host 预留边界的文档级补充。明确 Stage 7 仍只开发 macOS 单机 Runtime Host，未来 iOS / iPadOS / visionOS / watchOS / tvOS 只能作为不同 Runtime Host 复用 RuntimeCore；RuntimeCore / brain 保持平台无关，平台差异通过 HostEnv / Adapter 注入；visual_state / resident_state 作为未来多平台身体表现统一输入；本次未改 Swift 代码、未改 Runtime API、未改 DR schema、未开发 iOS / visionOS / AR / watchOS / tvOS 功能。
 - 2026-07-03 — Stage 7.1.18 Stage 7 禁止项检查器：完成 Stage 7 文档级 forbidden checklist。新增 stage7_forbidden_checklist.md，用于后续 PR / Codex / Cursor 任务前后检查 Stage 范围、RuntimeCore 边界、Host 边界、DR / Runtime API、Provider / Secret、Memory / Trace / LiveState、Scheduler / Tick / 多居民、UI / 渲染等红线；纳入 Apple 全生态 Host 预留禁止项；本节点未改 Swift 代码、未改 Runtime API、未改 DR schema、未新增平台 target，未进入 Stage 8。
+- 2026-07-03 — Stage 7.1 Final Review：完成 Stage 7.1 最终审核。Fable 5 主审与 Codex 交叉复审均判定 PASS；7.1 已形成技术底座、平台抽象、编排薄壳、只读状态面板、RuntimeClock no-op、resident_state、trace、Debug Panel、Apple Host 文档预留与 Stage 7 forbidden checklist；未发现 BLOCKER / HIGH / MEDIUM 风险。已确认 RuntimeCore 平台无关，Aftelle 仅作为 macOS Runtime Host，DR / Runtime API / Provider / Secret / Memory / Trace / LiveState / Scheduler 边界未被破坏。允许进入 Stage 7.2 准备。已知 LOW 风险：project.pbxproj 中 AppController.swift / AppModels.swift 存在冗余 PBXBuildFile / PBXFileReference 记录，当前不影响 build，可作为进入 7.2 前的工程卫生项单独清理。
 
 ---
 
@@ -167,11 +168,11 @@ Stage 6.11 Freeze：Backend pytest 208 passed / Web typecheck passed / 6.7 Memor
 - AR / Vision Pro 身体 → Stage 8
 
 - Stage 7：单机数字居民 Runtime 闭环（生命体诞生）
-
+  
   Stage 8：iOS / iPadOS 随身化 + AR现实叠加 + 用户体系（进入现实世界）
-
+  
   Stage 9：visionOS 空间居民（空间生命体）
-
+  
   Stage 10：Apple 全平台统一生命体 + 结构化 Agent 系统（跨设备智能体）
 
 - [继续往下扔...]
