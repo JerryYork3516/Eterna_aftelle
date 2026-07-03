@@ -3,17 +3,17 @@
 > 这份是给我自己的,不是给 AI 自动读的。
 > 三个作用:① 提醒我做到哪、为什么这么定;② 每次开 GPT/Dify/新对话时,把"当前状态"那段粘过去当背景;③ 防止我忘了当初的决定又推翻重来。
 > **规则:每次做完一件事、或讨论出一个结论、或改完一个 bug,就来记一笔。不用长,几行即可。**
-> 
+>
 > **boundary 基线 SHA-256(改动即报警)**：`275b95889f55646e3ae99ceb2a12cc0e974fd5338aa23c7311cccff0d2d041a6`（v7 更新:G0 改 A,仅 clock/tick 归属改为 RuntimeCore,4 条 Invariants 不变;旧 v6 基线 f043f4b5…）
 
 ---
 
 ## 📌 当前状态(每次更新,粘给 AI 时就粘这一段)
 
-- **现在在做**:Stage 7.1.10 —— 统一取消 / 中断语义 REWORK 修复
-- **上一步刚完成**:Stage 7.1.10 轻量边界审核,正在修复 cancellation 一次性语义、工程 warning、本地化文案与 DEVLOG 空白
+- **现在在做**:Stage 7.1.11 —— Orchestration Kernel Skeleton REWORK 修复
+- **上一步刚完成**:Stage 7.1.11 轻量边界审核,正在修复 DEVLOG 空白、工程 warning 与 Orchestration Kernel skeleton 收口
 - **当前卡在**:无
-- **下一步**:7.1.10 REWORK 验收通过后,等待确认再进 7.1.11
+- **下一步**:7.1.11 REWORK 验收通过后,等待确认再进 7.1.12
 - **额度情况**:只修审核问题,不接真实 Provider / Keychain / scheduler
 
 > - **现在在做**:Stage 7.1.6 —— Runtime Config 本地配置边界
@@ -159,11 +159,11 @@ Stage 6.11 Freeze：Backend pytest 208 passed / Web typecheck passed / 6.7 Memor
 - AR / Vision Pro 身体 → Stage 8
 
 - Stage 7：单机数字居民 Runtime 闭环（生命体诞生）
-  
+
   Stage 8：iOS / iPadOS 随身化 + AR现实叠加 + 用户体系（进入现实世界）
-  
+
   Stage 9：visionOS 空间居民（空间生命体）
-  
+
   Stage 10：Apple 全平台统一生命体 + 结构化 Agent 系统（跨设备智能体）
 
 - [继续往下扔...]

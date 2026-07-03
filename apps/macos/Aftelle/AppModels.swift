@@ -56,8 +56,13 @@ public final class OrchestrationKernel {
     private var isPrepared = false
     private var lastDiagnostics = OrchestrationKernelDiagnostics()
 
-    public init(runtimeCore: RuntimeCore = RuntimeCore()) {
+    public init(runtimeCore: RuntimeCore) {
         self.runtimeCore = runtimeCore
+    }
+
+    @MainActor
+    public convenience init() {
+        self.init(runtimeCore: RuntimeCore())
     }
 
     public func prepare() {
