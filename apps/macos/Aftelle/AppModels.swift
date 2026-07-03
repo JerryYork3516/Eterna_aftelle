@@ -14,6 +14,16 @@ public enum AppRuntimeState: Equatable {
     case interrupted
 }
 
+public struct AppSessionState: Equatable {
+    public var residentID: String
+    public var sessionID: String
+
+    public init(residentID: String = "", sessionID: String = "") {
+        self.residentID = residentID
+        self.sessionID = sessionID
+    }
+}
+
 public struct AppAvatarState: Equatable {
     public var residentID: String
     public var displayName: String

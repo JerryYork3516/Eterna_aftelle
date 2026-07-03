@@ -154,9 +154,32 @@ public struct VisualState {
     }
 }
 
+public struct RuntimeSessionID: Equatable {
+    public var rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public static func make() -> RuntimeSessionID {
+        RuntimeSessionID(rawValue: UUID().uuidString)
+    }
+}
+
+public struct RuntimeSessionContext: Equatable {
+    public var residentID: String
+    public var sessionID: RuntimeSessionID
+
+    public init(residentID: String, sessionID: RuntimeSessionID) {
+        self.residentID = residentID
+        self.sessionID = sessionID
+    }
+}
+
 public struct RuntimeLoadResult {
     public let isLoaded: Bool
     public let residentID: String
+    public let sessionID: RuntimeSessionID?
     public let displayName: String
     public let statusMessage: String
     public let diagnostics: String
@@ -169,6 +192,7 @@ public final class RuntimeCore {
     private let providerRouter: ProviderRouter
     private let hostEnv: HostEnv
     private var cancellationState = RuntimeCancellationState.none
+    private var sessionContext: RuntimeSessionContext?
 
     public init(
         drLoader: DRLoader = DRLoader(),
@@ -189,6 +213,7 @@ public final class RuntimeCore {
                 return RuntimeLoadResult(
                     isLoaded: false,
                     residentID: "",
+                    sessionID: nil,
                     displayName: "",
                     statusMessage: "DR load failed",
                     diagnostics: result.diagnostics,
@@ -196,6 +221,8 @@ public final class RuntimeCore {
                 )
             }
 
+            let sessionID = RuntimeSessionID.make()
+            sessionContext = RuntimeSessionContext(residentID: loadedDR.residentID, sessionID: sessionID)
             let avatarState = AvatarState(
                 residentID: loadedDR.residentID,
                 displayName: loadedDR.displayName,
@@ -209,6 +236,7 @@ public final class RuntimeCore {
             return RuntimeLoadResult(
                 isLoaded: true,
                 residentID: loadedDR.residentID,
+                sessionID: sessionID,
                 displayName: loadedDR.displayName,
                 statusMessage: "DR loaded",
                 diagnostics: result.diagnostics,
@@ -218,6 +246,7 @@ public final class RuntimeCore {
             return RuntimeLoadResult(
                 isLoaded: false,
                 residentID: "",
+                sessionID: nil,
                 displayName: "",
                 statusMessage: "DR load failed",
                 diagnostics: "DR load failed",
@@ -231,14 +260,17 @@ public final class RuntimeCore {
     }
 
     public func step(inputText: String) -> RuntimeStepResponse {
-        let request = RuntimeStepRequest(residentID: "", inputText: inputText)
-        return executionEngine.step(request: request)
+        let residentID = sessionContext?.residentID ?? ""
+        let request = RuntimeStepRequest(residentID: residentID, inputText: inputText)
+        return step(request: request)
     }
 
     public func step(request: RuntimeStepRequest) -> RuntimeStepResponse {
         let pendingCancellation = cancellationState
         cancellationState = .none
-        return executionEngine.step(request: request, cancellationState: pendingCancellation)
+        let response = executionEngine.step(request: request, cancellationState: pendingCancellation)
+        sessionContext = RuntimeSessionContext(residentID: request.residentID, sessionID: sessionContext?.sessionID ?? .make())
+        return response
     }
 
     public func cancelCurrentStep() {

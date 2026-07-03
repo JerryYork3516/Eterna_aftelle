@@ -9,6 +9,7 @@ final class AppController: ObservableObject {
     @Published private(set) var residentID = "resident_id: -"
     @Published private(set) var displayName = "display_name: -"
     @Published private(set) var diagnostics = ""
+    @Published private(set) var sessionState = AppSessionState()
     @Published private(set) var avatarState = AppAvatarState()
     @Published private(set) var runtimeState: AppRuntimeState = .idle
 
@@ -42,6 +43,10 @@ final class AppController: ObservableObject {
         fixtureStatus = result.isLoaded ? "DR fixture: loaded" : "DR fixture: not loaded"
         residentID = "resident_id: \(result.residentID.isEmpty ? "-" : result.residentID)"
         displayName = "display_name: \(result.displayName.isEmpty ? "-" : result.displayName)"
+        sessionState = AppSessionState(
+            residentID: result.residentID,
+            sessionID: result.sessionID?.rawValue ?? ""
+        )
         avatarState = result.avatarState.map {
             AppAvatarState(
                 residentID: $0.residentID,
@@ -79,6 +84,7 @@ final class AppController: ObservableObject {
         loadedResidentID = ""
         residentID = "resident_id: -"
         displayName = "display_name: -"
+        sessionState = AppSessionState()
         avatarState = AppAvatarState()
         runtimeState = .idle
         diagnostics = diagnosticsMessage
