@@ -14,13 +14,51 @@ public enum AppRuntimeState: Equatable {
     case interrupted
 }
 
+public struct AppDialogueEntryState: Equatable, Identifiable {
+    public var id: String
+    public var role: String
+    public var text: String
+    public var timestamp: String
+
+    public init(id: String, role: String, text: String, timestamp: String) {
+        self.id = id
+        self.role = role
+        self.text = text
+        self.timestamp = timestamp
+    }
+}
+
 public struct AppSessionState: Equatable {
     public var residentID: String
     public var sessionID: String
+    public var lastUserInput: String
+    public var lastResidentOutput: String
+    public var lastActivity: String
+    public var shutdownState: String
+    public var recoveryRequired: Bool
+    public var recoveredAt: String
+    public var dialogueEntries: [AppDialogueEntryState]
 
-    public init(residentID: String = "", sessionID: String = "") {
+    public init(
+        residentID: String = "",
+        sessionID: String = "",
+        lastUserInput: String = "",
+        lastResidentOutput: String = "",
+        lastActivity: String = "",
+        shutdownState: String = "unknown",
+        recoveryRequired: Bool = false,
+        recoveredAt: String = "",
+        dialogueEntries: [AppDialogueEntryState] = []
+    ) {
         self.residentID = residentID
         self.sessionID = sessionID
+        self.lastUserInput = lastUserInput
+        self.lastResidentOutput = lastResidentOutput
+        self.lastActivity = lastActivity
+        self.shutdownState = shutdownState
+        self.recoveryRequired = recoveryRequired
+        self.recoveredAt = recoveredAt
+        self.dialogueEntries = dialogueEntries
     }
 }
 
@@ -123,6 +161,9 @@ public struct DebugPanelViewState: Equatable {
     public var tickCount: Int
     public var clockStatus: String
     public var cancellationStatus: String
+    public var shutdownState: String
+    public var recoveryRequired: Bool
+    public var recoveredAt: String
 
     public init(
         residentID: String = "",
@@ -134,7 +175,10 @@ public struct DebugPanelViewState: Equatable {
         traceSummary: String = "",
         tickCount: Int = 0,
         clockStatus: String = "",
-        cancellationStatus: String = ""
+        cancellationStatus: String = "",
+        shutdownState: String = "unknown",
+        recoveryRequired: Bool = false,
+        recoveredAt: String = ""
     ) {
         self.residentID = residentID
         self.sessionID = sessionID
@@ -146,6 +190,9 @@ public struct DebugPanelViewState: Equatable {
         self.tickCount = tickCount
         self.clockStatus = clockStatus
         self.cancellationStatus = cancellationStatus
+        self.shutdownState = shutdownState
+        self.recoveryRequired = recoveryRequired
+        self.recoveredAt = recoveredAt
     }
 }
 
@@ -186,6 +233,45 @@ public final class OrchestrationKernel {
         let result = runtimeCore.loadDR(request: RuntimeLoadRequest(drData: fixtureData))
         lastDiagnostics = OrchestrationKernelDiagnostics(stateSummary: result.isLoaded ? "resident_loaded" : "resident_load_failed")
         return result
+    }
+
+    public func restoreMostRecentSession() -> RuntimeSessionRestoreResult {
+        prepare()
+        let result = runtimeCore.restoreMostRecentSession()
+        lastDiagnostics = OrchestrationKernelDiagnostics(stateSummary: result.didRestore ? "session_restored" : "session_restore_empty")
+        return result
+    }
+
+    func saveCurrentSession(
+        lastUserInput: String,
+        lastResidentOutput: String,
+        lastActivity: String,
+        avatarState: AvatarState,
+        dialogueEntries: [RuntimeDialogueEntryState]
+    ) {
+        runtimeCore.saveCurrentSession(
+            lastUserInput: lastUserInput,
+            lastResidentOutput: lastResidentOutput,
+            lastActivity: lastActivity,
+            avatarState: avatarState,
+            dialogueEntries: dialogueEntries
+        )
+    }
+
+    func markSessionUnclean(
+        lastUserInput: String,
+        lastResidentOutput: String,
+        lastActivity: String,
+        avatarState: AvatarState,
+        dialogueEntries: [RuntimeDialogueEntryState]
+    ) {
+        runtimeCore.markSessionUnclean(
+            lastUserInput: lastUserInput,
+            lastResidentOutput: lastResidentOutput,
+            lastActivity: lastActivity,
+            avatarState: avatarState,
+            dialogueEntries: dialogueEntries
+        )
     }
 
     public func step(residentID: String, inputText: String) -> RuntimeStepResponse {

@@ -10,11 +10,11 @@
 
 ## 📌 当前状态(每次更新,粘给 AI 时就粘这一段)
 
-- **现在在做**:Stage 7.1.18 completed
-- **上一步刚完成**:Stage 7.1-DOC-APPLE-HOST-RESERVE Apple 全生态 Host 预留文档调整
+- **现在在做**:Stage 7.2 归档与分支切换
+- **上一步刚完成**:Stage 7.2 Final Review PASS
 - **当前卡在**:无
-- **下一步**:Stage 7.1 Final Review
-- **额度情况**:纯文档 checklist,不改 Swift / Runtime API / DR schema / 平台 target
+- **下一步**:从最新 main 新建 Stage 7.3 分支,准备 Stage 7.3 粒子生命体视觉底座 + 字幕基础
+- **额度情况**:只做归档文档与 Git 分支操作,不改 Swift / Runtime API / DR schema / 平台 target
 
 > - **现在在做**:Stage 7.1.6 —— Runtime Config 本地配置边界
 > - **上一步刚完成**:Stage 7.1.5 DR Loader 读取 / 浅校验 / 加载边界已正规化
@@ -53,18 +53,18 @@
 - [x] **【G0·已拍板 v7 改选 A】Runtime 策略：A. Swift RuntimeCore（App 内置运行内核）** ← v7 由 B 改 A;只有我能定
 - [x] **【G0·已拍板】DR 字段对齐：以 Studio 导出的 DR v0.3 envelope + Runtime API 6.11.0 实际返回字段为准**
 - [x] **【G0·已拍板】真实 LLM 来源：Stage 7 MVP 可 mock；真实 Provider 只能走 RuntimeCore ProviderConfig/Profile → ProviderRouter → ProviderAdapter → ExecutionEngine；UI 不直连 OpenAI/Claude/Qwen**
-- [ ] 把 `Agent.md` 改成正确的 `AGENTS.md`
-- [ ] 建 GitHub/Gitee **私有**仓库,放进全部文档,锁好 .gitignore(密钥/真实DR不进库)
-- [ ] 做 2-3 个测试 DR fixture(1 个正常 + 1 个错误 + 空壳)
+- [x] 把 `Agent.md` 改成正确的 `AGENTS.md`
+- [x] 建 GitHub/Gitee **私有**仓库,放进全部文档,锁好 .gitignore(密钥/真实DR不进库)
+- [x] 做 2-3 个测试 DR fixture(1 个正常 + 1 个错误 + 空壳)
 - [x] Stage 6 收尾完成：DR v0.3 Contract Freeze 已完成，Aftelle 读取字段以后以 `dr_contract_v0_3.md` 为准
-- [ ] 开工首日锁定技术栈版本(Swift / Xcode / 最低 macOS),写进仓库
-- [ ] 用 Claude Code `/status` 确认我的额度和计费方式
+- [x] 开工首日锁定技术栈版本(Swift / Xcode / 最低 macOS),写进仓库
+- [x] 用 Claude Code `/status` 确认我的额度和计费方式
 
 进 7.1 后:
 
-- [ ] 搭空 Xcode 项目,放约 10 个粒子
-- [ ] 走通:加载 DR → 改粒子逻辑 → 看到变化
-- [ ] 记下:7.1 花了多少额度、AI 读了多少文件、卡在哪 → 用它外推整个 Stage 7
+- [x] 搭空 Xcode 项目,放约 10 个粒子
+- [x] 走通:加载 DR → 改粒子逻辑 → 看到变化
+- [x] 记下:7.1 花了多少额度、AI 读了多少文件、卡在哪 → 用它外推整个 Stage 7
 
 ---
 
@@ -121,6 +121,18 @@
 - 2026-07-03 — Stage 7.1.18 Stage 7 禁止项检查器：完成 Stage 7 文档级 forbidden checklist。新增 stage7_forbidden_checklist.md，用于后续 PR / Codex / Cursor 任务前后检查 Stage 范围、RuntimeCore 边界、Host 边界、DR / Runtime API、Provider / Secret、Memory / Trace / LiveState、Scheduler / Tick / 多居民、UI / 渲染等红线；纳入 Apple 全生态 Host 预留禁止项；本节点未改 Swift 代码、未改 Runtime API、未改 DR schema、未新增平台 target，未进入 Stage 8。
 - 2026-07-03 — Stage 7.1 Final Review：完成 Stage 7.1 最终审核。Fable 5 主审与 Codex 交叉复审均判定 PASS；7.1 已形成技术底座、平台抽象、编排薄壳、只读状态面板、RuntimeClock no-op、resident_state、trace、Debug Panel、Apple Host 文档预留与 Stage 7 forbidden checklist；未发现 BLOCKER / HIGH / MEDIUM 风险。已确认 RuntimeCore 平台无关，Aftelle 仅作为 macOS Runtime Host，DR / Runtime API / Provider / Secret / Memory / Trace / LiveState / Scheduler 边界未被破坏。允许进入 Stage 7.2 准备。已知 LOW 风险：project.pbxproj 中 AppController.swift / AppModels.swift 存在冗余 PBXBuildFile / PBXFileReference 记录，当前不影响 build，可作为进入 7.2 前的工程卫生项单独清理。
 - 2026-07-03 — Stage 7.1-CLEANUP-XCODEPROJ-WARNINGS：完成进入 Stage 7.2 前的工程卫生清理。复核 `project.pbxproj` 中 `AppController.swift` / `AppModels.swift` / `RuntimeConfig.swift` 的引用、source entry 与资源归属；当前工程文件中 `AppController.swift`、`AppModels.swift`、`RuntimeConfig.swift` 均为唯一有效引用，`PBXSourcesBuildPhase` 各仅 1 条有效 source entry，`RuntimeConfig.swift` 不在 Resources；完整 `xcodebuild` 通过，日志仅剩可接受环境 warning（multiple matching macOS destinations），未见 Swift deprecated API 或真实工程 warning；未改 Runtime API、未改 DR schema、未新增平台 target；architecture_guard、secret_guard、git diff --check 均通过。
+- 2026-07-03 — Stage 7.2.1 会话保存：完成最小 SessionStore 会话持久化。新增 `apps/macos/RuntimeCore/SessionStore.swift`，在 `RuntimeCore.step(...)` 单居民 passthrough / mock step 完成后，将当前 session 的最小记录保存到 `~/Library/Application Support/Aftelle/SessionStore/<session_id>.json`；保存字段限制为 `schema_version`、`resident_id`、`session_id`、`created_at`、`updated_at`、`last_user_input`、`last_resident_output`、`last_activity`，`schema_version` 为 `0.1.0`。`AppController` 仍通过 `OrchestrationKernel` / `RuntimeCore` 公共入口组织运行，未直连 Store。当前仅实现保存，不做会话恢复、最近历史恢复、key-value memory、长期记忆、Memory Kernel、向量数据库、人格成长或多居民社会记忆；未写回 `.digital_resident`，未接真实 Provider，未保存 secret / key_ref / secret_ref / provider response，未改 Runtime API，未改 DR schema，未新增平台 target，未进入 Stage 8。验收通过：`xcodebuild` BUILD SUCCEEDED，`architecture_guard` ok，`secret_guard` ok，`git diff --check` 通过，`stage7_forbidden_checklist` 判定 PASS。
+- 2026-07-03 — Stage 7.2.2 当前居民状态恢复：完成基于 7.2.1 SessionStore JSON 的最小启动恢复。新增 `SessionDisplayCache`、`SessionStore.loadMostRecentRecord()`、`RuntimeSessionRestoreResult`、`RuntimeCore.restoreMostRecentSession()`，并通过 `AppController.start()` → `OrchestrationKernel.restoreMostRecentSession()` → `RuntimeCore.restoreMostRecentSession()` → `SessionStore.loadMostRecentRecord()` 建立启动恢复链路；恢复成功后回填 `AppSessionState`、`AppResidentState`、`AppController.residentID` 与 `debugPanelState`，恢复字段限制为 `resident_id`、`session_id`、`last_activity`、`last_user_input`、`last_resident_output`。恢复失败时继续走原有 DR fixture 加载路径。当前仅实现当前居民 session/display cache 恢复，不做最近对话历史列表、key-value memory、长期记忆、Memory Kernel、向量数据库、人格成长或多居民社会记忆；未写回 `.digital_resident`，未接真实 Provider，未让 UI 直连 `SessionStore`，未改 Runtime API，未改 DR schema，未新增平台 target，未进入 Stage 8。验收通过：`xcodebuild` BUILD SUCCEEDED，`architecture_guard` ok，`secret_guard` ok，`git diff --check` 通过，`stage7_forbidden_checklist` 判定 PASS。
+- 2026-07-03 — Stage 7.2.3 最近对话历史恢复：完成最近对话 display cache 的最小保存与启动恢复。`SessionStore` 增加最近对话缓存读写，`RuntimeCore.step(...)` 每轮追加 user / resident 记录并限制保留最近 10 轮；启动时通过 `RuntimeCore.restoreMostRecentSession()` 恢复 `resident_id`、`session_id`、`last_activity`、最后一问一答及最近对话展示缓存。未做 key-value memory、长期记忆、Memory Kernel、向量数据库、人格成长、多居民社会记忆；未写回 `.digital_resident`，未接真实 Provider，未保存 provider response / prompt / secret，未改 Runtime API，未改 DR schema，未新增平台 target。验收通过：build、architecture_guard、secret_guard、git diff --check，forbidden checklist PASS。
+- 2026-07-03 — Stage 7.2.4 简单 key-value 记忆：完成单居民最小 key-value memory。新增 `MemoryController.swift`，按 `resident_id` 保存/读取本地 JSON：`schema_version`、`resident_id`、`entries[{key,value,updated_at}]`；`RuntimeCore` 仅保留薄代理入口，不承担 JSON / FileManager 细节。`SessionStore` 仍只负责 session / display cache，未自动抽取对话为 memory，未做 Memory Kernel、长期记忆、向量数据库、人格成长或多居民社会记忆；未写回 `.digital_resident`，未接真实 Provider，未改 Runtime API，未改 DR schema，未新增平台 target。验收通过：build、architecture_guard、secret_guard、git diff --check，forbidden checklist PASS。
+- 2026-07-03 — Stage 7.2.4-GUARD-FIX：修复 `architecture_guard` 对 `MemoryController.swift` 本地 memory JSON 写入的误报。确认 `MemoryController` 只写入 `Application Support/Aftelle/MemoryStore`，不写回 `.digital_resident`；本次仅收窄 guard 检测范围，DR 只读红线不变。验收通过：build、architecture_guard、secret_guard、git diff --check，forbidden checklist PASS。
+- 2026-07-03 — Stage 7.2.5 退出保存 / 启动恢复：完成最小 App 生命周期保存/恢复触发。启动时复用 `restoreMostRecentSession()` 链路，失败后继续走原有 DR fixture 加载；退出或 scenePhase 进入 inactive/background 时，通过 `AppController` → `OrchestrationKernel` → `RuntimeCore` 公共入口保存当前 session / display cache。未做崩溃恢复、长期记忆、Memory Kernel、向量数据库、人格成长或多居民社会记忆；未写回 `.digital_resident`，未接真实 Provider，未改 Runtime API / DR schema，未新增平台 target。验收通过：build、architecture_guard、secret_guard、git diff --check，forbidden checklist PASS。
+- 2026-07-03 — Stage 7.2.6 崩溃恢复基础：完成最小 clean / unclean shutdown 标记与启动恢复识别。App 活跃或 step 后标记 `unclean`，正常退出保存时标记 `clean`；启动时若发现上次为 `unclean`，继续恢复最近 session / display cache，并在 App / Debug 状态暴露 `recovery_required` / `recovered_at`。未做 crash reporter、崩溃日志、自动诊断、数据修复或复杂恢复 UI；未改 Runtime API / DR schema，未接真实 Provider，未写回 `.digital_resident`。验收通过：build、architecture_guard、secret_guard、git diff --check，forbidden checklist PASS。
+- 2026-07-03 — Stage 7.2.7 单居民记忆边界：完成 key-value memory 的单居民访问边界。`MemoryController` 增加 `activeResidentID`，仅允许当前 active resident 读写 memory；跨 `resident_id` 读取返回 nil，写入直接忽略。`RuntimeCore` 只负责设置当前居民边界，`SessionStore` 仍只负责 session / display cache。未做 Memory Kernel、长期记忆、向量数据库、人格成长、多居民社会记忆，未写回 `.digital_resident`，未改 Runtime API / DR schema，未接真实 Provider。验收通过：build、architecture_guard、secret_guard、git diff --check，forbidden checklist PASS。
+- 2026-07-03 — Stage 7.2.8 Avatar State 状态恢复：完成 Avatar State 展示快照的最小保存与启动恢复。`SessionDisplayCache` 保存 `avatarMode`、`avatarPresence`、`avatarMoodHint`、`avatarActivityHint`、`avatarParticleHint`；启动恢复 session 时回填 `AppAvatarState`，失败则继续默认 avatar / DR fixture 加载链路。未改 DR schema / Runtime API，未接真实 Provider，未写回 `.digital_resident`，未改 Metal / 粒子渲染架构，未进入 Stage 8。验收通过：build、architecture_guard、secret_guard、git diff --check，forbidden checklist PASS。
+- 2026-07-03 — Stage 7.2 REWORK：修复 Codex 交叉复审指出的 clean / unclean shutdown 与 Avatar State snapshot 语义问题。inactive/background 不再标记 clean，clean 仅保留在明确 Quit 正常退出路径；Avatar display cache 改为保存当前 `AppAvatarState` 快照，不再硬编码默认值；同时清理旧 `persistSessionIfPossible` 死代码并修复 ContentView 本地化插值 warning。未改 DR schema / Runtime API，未接真实 Provider，未写回 `.digital_resident`，未新增平台 target，未进入 Stage 8。验收通过：build、architecture_guard、secret_guard、git diff --check，forbidden checklist PASS。
+- 2026-07-03 — Stage 7.2 Final Review：完成 Stage 7.2 记忆与会话持久化最终审核，结论 PASS。Stage 7.2.1–7.2.8 已闭环：会话保存、当前居民状态恢复、最近对话 display cache、单居民 key-value memory、退出保存/启动恢复、clean/unclean shutdown、单居民记忆边界、Avatar State 展示快照恢复均通过。Codex 指出的 shutdown 与 avatar snapshot 语义问题已由 rework commit `3d082953cad86bdf5d78014697cabff7cee0eb77` 修复。未写回 `.digital_resident`，未改 DR schema / Runtime API contract，未接真实 Provider，未保存 secret / provider response / prompt，未新增平台 target，未进入 Stage 8。验收通过：`xcodebuild` BUILD SUCCEEDED，`architecture_guard` ok，`secret_guard` ok，`git diff --check` 通过，Final Review 判定允许 Stage 7.2 归档并准备进入 Stage 7.3。
+- 2026-07-03 — Stage 7.2 Archive：完成 Stage 7.2 归档记录。Stage 7.2.1–7.2.8 已完成并通过 Final Review；rework commit `3d082953cad86bdf5d78014697cabff7cee0eb77` 已修复 shutdown / avatar snapshot 语义问题；本阶段未进入 Stage 8，未改 DR schema / Runtime API contract，未接真实 Provider，未写回 `.digital_resident`，未新增平台 target。下一步从最新 main 新建 `7.3` 分支，进入 Stage 7.3 准备。
 
 ---
 

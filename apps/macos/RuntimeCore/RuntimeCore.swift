@@ -248,11 +248,77 @@ public struct RuntimeLoadResult {
     public let residentState: RuntimeResidentState?
 }
 
+public struct RuntimeDialogueEntryState {
+    public var role: String
+    public var text: String
+    public var timestamp: Date
+
+    public init(role: String, text: String, timestamp: Date) {
+        self.role = role
+        self.text = text
+        self.timestamp = timestamp
+    }
+}
+
+public struct RuntimeSessionRestoreResult {
+    public let didRestore: Bool
+    public let residentID: String
+    public let sessionID: String
+    public let lastUserInput: String
+    public let lastResidentOutput: String
+    public let lastActivity: String
+    public let avatarMode: String
+    public let avatarPresence: String
+    public let avatarMoodHint: String
+    public let avatarActivityHint: String
+    public let avatarParticleHint: String
+    public let shutdownState: SessionShutdownState
+    public let recoveryRequired: Bool
+    public let recoveredAt: Date?
+    public let dialogueEntries: [RuntimeDialogueEntryState]
+
+    public init(
+        didRestore: Bool,
+        residentID: String = "",
+        sessionID: String = "",
+        lastUserInput: String = "",
+        lastResidentOutput: String = "",
+        lastActivity: String = "",
+        avatarMode: String = "idle",
+        avatarPresence: String = "unknown",
+        avatarMoodHint: String = "",
+        avatarActivityHint: String = "",
+        avatarParticleHint: String = "",
+        shutdownState: SessionShutdownState = .unclean,
+        recoveryRequired: Bool = false,
+        recoveredAt: Date? = nil,
+        dialogueEntries: [RuntimeDialogueEntryState] = []
+    ) {
+        self.didRestore = didRestore
+        self.residentID = residentID
+        self.sessionID = sessionID
+        self.lastUserInput = lastUserInput
+        self.lastResidentOutput = lastResidentOutput
+        self.lastActivity = lastActivity
+        self.avatarMode = avatarMode
+        self.avatarPresence = avatarPresence
+        self.avatarMoodHint = avatarMoodHint
+        self.avatarActivityHint = avatarActivityHint
+        self.avatarParticleHint = avatarParticleHint
+        self.shutdownState = shutdownState
+        self.recoveryRequired = recoveryRequired
+        self.recoveredAt = recoveredAt
+        self.dialogueEntries = dialogueEntries
+    }
+}
+
 public final class RuntimeCore {
     private let drLoader: DRLoader
     private let executionEngine: ExecutionEngine
     private let providerRouter: ProviderRouter
     private let hostEnv: HostEnv
+    private let sessionStore: SessionStore
+    private let memoryController: MemoryController
     private var cancellationState = RuntimeCancellationState.none
     private var sessionContext: RuntimeSessionContext?
     private var clockState = RuntimeClockState()
@@ -261,12 +327,16 @@ public final class RuntimeCore {
         drLoader: DRLoader = DRLoader(),
         executionEngine: ExecutionEngine = ExecutionEngine(),
         providerRouter: ProviderRouter = ProviderRouter(),
-        hostEnv: HostEnv = DefaultHostEnv()
+        hostEnv: HostEnv = DefaultHostEnv(),
+        sessionStore: SessionStore = SessionStore(),
+        memoryController: MemoryController = MemoryController()
     ) {
         self.drLoader = drLoader
         self.executionEngine = executionEngine
         self.providerRouter = providerRouter
         self.hostEnv = hostEnv
+        self.sessionStore = sessionStore
+        self.memoryController = memoryController
     }
 
     public func loadDR(from data: Data) -> RuntimeLoadResult {
@@ -287,6 +357,7 @@ public final class RuntimeCore {
 
             let sessionID = RuntimeSessionID.make()
             sessionContext = RuntimeSessionContext(residentID: loadedDR.residentID, sessionID: sessionID)
+            memoryController.setActiveResidentID(loadedDR.residentID)
             let avatarState = AvatarState(
                 residentID: loadedDR.residentID,
                 displayName: loadedDR.displayName,
@@ -302,6 +373,7 @@ public final class RuntimeCore {
                 lifecycleStatus: "loaded",
                 presence: "available",
                 lastActivitySummary: "DR loaded",
+                lastUpdatedAt: Date(),
                 avatarMode: avatarState.mode
             )
 
@@ -333,6 +405,163 @@ public final class RuntimeCore {
         loadDR(from: request.drData)
     }
 
+    public func restoreMostRecentSession() -> RuntimeSessionRestoreResult {
+        guard let record = try? sessionStore.loadMostRecentRecord() else {
+            return RuntimeSessionRestoreResult(didRestore: false)
+        }
+        let displayCache = try? sessionStore.loadDisplayCache()
+        guard record.schemaVersion == SessionStore.schemaVersion else {
+            return RuntimeSessionRestoreResult(didRestore: false)
+        }
+        let dialogueEntries = (try? sessionStore.loadMostRecentDialogueEntries()) ?? []
+        let avatarMode = displayCache?.avatarMode ?? "idle"
+        let avatarPresence = displayCache?.avatarPresence ?? "unknown"
+        let avatarMoodHint = displayCache?.avatarMoodHint ?? ""
+        let avatarActivityHint = displayCache?.avatarActivityHint ?? ""
+        let avatarParticleHint = displayCache?.avatarParticleHint ?? ""
+        sessionContext = RuntimeSessionContext(
+            residentID: record.residentID,
+            sessionID: RuntimeSessionID(rawValue: record.sessionID)
+        )
+        memoryController.setActiveResidentID(record.residentID)
+        let recoveredAt = Date()
+        let recoveryRequired = record.shutdownState == .unclean
+        let updatedRecord = SessionStoreRecord(
+            schemaVersion: record.schemaVersion,
+            residentID: record.residentID,
+            sessionID: record.sessionID,
+            createdAt: record.createdAt,
+            updatedAt: recoveredAt,
+            lastUserInput: record.lastUserInput,
+            lastResidentOutput: record.lastResidentOutput,
+            lastActivity: record.lastActivity,
+            shutdownState: .unclean,
+            recoveryRequired: recoveryRequired,
+            recoveredAt: recoveredAt
+        )
+        try? sessionStore.save(record: updatedRecord)
+        try? sessionStore.saveDisplayCache(SessionDisplayCache(
+            residentID: record.residentID,
+            sessionID: record.sessionID,
+            lastUserInput: record.lastUserInput,
+            lastResidentOutput: record.lastResidentOutput,
+            lastActivity: record.lastActivity,
+            avatarMode: avatarMode,
+            avatarPresence: avatarPresence,
+            avatarMoodHint: avatarMoodHint,
+            avatarActivityHint: avatarActivityHint,
+            avatarParticleHint: avatarParticleHint,
+            shutdownState: record.shutdownState,
+            recoveryRequired: recoveryRequired,
+            recoveredAt: recoveredAt,
+            updatedAt: recoveredAt
+        ))
+        return RuntimeSessionRestoreResult(
+            didRestore: true,
+            residentID: record.residentID,
+            sessionID: record.sessionID,
+            lastUserInput: record.lastUserInput,
+            lastResidentOutput: record.lastResidentOutput,
+            lastActivity: record.lastActivity,
+            avatarMode: avatarMode,
+            avatarPresence: avatarPresence,
+            avatarMoodHint: avatarMoodHint,
+            avatarActivityHint: avatarActivityHint,
+            avatarParticleHint: avatarParticleHint,
+            shutdownState: record.shutdownState,
+            recoveryRequired: recoveryRequired,
+            recoveredAt: recoveredAt,
+            dialogueEntries: dialogueEntries.map {
+                RuntimeDialogueEntryState(role: $0.role, text: $0.text, timestamp: $0.timestamp)
+            }
+        )
+    }
+
+    func saveCurrentSession(
+        lastUserInput: String,
+        lastResidentOutput: String,
+        lastActivity: String,
+        avatarState: AvatarState,
+        dialogueEntries: [RuntimeDialogueEntryState]
+    ) {
+        persistSessionSnapshot(
+            shutdownState: .clean,
+            recoveryRequired: false,
+            recoveredAt: nil,
+            lastUserInput: lastUserInput,
+            lastResidentOutput: lastResidentOutput,
+            lastActivity: lastActivity,
+            avatarState: avatarState,
+            dialogueEntries: dialogueEntries
+        )
+    }
+
+    func markSessionUnclean(
+        lastUserInput: String = "",
+        lastResidentOutput: String = "",
+        lastActivity: String = "",
+        avatarState: AvatarState? = nil,
+        dialogueEntries: [RuntimeDialogueEntryState] = []
+    ) {
+        persistSessionSnapshot(
+            shutdownState: .unclean,
+            recoveryRequired: false,
+            recoveredAt: nil,
+            lastUserInput: lastUserInput,
+            lastResidentOutput: lastResidentOutput,
+            lastActivity: lastActivity,
+            avatarState: avatarState,
+            dialogueEntries: dialogueEntries
+        )
+    }
+
+    private func persistSessionSnapshot(
+        shutdownState: SessionShutdownState,
+        recoveryRequired: Bool,
+        recoveredAt: Date?,
+        lastUserInput: String,
+        lastResidentOutput: String,
+        lastActivity: String,
+        avatarState: AvatarState?,
+        dialogueEntries: [RuntimeDialogueEntryState]
+    ) {
+        guard let context = sessionContext else { return }
+        let now = Date()
+        let record = SessionStoreRecord(
+            residentID: context.residentID,
+            sessionID: context.sessionID.rawValue,
+            createdAt: now,
+            updatedAt: now,
+            lastUserInput: lastUserInput,
+            lastResidentOutput: lastResidentOutput,
+            lastActivity: lastActivity,
+            shutdownState: shutdownState,
+            recoveryRequired: recoveryRequired,
+            recoveredAt: recoveredAt
+        )
+        try? sessionStore.save(record: record)
+        try? sessionStore.saveDisplayCache(SessionDisplayCache(
+            residentID: context.residentID,
+            sessionID: context.sessionID.rawValue,
+            lastUserInput: lastUserInput,
+            lastResidentOutput: lastResidentOutput,
+            lastActivity: lastActivity,
+            avatarMode: avatarState?.mode ?? "idle",
+            avatarPresence: avatarState?.presence ?? "unknown",
+            avatarMoodHint: avatarState?.moodHint ?? "",
+            avatarActivityHint: avatarState?.activityHint ?? "",
+            avatarParticleHint: avatarState?.particleHint ?? "",
+            shutdownState: shutdownState,
+            recoveryRequired: recoveryRequired,
+            recoveredAt: recoveredAt,
+            updatedAt: now
+        ))
+        let entries = dialogueEntries.map {
+            SessionDialogueEntry(role: $0.role, text: $0.text, timestamp: $0.timestamp)
+        }
+        try? sessionStore.saveDialogueEntries(entries, for: context.sessionID.rawValue)
+    }
+
     public func step(inputText: String) -> RuntimeStepResponse {
         let residentID = sessionContext?.residentID ?? ""
         let request = RuntimeStepRequest(residentID: residentID, inputText: inputText)
@@ -344,7 +573,25 @@ public final class RuntimeCore {
         cancellationState = .none
         let response = executionEngine.step(request: request, cancellationState: pendingCancellation)
         sessionContext = RuntimeSessionContext(residentID: request.residentID, sessionID: sessionContext?.sessionID ?? .make())
+        markSessionUnclean(
+            lastUserInput: request.inputText,
+            lastResidentOutput: response.outputText,
+            lastActivity: response.residentState.lastActivitySummary,
+            avatarState: response.avatarState,
+            dialogueEntries: [
+                RuntimeDialogueEntryState(role: "user", text: request.inputText, timestamp: response.residentState.lastUpdatedAt),
+                RuntimeDialogueEntryState(role: "resident", text: response.outputText, timestamp: response.residentState.lastUpdatedAt)
+            ]
+        )
         return response
+    }
+
+    public func readMemoryValue(for key: String, residentID: String) -> String? {
+        memoryController.loadValue(for: key, residentID: residentID)
+    }
+
+    public func saveMemoryValue(_ value: String, for key: String, residentID: String) {
+        memoryController.saveValue(value, for: key, residentID: residentID)
     }
 
     public func cancelCurrentStep() {

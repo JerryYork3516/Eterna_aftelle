@@ -58,10 +58,17 @@ struct ContentView: View {
             Text("\(String(localized: "tick_count:")) \(controller.debugPanelState.tickCount)")
             Text("\(String(localized: "clock_status:")) \(controller.debugPanelState.clockStatus)")
             Text("\(String(localized: "cancellation_status:")) \(controller.debugPanelState.cancellationStatus)")
+            Text("\(String(localized: "shutdown_state:")) \(controller.debugPanelState.shutdownState)")
+            Text("\(String(localized: "recovery_required:")) \(recoveryRequiredText)")
+            Text("\(String(localized: "recovered_at:")) \(controller.debugPanelState.recoveredAt)")
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var recoveryRequiredText: String {
+        controller.debugPanelState.recoveryRequired ? String(localized: "true") : String(localized: "false")
     }
 }
 

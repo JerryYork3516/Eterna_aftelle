@@ -19,6 +19,8 @@ final class AppController: ObservableObject {
 
     private let orchestrationKernel: OrchestrationKernel
     private var loadedResidentID = ""
+    private var loadedSessionID = ""
+    private var dialogueEntries: [AppDialogueEntryState] = []
 
     init() {
         self.orchestrationKernel = OrchestrationKernel()
@@ -30,6 +32,58 @@ final class AppController: ObservableObject {
 
     func start() {
         startupState = .loading
+
+        let restoreResult = orchestrationKernel.restoreMostRecentSession()
+        if restoreResult.didRestore {
+            loadedResidentID = restoreResult.residentID
+            loadedSessionID = restoreResult.sessionID
+            dialogueEntries = restoreResult.dialogueEntries.map {
+                AppDialogueEntryState(
+                    id: "\($0.role)-\(Int($0.timestamp.timeIntervalSince1970))",
+                    role: $0.role,
+                    text: $0.text,
+                    timestamp: ISO8601DateFormatter().string(from: $0.timestamp)
+                )
+            }
+            runtimeStatus = "Runtime status: session restored"
+            fixtureStatus = "DR fixture: loaded"
+            residentID = "resident_id: \(restoreResult.residentID.isEmpty ? "-" : restoreResult.residentID)"
+            displayName = "display_name: restored session"
+            sessionState = AppSessionState(
+                residentID: restoreResult.residentID,
+                sessionID: restoreResult.sessionID,
+                lastUserInput: restoreResult.lastUserInput,
+                lastResidentOutput: restoreResult.lastResidentOutput,
+                lastActivity: restoreResult.lastActivity,
+                shutdownState: restoreResult.shutdownState.rawValue,
+                recoveryRequired: restoreResult.recoveryRequired,
+                recoveredAt: restoreResult.recoveredAt.map { ISO8601DateFormatter().string(from: $0) } ?? "",
+                dialogueEntries: dialogueEntries
+            )
+            residentState = AppResidentState(
+                residentID: restoreResult.residentID,
+                sessionID: restoreResult.sessionID,
+                lifecycleStatus: restoreResult.recoveryRequired ? "recovered" : "restored",
+                presence: "available",
+                lastActivitySummary: restoreResult.lastActivity,
+                lastUpdatedAt: ISO8601DateFormatter().string(from: Date()),
+                avatarMode: restoreResult.avatarMode
+            )
+            avatarState = AppAvatarState(
+                residentID: restoreResult.residentID,
+                displayName: "restored session",
+                mode: restoreResult.avatarMode,
+                presence: restoreResult.avatarPresence,
+                moodHint: restoreResult.avatarMoodHint,
+                activityHint: restoreResult.avatarActivityHint,
+                particleHint: restoreResult.avatarParticleHint
+            )
+            diagnostics = restoreResult.recoveryRequired ? "Session restored after unclean shutdown" : "Session restored"
+            traceState = RuntimeTraceViewState(summary: diagnostics, entries: [])
+            refreshDebugPanelState(shutdownState: restoreResult.shutdownState.rawValue, recoveryRequired: restoreResult.recoveryRequired, recoveredAt: restoreResult.recoveredAt.map { ISO8601DateFormatter().string(from: $0) } ?? "")
+            startupState = .loaded
+            return
+        }
 
         guard let fixtureURL = Bundle.main.url(forResource: "Freezev03.calibration_fixture", withExtension: "json") else {
             applyFailure(runtimeMessage: "Runtime status: DR load failed", diagnosticsMessage: "Fixture not found")
@@ -43,14 +97,17 @@ final class AppController: ObservableObject {
 
         let result = orchestrationKernel.loadResident(fixtureData: fixtureData)
         loadedResidentID = result.isLoaded ? result.residentID : ""
+        loadedSessionID = result.sessionID?.rawValue ?? ""
         runtimeStatus = "Runtime status: \(result.statusMessage)"
         fixtureStatus = result.isLoaded ? "DR fixture: loaded" : "DR fixture: not loaded"
         residentID = "resident_id: \(result.residentID.isEmpty ? "-" : result.residentID)"
         displayName = "display_name: \(result.displayName.isEmpty ? "-" : result.displayName)"
         sessionState = AppSessionState(
             residentID: result.residentID,
-            sessionID: result.sessionID?.rawValue ?? ""
+            sessionID: loadedSessionID,
+            lastActivity: result.residentState?.lastActivitySummary ?? ""
         )
+        dialogueEntries = []
         avatarState = result.avatarState.map {
             AppAvatarState(
                 residentID: $0.residentID,
@@ -82,6 +139,25 @@ final class AppController: ObservableObject {
     func step(inputText: String) -> RuntimeStepResponse {
         let response = orchestrationKernel.step(residentID: loadedResidentID, inputText: inputText)
         runtimeState = response.cancellationState.isCancelled ? (response.cancellationState.reason == .interrupted ? .interrupted : .cancelled) : .running
+        dialogueEntries.append(
+            AppDialogueEntryState(
+                id: "user-\(dialogueEntries.count)",
+                role: "user",
+                text: inputText,
+                timestamp: ISO8601DateFormatter().string(from: response.residentState.lastUpdatedAt)
+            )
+        )
+        dialogueEntries.append(
+            AppDialogueEntryState(
+                id: "resident-\(dialogueEntries.count)",
+                role: "resident",
+                text: response.outputText,
+                timestamp: ISO8601DateFormatter().string(from: response.residentState.lastUpdatedAt)
+            )
+        )
+        if dialogueEntries.count > 20 {
+            dialogueEntries = Array(dialogueEntries.suffix(20))
+        }
         residentState = AppResidentState(
             residentID: response.residentState.residentID,
             sessionID: response.residentState.sessionID,
@@ -91,6 +167,24 @@ final class AppController: ObservableObject {
             lastUpdatedAt: ISO8601DateFormatter().string(from: response.residentState.lastUpdatedAt),
             avatarMode: response.residentState.avatarMode ?? ""
         )
+        avatarState = AppAvatarState(
+            residentID: response.avatarState.residentID,
+            displayName: response.avatarState.displayName,
+            mode: response.avatarState.mode,
+            presence: response.avatarState.presence,
+            moodHint: response.avatarState.moodHint,
+            activityHint: response.avatarState.activityHint,
+            particleHint: response.avatarState.particleHint
+        )
+        sessionState = AppSessionState(
+            residentID: response.residentState.residentID,
+            sessionID: response.residentState.sessionID,
+            lastUserInput: inputText,
+            lastResidentOutput: response.outputText,
+            lastActivity: response.residentState.lastActivitySummary,
+            dialogueEntries: dialogueEntries
+        )
+        loadedSessionID = response.residentState.sessionID
         traceState = RuntimeTraceViewState(
             summary: response.diagnostics.cancellationState,
             entries: response.traceEvents.enumerated().map {
@@ -126,10 +220,53 @@ final class AppController: ObservableObject {
         refreshDebugPanelState()
     }
 
-    private func refreshDebugPanelState() {
+    func persistForNormalTerminationIfPossible() {
+        guard !loadedResidentID.isEmpty, !loadedSessionID.isEmpty else { return }
+        orchestrationKernel.saveCurrentSession(
+            lastUserInput: sessionState.lastUserInput,
+            lastResidentOutput: sessionState.lastResidentOutput,
+            lastActivity: sessionState.lastActivity,
+            avatarState: currentAvatarSnapshot(),
+            dialogueEntries: dialogueEntries.compactMap {
+                guard let timestamp = ISO8601DateFormatter().date(from: $0.timestamp) else { return nil }
+                return RuntimeDialogueEntryState(role: $0.role, text: $0.text, timestamp: timestamp)
+            }
+        )
+    }
+
+    func markSessionUncleanIfPossible() {
+        guard !loadedResidentID.isEmpty, !loadedSessionID.isEmpty else { return }
+        orchestrationKernel.markSessionUnclean(
+            lastUserInput: sessionState.lastUserInput,
+            lastResidentOutput: sessionState.lastResidentOutput,
+            lastActivity: sessionState.lastActivity,
+            avatarState: currentAvatarSnapshot(),
+            dialogueEntries: dialogueEntries.map {
+                RuntimeDialogueEntryState(
+                    role: $0.role,
+                    text: $0.text,
+                    timestamp: ISO8601DateFormatter().date(from: $0.timestamp) ?? Date()
+                )
+            }
+        )
+    }
+
+    private func currentAvatarSnapshot() -> AvatarState {
+        AvatarState(
+            residentID: avatarState.residentID.isEmpty ? loadedResidentID : avatarState.residentID,
+            displayName: avatarState.displayName,
+            mode: avatarState.mode,
+            presence: avatarState.presence,
+            moodHint: avatarState.moodHint,
+            activityHint: avatarState.activityHint,
+            particleHint: avatarState.particleHint
+        )
+    }
+
+    private func refreshDebugPanelState(shutdownState: String = "unknown", recoveryRequired: Bool = false, recoveredAt: String = "") {
         debugPanelState = DebugPanelViewState(
             residentID: residentState.residentID,
-            sessionID: sessionState.sessionID,
+            sessionID: sessionState.sessionID.isEmpty ? loadedSessionID : sessionState.sessionID,
             lifecycleStatus: residentState.lifecycleStatus,
             presence: residentState.presence,
             avatarMode: avatarState.mode,
@@ -137,7 +274,10 @@ final class AppController: ObservableObject {
             traceSummary: traceState.summary,
             tickCount: clockState.tickCount,
             clockStatus: clockState.lastTickSummary.isEmpty ? "noop" : clockState.lastTickSummary,
-            cancellationStatus: runtimeState == .idle ? "none" : String(describing: runtimeState)
+            cancellationStatus: runtimeState == .idle ? "none" : String(describing: runtimeState),
+            shutdownState: shutdownState,
+            recoveryRequired: recoveryRequired,
+            recoveredAt: recoveredAt
         )
     }
 
@@ -145,9 +285,11 @@ final class AppController: ObservableObject {
         runtimeStatus = runtimeMessage
         fixtureStatus = "DR fixture: not loaded"
         loadedResidentID = ""
+        loadedSessionID = ""
         residentID = "resident_id: -"
         displayName = "display_name: -"
         sessionState = AppSessionState()
+        dialogueEntries = []
         avatarState = AppAvatarState()
         traceState = RuntimeTraceViewState(summary: diagnosticsMessage, entries: [])
         runtimeState = .idle
