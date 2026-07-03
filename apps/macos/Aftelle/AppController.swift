@@ -14,6 +14,7 @@ final class AppController: ObservableObject {
     @Published private(set) var residentState = AppResidentState()
     @Published private(set) var traceState = RuntimeTraceViewState()
     @Published private(set) var clockState = RuntimeClockViewState()
+    @Published private(set) var debugPanelState = DebugPanelViewState()
     @Published private(set) var runtimeState: AppRuntimeState = .idle
 
     private let orchestrationKernel: OrchestrationKernel
@@ -74,6 +75,7 @@ final class AppController: ObservableObject {
         } ?? AppResidentState(residentID: result.residentID, sessionID: result.sessionID?.rawValue ?? "")
         diagnostics = result.diagnostics
         traceState = RuntimeTraceViewState(summary: result.diagnostics, entries: [])
+        refreshDebugPanelState()
         startupState = result.isLoaded ? .loaded : .failed
     }
 
@@ -95,6 +97,7 @@ final class AppController: ObservableObject {
                 RuntimeTraceEntryViewState(id: "\($0.offset)", type: $0.element.type.rawValue, message: $0.element.message)
             }
         )
+        refreshDebugPanelState()
         return response
     }
 
@@ -120,6 +123,22 @@ final class AppController: ObservableObject {
                 RuntimeTraceEntryViewState(id: "tick-\(response.clockState.tickCount)", type: response.traceEvent.type.rawValue, message: response.traceEvent.message)
             ]
         )
+        refreshDebugPanelState()
+    }
+
+    private func refreshDebugPanelState() {
+        debugPanelState = DebugPanelViewState(
+            residentID: residentState.residentID,
+            sessionID: sessionState.sessionID,
+            lifecycleStatus: residentState.lifecycleStatus,
+            presence: residentState.presence,
+            avatarMode: avatarState.mode,
+            lastActivitySummary: residentState.lastActivitySummary,
+            traceSummary: traceState.summary,
+            tickCount: clockState.tickCount,
+            clockStatus: clockState.lastTickSummary.isEmpty ? "noop" : clockState.lastTickSummary,
+            cancellationStatus: runtimeState == .idle ? "none" : String(describing: runtimeState)
+        )
     }
 
     private func applyFailure(runtimeMessage: String, diagnosticsMessage: String) {
@@ -133,6 +152,7 @@ final class AppController: ObservableObject {
         traceState = RuntimeTraceViewState(summary: diagnosticsMessage, entries: [])
         runtimeState = .idle
         diagnostics = diagnosticsMessage
+        refreshDebugPanelState()
         startupState = .failed
     }
 }

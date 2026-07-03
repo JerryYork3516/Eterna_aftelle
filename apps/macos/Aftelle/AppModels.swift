@@ -112,6 +112,43 @@ public struct RuntimeClockViewState: Equatable {
     }
 }
 
+public struct DebugPanelViewState: Equatable {
+    public var residentID: String
+    public var sessionID: String
+    public var lifecycleStatus: String
+    public var presence: String
+    public var avatarMode: String
+    public var lastActivitySummary: String
+    public var traceSummary: String
+    public var tickCount: Int
+    public var clockStatus: String
+    public var cancellationStatus: String
+
+    public init(
+        residentID: String = "",
+        sessionID: String = "",
+        lifecycleStatus: String = "",
+        presence: String = "",
+        avatarMode: String = "",
+        lastActivitySummary: String = "",
+        traceSummary: String = "",
+        tickCount: Int = 0,
+        clockStatus: String = "",
+        cancellationStatus: String = ""
+    ) {
+        self.residentID = residentID
+        self.sessionID = sessionID
+        self.lifecycleStatus = lifecycleStatus
+        self.presence = presence
+        self.avatarMode = avatarMode
+        self.lastActivitySummary = lastActivitySummary
+        self.traceSummary = traceSummary
+        self.tickCount = tickCount
+        self.clockStatus = clockStatus
+        self.cancellationStatus = cancellationStatus
+    }
+}
+
 public struct OrchestrationKernelDiagnostics: Equatable {
     public var stateSummary: String
 

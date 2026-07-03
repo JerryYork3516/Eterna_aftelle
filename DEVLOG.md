@@ -3,7 +3,7 @@
 > 这份是给我自己的,不是给 AI 自动读的。
 > 三个作用:① 提醒我做到哪、为什么这么定;② 每次开 GPT/Dify/新对话时,把"当前状态"那段粘过去当背景;③ 防止我忘了当初的决定又推翻重来。
 > **规则:每次做完一件事、或讨论出一个结论、或改完一个 bug,就来记一笔。不用长,几行即可。**
->
+> 
 > **boundary 基线 SHA-256(改动即报警)**：`275b95889f55646e3ae99ceb2a12cc0e974fd5338aa23c7311cccff0d2d041a6`（v7 更新:G0 改 A,仅 clock/tick 归属改为 RuntimeCore,4 条 Invariants 不变;旧 v6 基线 f043f4b5…）
 
 ---
@@ -116,6 +116,7 @@
 - 2026-07-03 — Stage 7.1.14 Runtime Trace 面板：完成最小只读 Runtime Trace 面板。Trace 数据来源于 RuntimeCore 返回的 RuntimeStepResponse.traceEvents / diagnostics，并由 AppController 转换为 RuntimeTraceViewState；ContentView 仅展示 trace summary、event type、message、entry id，不直连 TraceRecorder / ExecutionEngine / DRLoader / ProviderRouter / Provider；Trace 不编辑、不持久化、不写回 DR；session_id、AvatarState、cancellation 语义未破坏；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
 - 2026-07-03 — Stage 7.1.15 RuntimeClock / Scheduler 存在性验证：完成 RuntimeClock / Scheduler 最小存在性验证。RuntimeCore 增加 runtimeTick no-op 公共入口，仅递增 tickCount 并返回脱敏 system.tick trace / diagnostics；OrchestrationKernel.runtimeTick 只透传 RuntimeCore 公共入口，AppController / ContentView 只读展示 clock / trace 状态；未启动后台循环、定时器或真实调度，未做多居民 / planner / tool selection，未接真实 Provider / Keychain / 网络；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
 - 2026-07-03 — Stage 7.1.16 resident_state 基础字段：完成最小 resident_state 只读运行态链路。RuntimeCore / ExecutionEngine 返回 residentState，AppController 透传为只读 AppResidentState，ContentView 仅展示 resident_id、session_id、lifecycle_status、presence、last_activity、last_updated_at、avatar_mode；resident_state 与 DR 分离，不写回 DR / fixture，不包含 secret / provider config / memory 内容，不做 LiveState / Memory / SessionStore / HostStateStore 持久化；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
+- 2026-07-03 — Stage 7.1.17 Debug Panel 生命状态面板：完成最小只读 Debug Panel。AppController 聚合 resident_state、session_id、avatar_state、trace summary、clock、cancellation 为 debugPanelState，ContentView 仅展示只读摘要，不直连 RuntimeCore 内部组件；面板不编辑、不持久化、不写回 DR，不显示 secret / token / base_url / provider config / key_ref / secret_ref 具体值；未做 LiveState / Memory / Trace / SessionStore / HostStateStore 持久化；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
 
 ---
 
@@ -164,11 +165,11 @@ Stage 6.11 Freeze：Backend pytest 208 passed / Web typecheck passed / 6.7 Memor
 - AR / Vision Pro 身体 → Stage 8
 
 - Stage 7：单机数字居民 Runtime 闭环（生命体诞生）
-
+  
   Stage 8：iOS / iPadOS 随身化 + AR现实叠加 + 用户体系（进入现实世界）
-
+  
   Stage 9：visionOS 空间居民（空间生命体）
-
+  
   Stage 10：Apple 全平台统一生命体 + 结构化 Agent 系统（跨设备智能体）
 
 - [继续往下扔...]
