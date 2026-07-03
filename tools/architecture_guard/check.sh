@@ -37,9 +37,11 @@ if git grep -nE '(OpenAI|Anthropic|Claude|ProviderRouter|ProviderAdapter|LLM|cal
 fi
 
 if git grep -nE '\.digital_resident|resident.*write|write.*resident|revision' -- 'apps/**/*.swift' 'brain/**/*.swift' >/tmp/aftelle_dr_refs.txt 2>/dev/null; then
-  if grep -E 'write|save|overwrite|FileHandle|Data\(.*write|write\(to:' /tmp/aftelle_dr_refs.txt >/tmp/aftelle_suspicious_dr_writes.txt; then
-    cat /tmp/aftelle_suspicious_dr_writes.txt >&2
-    report 'DR files are read-only; do not write memory, state, keys, or runtime data back into .digital_resident.'
+  if grep -E '\.digital_resident|/digital_resident|digital_resident' /tmp/aftelle_dr_refs.txt >/tmp/aftelle_dr_path_hits.txt; then
+    if grep -E 'write|save|overwrite|FileHandle|Data\(.*write|write\(to:' /tmp/aftelle_dr_path_hits.txt >/tmp/aftelle_suspicious_dr_writes.txt; then
+      cat /tmp/aftelle_suspicious_dr_writes.txt >&2
+      report 'DR files are read-only; do not write memory, state, keys, or runtime data back into .digital_resident.'
+    fi
   fi
 fi
 
