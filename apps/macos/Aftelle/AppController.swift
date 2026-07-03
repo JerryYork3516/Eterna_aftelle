@@ -19,6 +19,7 @@ final class AppController: ObservableObject {
 
     private let orchestrationKernel: OrchestrationKernel
     private var loadedResidentID = ""
+    private var loadedSessionID = ""
 
     init() {
         self.orchestrationKernel = OrchestrationKernel()
@@ -43,13 +44,14 @@ final class AppController: ObservableObject {
 
         let result = orchestrationKernel.loadResident(fixtureData: fixtureData)
         loadedResidentID = result.isLoaded ? result.residentID : ""
+        loadedSessionID = result.sessionID?.rawValue ?? ""
         runtimeStatus = "Runtime status: \(result.statusMessage)"
         fixtureStatus = result.isLoaded ? "DR fixture: loaded" : "DR fixture: not loaded"
         residentID = "resident_id: \(result.residentID.isEmpty ? "-" : result.residentID)"
         displayName = "display_name: \(result.displayName.isEmpty ? "-" : result.displayName)"
         sessionState = AppSessionState(
             residentID: result.residentID,
-            sessionID: result.sessionID?.rawValue ?? ""
+            sessionID: loadedSessionID
         )
         avatarState = result.avatarState.map {
             AppAvatarState(
@@ -91,6 +93,8 @@ final class AppController: ObservableObject {
             lastUpdatedAt: ISO8601DateFormatter().string(from: response.residentState.lastUpdatedAt),
             avatarMode: response.residentState.avatarMode ?? ""
         )
+        sessionState = AppSessionState(residentID: response.residentState.residentID, sessionID: response.residentState.sessionID)
+        loadedSessionID = response.residentState.sessionID
         traceState = RuntimeTraceViewState(
             summary: response.diagnostics.cancellationState,
             entries: response.traceEvents.enumerated().map {
@@ -129,7 +133,7 @@ final class AppController: ObservableObject {
     private func refreshDebugPanelState() {
         debugPanelState = DebugPanelViewState(
             residentID: residentState.residentID,
-            sessionID: sessionState.sessionID,
+            sessionID: sessionState.sessionID.isEmpty ? loadedSessionID : sessionState.sessionID,
             lifecycleStatus: residentState.lifecycleStatus,
             presence: residentState.presence,
             avatarMode: avatarState.mode,

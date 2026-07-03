@@ -253,6 +253,7 @@ public final class RuntimeCore {
     private let executionEngine: ExecutionEngine
     private let providerRouter: ProviderRouter
     private let hostEnv: HostEnv
+    private let sessionStore: SessionStore
     private var cancellationState = RuntimeCancellationState.none
     private var sessionContext: RuntimeSessionContext?
     private var clockState = RuntimeClockState()
@@ -261,12 +262,14 @@ public final class RuntimeCore {
         drLoader: DRLoader = DRLoader(),
         executionEngine: ExecutionEngine = ExecutionEngine(),
         providerRouter: ProviderRouter = ProviderRouter(),
-        hostEnv: HostEnv = DefaultHostEnv()
+        hostEnv: HostEnv = DefaultHostEnv(),
+        sessionStore: SessionStore = SessionStore()
     ) {
         self.drLoader = drLoader
         self.executionEngine = executionEngine
         self.providerRouter = providerRouter
         self.hostEnv = hostEnv
+        self.sessionStore = sessionStore
     }
 
     public func loadDR(from data: Data) -> RuntimeLoadResult {
@@ -302,6 +305,7 @@ public final class RuntimeCore {
                 lifecycleStatus: "loaded",
                 presence: "available",
                 lastActivitySummary: "DR loaded",
+                lastUpdatedAt: Date(),
                 avatarMode: avatarState.mode
             )
 
@@ -344,7 +348,22 @@ public final class RuntimeCore {
         cancellationState = .none
         let response = executionEngine.step(request: request, cancellationState: pendingCancellation)
         sessionContext = RuntimeSessionContext(residentID: request.residentID, sessionID: sessionContext?.sessionID ?? .make())
+        persistSessionIfPossible(inputText: request.inputText, response: response)
         return response
+    }
+
+    private func persistSessionIfPossible(inputText: String, response: RuntimeStepResponse) {
+        guard let context = sessionContext else { return }
+        let record = SessionStoreRecord(
+            residentID: context.residentID,
+            sessionID: context.sessionID.rawValue,
+            createdAt: response.residentState.lastUpdatedAt,
+            updatedAt: response.residentState.lastUpdatedAt,
+            lastUserInput: inputText,
+            lastResidentOutput: response.outputText,
+            lastActivity: response.residentState.lastActivitySummary
+        )
+        try? sessionStore.save(record: record)
     }
 
     public func cancelCurrentStep() {

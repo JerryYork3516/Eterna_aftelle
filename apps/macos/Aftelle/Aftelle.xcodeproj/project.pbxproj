@@ -19,6 +19,7 @@
 		A070C000000000000000001E /* VisualStateMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C000000000000000001F /* VisualStateMapper.swift */; };
 		A070C0000000000000000020 /* RuntimeConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000021 /* RuntimeConfig.swift */; };
 		A070C0000000000000000024 /* PlatformAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000025 /* PlatformAdapter.swift */; };
+		A070C0000000000000000032 /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000033 /* SessionStore.swift */; };
 		A070C0000000000000000031 /* Freezev03.calibration_fixture.json in Resources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000030 /* Freezev03.calibration_fixture.json */; };
 /* End PBXBuildFile section */
 
@@ -36,6 +37,7 @@
 		A070C000000000000000001F /* VisualStateMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/VisualStateMapper.swift; sourceTree = SOURCE_ROOT; };
 		A070C0000000000000000021 /* RuntimeConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/RuntimeConfig.swift; sourceTree = SOURCE_ROOT; };
 		A070C0000000000000000025 /* PlatformAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/PlatformAdapter.swift; sourceTree = SOURCE_ROOT; };
+		A070C0000000000000000033 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/SessionStore.swift; sourceTree = SOURCE_ROOT; };
 		A070C0000000000000000030 /* Freezev03.calibration_fixture.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = Freezev03.calibration_fixture.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -88,6 +90,7 @@
 				A070C000000000000000001F /* VisualStateMapper.swift */,
 				A070C0000000000000000021 /* RuntimeConfig.swift */,
 				A070C0000000000000000025 /* PlatformAdapter.swift */,
+			A070C0000000000000000033 /* SessionStore.swift */,
 			);
 			path = ../RuntimeCore;
 			sourceTree = SOURCE_ROOT;
@@ -177,6 +180,7 @@
 				A070C000000000000000001E /* VisualStateMapper.swift in Sources */,
 				A070C0000000000000000020 /* RuntimeConfig.swift in Sources */,
 				A070C0000000000000000024 /* PlatformAdapter.swift in Sources */,
+			A070C0000000000000000032 /* SessionStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
