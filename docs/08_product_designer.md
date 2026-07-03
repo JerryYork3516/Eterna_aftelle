@@ -50,6 +50,8 @@
 - **避开被用烂的默认值**:通用字体、保守配色、紫色渐变、居中大标题这种"AI 默认审美"。每个视觉选择都要有意图。
 - **"高级感"来自克制和细节**,不是堆特效。少而精,而非多而炫。
 - **几乎没有传统 UI** 是我们的特色——粒子即界面。所以交互要靠粒子的变化和"意图"来表达,不是靠按钮菜单。设计时往这个方向想。
+- **抽象半身粒子 Avatar 可以作为 Stage 7 的人格识别方向**,但必须保持抽象:在粒子生命体基础上增加抽象头部、发型、五官、肩颈和上胸轮廓,增强活人感,不是写实数字人系统。允许圆形粒子形态与抽象半身形态切换、masculine / feminine / neutral 视觉气质、idle / thinking / speaking / sleeping / error 状态、眉眼嘴轻微变化和 speaking 嘴部粒子脉冲。
+- **不要把半身 Avatar 做成另一个大坑**。Stage 7 禁止写实人脸、真实皮肤、完整身体、骨骼、Blendshape、精准 lip sync、viseme、牙齿、舌头、真实口腔、服装系统、Avatar 编辑器、ARKit / RealityKit 正式身体和 3D 数字人系统。Aftelle 只渲染 Runtime 返回的状态,不推理人格或情绪,不改 DR schema / Runtime API,不直连 TTS Provider。
 
 ---
 

@@ -46,6 +46,7 @@ Aftelle Desktop macOS App
 │  ├─ App Shell
 │  ├─ Chat / Subtitle View
 │  ├─ Particle Life View
+│  ├─ AvatarRenderer(avatar_mode local render)
 │  ├─ Resident Switcher
 │  ├─ Screen Guide Overlay
 │  └─ Trace Panel
@@ -137,8 +138,9 @@ Aftelle Desktop macOS App
 
 ### 3.1 UI Layer
 完整实现展示版 UI(SwiftUI 外壳 + Metal 粒子)。
-负责:App 外壳、输入框、输出区、字幕区、粒子生命体、双居民展示、主次切换、Trace 面板、屏幕指导 Overlay。
+负责:App 外壳、输入框、输出区、字幕区、粒子生命体、`AvatarRenderer` 本地渲染模式、双居民展示、主次切换、Trace 面板、屏幕指导 Overlay。
 **不负责**:不直接读 DR、不直接调 LLM、不直接写 Memory、不做业务推理。
+`avatar_mode` 属于 platform-macos UI / 渲染层模式,用于在 `particle_core` 与 `abstract_bust` 等本地身体画法之间切换;它不是 RuntimeCore 居民逻辑,也不是 DR schema / Runtime API contract 字段。
 
 ### 3.2 App Controller
 完整实现 Stage 7 本地控制流。
@@ -226,6 +228,8 @@ Avatar State Protocol 至少包含:resident_id / emotion / energy / motion / voi
 
 绑定时序:7.3 视觉底座 → 7.4 人文居民情绪 → 7.6 行业居民视觉 → 7.7/7.8 双居民主次。
 
+Abstract Bust Avatar 是 platform-macos 渲染层规划:7.3 只预留 `avatar_mode: particle_core / abstract_bust` 与渲染切换接口;7.4 承接抽象半身人格轮廓;7.5 承接 speaking 嘴部粒子脉冲。RuntimeCore 仍只输出既有 `visual_state` / `resident_state` 等输入,Aftelle 只渲染,不得推理人格或情绪,不得改 DR schema / Runtime API / Provider Profile。
+
 ### 3.10 Audio / Subtitle System
 完整实现 Stage 7 展示版语音体验。
 负责:TTS 请求、音频播放、字幕基础与同步、启动/导入/退出音效、停止/打断说话。
@@ -259,9 +263,9 @@ Stage 7 只交付 macOS 单机 Runtime Host。Apple 全生态在本阶段只是 
 |---|---|
 | 7.1 技术底座+平台抽象+编排薄壳 | App Controller / HostEnv / RuntimeCore Interface / DR Loader / Orchestration / Trace |
 | 7.2 会话与展示状态持久化 | SessionStore / HostStateStore / Session Controller / Avatar State Restore |
-| 7.3 粒子视觉底座+字幕 | UI Layer / Particle Life View / Avatar State System / Subtitle View |
-| 7.4 人文居民打磨 | DR Identity / Runtime Prompt Policy / Avatar Emotion Mapping / Memory Policy |
-| 7.5 TTS/音效/字幕同步 | Provider Profile Manager / Audio System / Subtitle System / Interrupt Controller |
+| 7.3 粒子视觉底座+字幕 | UI Layer / Particle Life View / AvatarRenderer `avatar_mode` 预留 / Avatar State System / Subtitle View |
+| 7.4 人文居民打磨 | DR Identity / Runtime Prompt Policy / Abstract Bust 人格轮廓设计 / Avatar Emotion Mapping / Memory Policy |
+| 7.5 TTS/音效/字幕同步 | Provider Profile Manager / Audio System / Subtitle System / Abstract mouth pulse / Interrupt Controller |
 | 7.6 行业居民基础版 | 第二套 DR / 第二套 lattice visual mapping / 第二套 Prompt Policy |
 | 7.7 双居民导入与主次切换 | Resident Switcher / Resident Manager / Dual Resident Runtime Sessions |
 | 7.8 编排双居民调度 | Orchestration / Speaker Selector / Routing Policy / Trace Reason |

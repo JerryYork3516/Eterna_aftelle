@@ -13,6 +13,17 @@ Use this file to record each Codex task before closing the loop.
 - Token note:
 - Follow-up:
 
+## 7.3-abstract-bust-doc-plan
+
+- Stage: 7.3
+- Date: 2026-07-03
+- Task: Add document-only Abstract Bust Avatar planning without expanding Stage 7.3 implementation scope.
+- Read scope: `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/*`, `DEVLOG.md`, `docs/stage7_forbidden_checklist.md`, `docs/03_dev_plan.md`, `docs/06_product_design.md`, `docs/08_product_designer.md`, `docs/02_architecture.md`, this usage log, `docs/aftelle_runtime_boundary.md`.
+- Changed files: `docs/03_dev_plan.md`, `docs/06_product_design.md`, `docs/08_product_designer.md`, `docs/02_architecture.md`, `docs/aftelle_runtime_boundary.md`, `docs/stage7_forbidden_checklist.md`, `DEVLOG.md`, this usage log.
+- Verification: `git diff --check`; `tools/architecture_guard/check.sh`; `tools/secret_guard/check.sh`.
+- Token note: keep Abstract Bust as design planning; do not touch Swift, Xcode, DR schema, Runtime API, Provider Profile, or `feature_livestate.md`.
+- Follow-up: Stage 7.3 implementation may only build particle_core, local `avatar_mode` reserve, render switching interface, and subtitle basics.
+
 ## 7.1-livestate-doc-gate
 
 - Stage: 7.1

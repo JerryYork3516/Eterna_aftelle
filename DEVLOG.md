@@ -10,11 +10,11 @@
 
 ## 📌 当前状态(每次更新,粘给 AI 时就粘这一段)
 
-- **现在在做**:Stage 7.2 归档与分支切换
+- **现在在做**:Stage 7.3 文档级视觉规划调整(Abstract Bust Avatar)
 - **上一步刚完成**:Stage 7.2 Final Review PASS
 - **当前卡在**:无
-- **下一步**:从最新 main 新建 Stage 7.3 分支,准备 Stage 7.3 粒子生命体视觉底座 + 字幕基础
-- **额度情况**:只做归档文档与 Git 分支操作,不改 Swift / Runtime API / DR schema / 平台 target
+- **下一步**:进入 Stage 7.3 粒子生命体视觉底座 + 字幕基础;7.3 只做 particle_core、avatar_mode 预留、渲染切换接口和字幕基础
+- **额度情况**:只做文档规划调整,不改 Swift / Runtime API / DR schema / Provider Profile / 平台 target
 
 > - **现在在做**:Stage 7.1.6 —— Runtime Config 本地配置边界
 > - **上一步刚完成**:Stage 7.1.5 DR Loader 读取 / 浅校验 / 加载边界已正规化
@@ -98,6 +98,7 @@
 - 2026-07-03 — Stage 7.2 Final Verification — xcodebuild BUILD SUCCEEDED，architecture_guard ok，secret_guard ok，git diff --check 通过；未写回 `.digital_resident`，未改 DR schema / Runtime API，未接真实 Provider，未保存 secret / provider response / prompt，未新增平台 target，未进入 Stage 8。
 - 2026-07-03 — Stage 7.2 Archive — Stage 7.2 已归档，允许合并 `7.2` 到 `main`，再从最新 `main` 新建 `7.3` 分支，进入 Stage 7.3 准备。
 - 2026-07-03 — 下一阶段入口 — Stage 7.3 主题为“粒子生命体视觉底座 + 字幕基础”；第一步建议执行 7.3.0 Product Design Calibration，先锁定灰白 Shell 视觉方向、粒子状态语言、字幕策略、输入区弱化、Debug / Trace 默认隐藏与跨 Apple 平台视觉抽象预留。
+- 2026-07-03 — Abstract Bust Avatar 文档级规划调整 — 抽象半身粒子 Avatar 纳入 Stage 7 设计路线,但不扩大 7.3 范围:7.3 只保留 `particle_core` 默认形态、`avatar_mode` 本地渲染预留、渲染切换接口和字幕基础;7.4 承接抽象半身人格轮廓;7.5 承接口部粒子脉冲。未改 Swift / Xcode / DR schema / Runtime API / Provider Profile,未进入 Stage 8。
 
 ---
 

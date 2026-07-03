@@ -145,7 +145,7 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 
 ## Stage 7.3 粒子生命体视觉底座 + 字幕基础
 
-目标:先做高级圆形粒子生命体,不急做人形。
+目标:先做高级圆形粒子生命体,不急做完整半身 Avatar。
 
 7.3.1 灰白 Aftelle Shell 粒子核心
 7.3.2 呼吸动画
@@ -159,9 +159,13 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 7.3.10 绑定 Avatar State Protocol
 7.3.11 字幕基础框架
 7.3.12 粒子状态日志输出(供盲测验证)
-7.3.13 后续人形 / 双居民 / AR 视觉接口预留
+7.3.13 `particle_core` 默认形态固化
+7.3.14 `avatar_mode: particle_core / abstract_bust` 本地 UI / 渲染层预留
+7.3.15 粒子渲染切换接口预留
+7.3.16 后续抽象半身 / 双居民 / AR 视觉接口预留
 
 边界:优先消费 Runtime 返回的 `visual_state`;PAD 只作为辅助输入。Stage 7 只锁 idle / thinking / speaking / sleeping / error 五种状态,不在 Aftelle 推演复杂心理状态。
+边界:`avatar_mode` 是 platform-macos 本地 UI / 渲染层模式,不进入 DR schema / Runtime API contract / Provider Profile。7.3 不实现完整 Abstract Bust Avatar,不做人格轮廓、嘴部同步、写实脸、骨骼、Blendshape、AR / 3D 数字人或 Avatar 编辑器。
 
 验收(可判定):
 
@@ -169,6 +173,7 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 - 五种状态肉眼可区分
 - **粒子状态日志正确**:数量、坐标范围、颜色、FPS、Avatar State 能打成日志,AI/你据此验证(见05_dev_guide.md第 6 节粒子盲测)
 - 可录屏,视觉不廉价(对照一个明确视觉参照基准)
+- Stage 7.3 没有扩大成完整 Avatar 开发;只保留粒子底座、`avatar_mode` 预留、渲染切换接口和字幕基础
 
 > 粒子逻辑写在 brain/soul,画法写在 platform-macos(红线 5)。
 
@@ -192,10 +197,13 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 7.4.12 DR 蓝图字段补全
 7.4.13 关系模式最小版(companion / friend / partner;不做 intimate_partner 默认演示)
 7.4.14 叙事记忆最小版(recent important_moments;summary 可 mock;不做向量记忆)
+7.4.15 抽象半身人格轮廓设计(Abstract Bust Avatar):抽象头部、发型、五官、肩颈、上胸
+7.4.16 视觉气质 preset:masculine / feminine / neutral
 
 定位:女性 / 西安象征 / 中文为主 / 温柔克制稳定亲近 / 服务情绪、关系、生活、记忆、人文表达。
 
 可选但不进 MVP 验收线:主动分享建议只能由 RuntimeCore 在 step 或前台事件后返回 hint;Aftelle 只显示轻提示,不能后台自动发送。
+抽象半身边界:7.4 只定义抽象人格轮廓与视觉气质,不改 DR schema,不改 Runtime API,不让 Aftelle 推理人格或情绪。情绪来源仍是 RuntimeCore 返回的 `visual_state` / `resident_state`;Aftelle 只做渲染表达。
 
 验收:不像普通 AI 角色扮演,身份和语气稳定,跨会话记忆可延续,**不说 AI 套话**(参照08_product_designer.md 的禁用清单)。
 
@@ -216,9 +224,11 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 7.5.9 退出音效
 7.5.10 打断 / 停止说话
 7.5.11 语音输入预留
+7.5.12 抽象嘴部粒子脉冲 / 轻量口部同步
 
 注意:打断机制必须复用 7.1.10 的统一中断语义。
 注意:真实 TTS 必须走 `RuntimeCore ProviderRouter → ProviderAdapter → ExecutionEngine`;Aftelle 只播放 RuntimeCore 返回的音频/字幕载荷,不直连 TTS Provider。
+注意:抽象嘴部同步只做 speaking 状态下的粒子脉冲,不做精准 lip sync、viseme、牙齿、舌头或真实口腔。
 
 验收:文字/声音/字幕/粒子节奏一致;延迟可接受;打断行为与编排层一致。
 

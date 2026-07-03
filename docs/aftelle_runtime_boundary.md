@@ -83,8 +83,9 @@ Stage 7 live-state 功能不得让 Aftelle 变成 Runtime owner:
 - Aftelle 可以保存 session/display cache,但不能拥有长期 Memory Kernel 或推进 live state。
 - Aftelle 可以展示 `resident_state`、`visual_state`、trace、diagnostics,但不能编辑这些状态,不能写回 DR。
 - Aftelle 可以播放 RuntimeCore 返回的音频/字幕载荷,但不能直连 TTS Provider。
+- Aftelle 可以按本地 `avatar_mode` 渲染 `particle_core` / `abstract_bust`,但 `avatar_mode` 只属于 platform-macos UI / 渲染层,不属于 RuntimeCore 居民逻辑、DR schema 或 Runtime API contract。
 
-**越界信号**: UI 自己跑 scheduler、后台自动发消息、直接写长期记忆、直接调 TTS/LLM Provider、把活态写回 `.digital_resident`。
+**越界信号**: UI 自己跑 scheduler、后台自动发消息、直接写长期记忆、直接调 TTS/LLM Provider、把活态写回 `.digital_resident`、为 Avatar 渲染推理人格/情绪或修改 DR / Runtime API。
 
 ### Host 边界补充 · Apple 全生态只做 Runtime Host 预留
 

@@ -54,7 +54,7 @@ Aftelle 是 `.digital_resident` 数字居民文件的桌面运行容器。
 用户导入 `.digital_resident` 后:
 ```
 Aftelle Shell 暂停呼吸 → 粒子向中心坍缩 → 校验 DR 文件
-→ 读取身份/颜色/外观/运行策略 → 圆形点阵重组成该居民的圆形/抽象粒子生命体(人形粒子放 Stage7.10 预留或 Stage 8,见03_dev_plan.md 7.3)
+→ 读取身份/颜色/外观/运行策略 → 圆形点阵重组成该居民的圆形/抽象粒子生命体
 → 形成第一个正式数字居民
 ```
 
@@ -64,6 +64,31 @@ Aftelle Shell 暂停呼吸 → 粒子向中心坍缩 → 校验 DR 文件
 - 主居民颜色优先用文件内置颜色;文件无颜色则默认金色/暖白
 
 这里的"主"不是人格等级,而是**当前交互焦点**。
+
+---
+
+## 3.1 抽象半身粒子 Avatar
+
+**抽象半身粒子 Avatar(Abstract Bust Avatar)** 是在粒子生命体基础上增加抽象头部、发型、五官、肩颈和上胸轮廓,用于增强数字居民活人感与人格识别,但不是写实数字人系统。
+
+Stage 7 节奏:
+- 7.3 只做 `particle_core` 默认形态、`avatar_mode: particle_core / abstract_bust` 本地 UI / 渲染层预留、渲染切换接口和字幕基础。
+- 7.4 承接抽象半身人格轮廓设计:抽象头部、发型、五官、肩颈、上胸,以及 masculine / feminine / neutral 视觉气质 preset。
+- 7.5 承接 speaking 时的嘴部粒子脉冲 / 轻量口部同步。
+
+允许范围:
+- 圆形粒子形态与抽象半身形态自由切换。
+- idle / thinking / speaking / sleeping / error 五种状态表现。
+- 情绪驱动眉眼嘴轻微变化,但情绪来源必须是 RuntimeCore 返回的 `visual_state` / `resident_state`。
+- speaking 时嘴部粒子脉冲。
+- Debug Panel 可显示 `avatar_mode` / `visual_state`。
+
+禁止范围:
+- 写实人脸、真实皮肤材质、完整身体。
+- 骨骼系统、Blendshape、精准 lip sync、viseme。
+- 牙齿、舌头、真实口腔、服装系统。
+- Avatar 编辑器、ARKit / RealityKit 正式身体、3D 数字人系统。
+- Aftelle 推理人格或情绪、修改 DR schema、修改 Runtime API、直连 TTS Provider。
 
 ---
 
@@ -188,13 +213,14 @@ Aftelle Shell 暂停呼吸 → 粒子向中心坍缩 → 校验 DR 文件
 
 **单居民闭环必做(对应03_dev_plan.md 7.1–7.5):**
 Aftelle Desktop macOS 壳、启动粒子动画、默认 Aftelle Shell、导入 `.digital_resident`、DR 校验与加载、第一个数字居民圆形/抽象主视觉形态、文字对话、TTS 输出(语音输入仅预留)、传统设置抽屉、Runtime Trace 面板、编排系统薄壳。
+其中 Abstract Bust Avatar 只按 7.3/7.4/7.5 拆分推进:7.3 预留模式与切换,7.4 设计抽象半身人格轮廓,7.5 做嘴部粒子脉冲。
 **注:屏幕指导属于 7.9 后段原型,不属于 7.1–7.5 单居民闭环;星图设置非必做。**
 
 **后半段做(对应03_dev_plan.md 7.6–7.8):**
 行业居民基础版、导入第二个居民、主次按导入顺序生成、主次手动调换、双居民同屏、双居民轮流对话、双居民粒子互动、编排系统调度双居民。
 
 **第七阶段不做:**
-AR 相机、移动端 App、真人形象、无限多居民、社交系统、市场系统、云同步、完全自动控制电脑。
+AR 相机、移动端 App、写实真人形象、完整身体、骨骼 / Blendshape / 精准 lip sync、Avatar 编辑器、3D 数字人、无限多居民、社交系统、市场系统、云同步、完全自动控制电脑。
 
 ---
 
