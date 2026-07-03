@@ -34,6 +34,9 @@ public struct AppSessionState: Equatable {
     public var lastUserInput: String
     public var lastResidentOutput: String
     public var lastActivity: String
+    public var shutdownState: String
+    public var recoveryRequired: Bool
+    public var recoveredAt: String
     public var dialogueEntries: [AppDialogueEntryState]
 
     public init(
@@ -42,6 +45,9 @@ public struct AppSessionState: Equatable {
         lastUserInput: String = "",
         lastResidentOutput: String = "",
         lastActivity: String = "",
+        shutdownState: String = "unknown",
+        recoveryRequired: Bool = false,
+        recoveredAt: String = "",
         dialogueEntries: [AppDialogueEntryState] = []
     ) {
         self.residentID = residentID
@@ -49,6 +55,9 @@ public struct AppSessionState: Equatable {
         self.lastUserInput = lastUserInput
         self.lastResidentOutput = lastResidentOutput
         self.lastActivity = lastActivity
+        self.shutdownState = shutdownState
+        self.recoveryRequired = recoveryRequired
+        self.recoveredAt = recoveredAt
         self.dialogueEntries = dialogueEntries
     }
 }
@@ -152,6 +161,9 @@ public struct DebugPanelViewState: Equatable {
     public var tickCount: Int
     public var clockStatus: String
     public var cancellationStatus: String
+    public var shutdownState: String
+    public var recoveryRequired: Bool
+    public var recoveredAt: String
 
     public init(
         residentID: String = "",
@@ -163,7 +175,10 @@ public struct DebugPanelViewState: Equatable {
         traceSummary: String = "",
         tickCount: Int = 0,
         clockStatus: String = "",
-        cancellationStatus: String = ""
+        cancellationStatus: String = "",
+        shutdownState: String = "unknown",
+        recoveryRequired: Bool = false,
+        recoveredAt: String = ""
     ) {
         self.residentID = residentID
         self.sessionID = sessionID
@@ -175,6 +190,9 @@ public struct DebugPanelViewState: Equatable {
         self.tickCount = tickCount
         self.clockStatus = clockStatus
         self.cancellationStatus = cancellationStatus
+        self.shutdownState = shutdownState
+        self.recoveryRequired = recoveryRequired
+        self.recoveredAt = recoveredAt
     }
 }
 
@@ -231,6 +249,20 @@ public final class OrchestrationKernel {
         dialogueEntries: [RuntimeDialogueEntryState]
     ) {
         runtimeCore.saveCurrentSession(
+            lastUserInput: lastUserInput,
+            lastResidentOutput: lastResidentOutput,
+            lastActivity: lastActivity,
+            dialogueEntries: dialogueEntries
+        )
+    }
+
+    func markSessionUnclean(
+        lastUserInput: String,
+        lastResidentOutput: String,
+        lastActivity: String,
+        dialogueEntries: [RuntimeDialogueEntryState]
+    ) {
+        runtimeCore.markSessionUnclean(
             lastUserInput: lastUserInput,
             lastResidentOutput: lastResidentOutput,
             lastActivity: lastActivity,

@@ -19,7 +19,9 @@ struct AftelleApp: App {
             }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .inactive || phase == .background {
+            if phase == .active {
+                controller.markSessionUncleanIfPossible()
+            } else if phase == .inactive || phase == .background {
                 controller.persistCurrentSessionIfPossible()
             }
         }

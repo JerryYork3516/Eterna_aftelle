@@ -1,5 +1,10 @@
 import Foundation
 
+public enum SessionShutdownState: String, Codable, Equatable {
+    case clean
+    case unclean
+}
+
 public struct SessionStoreRecord: Codable, Equatable {
     public var schemaVersion: String
     public var residentID: String
@@ -9,6 +14,9 @@ public struct SessionStoreRecord: Codable, Equatable {
     public var lastUserInput: String
     public var lastResidentOutput: String
     public var lastActivity: String
+    public var shutdownState: SessionShutdownState
+    public var recoveryRequired: Bool
+    public var recoveredAt: Date?
 
     public init(
         schemaVersion: String = SessionStore.schemaVersion,
@@ -18,7 +26,10 @@ public struct SessionStoreRecord: Codable, Equatable {
         updatedAt: Date,
         lastUserInput: String,
         lastResidentOutput: String,
-        lastActivity: String
+        lastActivity: String,
+        shutdownState: SessionShutdownState = .unclean,
+        recoveryRequired: Bool = false,
+        recoveredAt: Date? = nil
     ) {
         self.schemaVersion = schemaVersion
         self.residentID = residentID
@@ -28,15 +39,21 @@ public struct SessionStoreRecord: Codable, Equatable {
         self.lastUserInput = lastUserInput
         self.lastResidentOutput = lastResidentOutput
         self.lastActivity = lastActivity
+        self.shutdownState = shutdownState
+        self.recoveryRequired = recoveryRequired
+        self.recoveredAt = recoveredAt
     }
 }
 
-public struct SessionDisplayCache: Equatable {
+public struct SessionDisplayCache: Codable, Equatable {
     public var residentID: String
     public var sessionID: String
     public var lastUserInput: String
     public var lastResidentOutput: String
     public var lastActivity: String
+    public var shutdownState: SessionShutdownState
+    public var recoveryRequired: Bool
+    public var recoveredAt: Date?
     public var updatedAt: Date
 
     public init(
@@ -45,6 +62,9 @@ public struct SessionDisplayCache: Equatable {
         lastUserInput: String,
         lastResidentOutput: String,
         lastActivity: String,
+        shutdownState: SessionShutdownState = .unclean,
+        recoveryRequired: Bool = false,
+        recoveredAt: Date? = nil,
         updatedAt: Date
     ) {
         self.residentID = residentID
@@ -52,6 +72,9 @@ public struct SessionDisplayCache: Equatable {
         self.lastUserInput = lastUserInput
         self.lastResidentOutput = lastResidentOutput
         self.lastActivity = lastActivity
+        self.shutdownState = shutdownState
+        self.recoveryRequired = recoveryRequired
+        self.recoveredAt = recoveredAt
         self.updatedAt = updatedAt
     }
 }
@@ -93,6 +116,18 @@ public final class SessionStore {
         try ensureDirectoryExists()
         let data = try encoder.encode(record)
         try data.write(to: fileURL(for: record.sessionID), options: [.atomic])
+    }
+
+    public func saveDisplayCache(_ cache: SessionDisplayCache) throws {
+        try ensureDirectoryExists()
+        let data = try encoder.encode(cache)
+        try data.write(to: displayCacheURL, options: Data.WritingOptions.atomic)
+    }
+
+    public func loadDisplayCache() throws -> SessionDisplayCache? {
+        guard fileManager.fileExists(atPath: displayCacheURL.path) else { return nil }
+        let data = try Data(contentsOf: displayCacheURL)
+        return try decoder.decode(SessionDisplayCache.self, from: data)
     }
 
     public func load(sessionID: String) throws -> SessionStoreRecord? {
@@ -139,6 +174,10 @@ public final class SessionStore {
         if !fileManager.fileExists(atPath: baseURL.path) {
             try fileManager.createDirectory(at: baseURL, withIntermediateDirectories: true)
         }
+    }
+
+    private var displayCacheURL: URL {
+        baseURL.appendingPathComponent("display_cache.json", isDirectory: false)
     }
 
     private func fileURL(for sessionID: String) -> URL {

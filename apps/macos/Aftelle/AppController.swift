@@ -55,21 +55,24 @@ final class AppController: ObservableObject {
                 lastUserInput: restoreResult.lastUserInput,
                 lastResidentOutput: restoreResult.lastResidentOutput,
                 lastActivity: restoreResult.lastActivity,
+                shutdownState: restoreResult.shutdownState.rawValue,
+                recoveryRequired: restoreResult.recoveryRequired,
+                recoveredAt: restoreResult.recoveredAt.map { ISO8601DateFormatter().string(from: $0) } ?? "",
                 dialogueEntries: dialogueEntries
             )
             residentState = AppResidentState(
                 residentID: restoreResult.residentID,
                 sessionID: restoreResult.sessionID,
-                lifecycleStatus: "restored",
+                lifecycleStatus: restoreResult.recoveryRequired ? "recovered" : "restored",
                 presence: "available",
                 lastActivitySummary: restoreResult.lastActivity,
                 lastUpdatedAt: ISO8601DateFormatter().string(from: Date()),
                 avatarMode: "idle"
             )
             avatarState = AppAvatarState(residentID: restoreResult.residentID, displayName: "restored session")
-            diagnostics = "Session restored"
-            traceState = RuntimeTraceViewState(summary: "Session restored", entries: [])
-            refreshDebugPanelState()
+            diagnostics = restoreResult.recoveryRequired ? "Session restored after unclean shutdown" : "Session restored"
+            traceState = RuntimeTraceViewState(summary: diagnostics, entries: [])
+            refreshDebugPanelState(shutdownState: restoreResult.shutdownState.rawValue, recoveryRequired: restoreResult.recoveryRequired, recoveredAt: restoreResult.recoveredAt.map { ISO8601DateFormatter().string(from: $0) } ?? "")
             startupState = .loaded
             return
         }
@@ -213,7 +216,23 @@ final class AppController: ObservableObject {
         )
     }
 
-    private func refreshDebugPanelState() {
+    func markSessionUncleanIfPossible() {
+        guard !loadedResidentID.isEmpty, !loadedSessionID.isEmpty else { return }
+        orchestrationKernel.markSessionUnclean(
+            lastUserInput: sessionState.lastUserInput,
+            lastResidentOutput: sessionState.lastResidentOutput,
+            lastActivity: sessionState.lastActivity,
+            dialogueEntries: dialogueEntries.map {
+                RuntimeDialogueEntryState(
+                    role: $0.role,
+                    text: $0.text,
+                    timestamp: ISO8601DateFormatter().date(from: $0.timestamp) ?? Date()
+                )
+            }
+        )
+    }
+
+    private func refreshDebugPanelState(shutdownState: String = "unknown", recoveryRequired: Bool = false, recoveredAt: String = "") {
         debugPanelState = DebugPanelViewState(
             residentID: residentState.residentID,
             sessionID: sessionState.sessionID.isEmpty ? loadedSessionID : sessionState.sessionID,
@@ -224,7 +243,10 @@ final class AppController: ObservableObject {
             traceSummary: traceState.summary,
             tickCount: clockState.tickCount,
             clockStatus: clockState.lastTickSummary.isEmpty ? "noop" : clockState.lastTickSummary,
-            cancellationStatus: runtimeState == .idle ? "none" : String(describing: runtimeState)
+            cancellationStatus: runtimeState == .idle ? "none" : String(describing: runtimeState),
+            shutdownState: shutdownState,
+            recoveryRequired: recoveryRequired,
+            recoveredAt: recoveredAt
         )
     }
 
