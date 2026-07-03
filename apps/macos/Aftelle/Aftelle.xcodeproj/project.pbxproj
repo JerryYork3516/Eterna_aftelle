@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		A070C0000000000000000001 /* AftelleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000002 /* AftelleApp.swift */; };
 		A070C0000000000000000003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000005 /* ContentView.swift */; };
+		A070C0000000000000000101 /* ParticleCoreModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000102 /* ParticleCoreModel.swift */; };
+		A070C0000000000000000103 /* ParticleCoreRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000104 /* ParticleCoreRenderer.swift */; };
+		A070C0000000000000000105 /* ParticleCoreMetalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000106 /* ParticleCoreMetalView.swift */; };
 		A070C0000000000000000026 /* AppModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000027 /* AppModels.swift */; };
 		A070C0000000000000000028 /* AppController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000029 /* AppController.swift */; };
 		A070C0000000000000000013 /* RuntimeCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000014 /* RuntimeCore.swift */; };
@@ -27,6 +30,9 @@
 /* Begin PBXFileReference section */
 		A070C0000000000000000002 /* AftelleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AftelleApp.swift; sourceTree = "<group>"; };
 		A070C0000000000000000005 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A070C0000000000000000102 /* ParticleCoreModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleCoreModel.swift; sourceTree = "<group>"; };
+		A070C0000000000000000104 /* ParticleCoreRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleCoreRenderer.swift; sourceTree = "<group>"; };
+		A070C0000000000000000106 /* ParticleCoreMetalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleCoreMetalView.swift; sourceTree = "<group>"; };
 		A070C0000000000000000027 /* AppModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModels.swift; sourceTree = "<group>"; };
 		A070C0000000000000000029 /* AppController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppController.swift; sourceTree = "<group>"; };
 		A070C0000000000000000006 /* Aftelle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Aftelle.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -59,10 +65,21 @@
 			children = (
 				A070C0000000000000000002 /* AftelleApp.swift */,
 				A070C0000000000000000005 /* ContentView.swift */,
+				A070C0000000000000000107 /* ParticleCore */,
 				A070C0000000000000000022 /* Fixtures */,
 				A070C0000000000000000017 /* RuntimeCore */,
 				A070C0000000000000000009 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		A070C0000000000000000107 /* ParticleCore */ = {
+			isa = PBXGroup;
+			children = (
+				A070C0000000000000000102 /* ParticleCoreModel.swift */,
+				A070C0000000000000000104 /* ParticleCoreRenderer.swift */,
+				A070C0000000000000000106 /* ParticleCoreMetalView.swift */,
+			);
+			path = ParticleCore;
 			sourceTree = "<group>";
 		};
 		A070C0000000000000000022 /* Fixtures */ = {
@@ -175,6 +192,9 @@
 				A070C0000000000000000003 /* ContentView.swift in Sources */,
 				A070C0000000000000000028 /* AppController.swift in Sources */,
 				A070C0000000000000000026 /* AppModels.swift in Sources */,
+				A070C0000000000000000101 /* ParticleCoreModel.swift in Sources */,
+				A070C0000000000000000103 /* ParticleCoreRenderer.swift in Sources */,
+				A070C0000000000000000105 /* ParticleCoreMetalView.swift in Sources */,
 				A070C0000000000000000013 /* RuntimeCore.swift in Sources */,
 				A070C0000000000000000040 /* MemoryController.swift in Sources */,
 				A070C0000000000000000015 /* DRLoader.swift in Sources */,
@@ -184,7 +204,7 @@
 				A070C000000000000000001E /* VisualStateMapper.swift in Sources */,
 				A070C0000000000000000020 /* RuntimeConfig.swift in Sources */,
 				A070C0000000000000000024 /* PlatformAdapter.swift in Sources */,
-			A070C0000000000000000032 /* SessionStore.swift in Sources */,
+				A070C0000000000000000032 /* SessionStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
