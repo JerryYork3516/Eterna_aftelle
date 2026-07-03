@@ -24,11 +24,9 @@ struct ParticleCoreSeededGenerator {
 struct ParticleCoreModel {
     struct Particle: Hashable {
         var position: SIMD2<Float>
-        var velocity: SIMD2<Float>
         var seed: Float
-        var density: Float
-        var brightness: Float
-        var radius: Float
+        var ridge: Float
+        var depth: Float
     }
 
     let particles: [Particle]
@@ -41,32 +39,39 @@ struct ParticleCoreModel {
         values.reserveCapacity(count)
 
         for index in 0..<count {
-            let angle = Float(generator.nextUnit() * .pi * 2)
-            let ring = Float(pow(generator.nextUnit(), 0.72))
-            let coreBias = Float(generator.nextUnit())
-            let radial = 0.06 + 0.58 * ring
-            let irregular = 0.88 + 0.16 * sin(Float(index) * 0.17 + radial * 8.0)
-            let x = cos(angle) * radial * irregular
-            let y = sin(angle) * radial * (0.86 + 0.14 * cos(angle * 3.0 + radial * 6.0))
-            let edgeBias = max(0.0, min(1.0, (radial - 0.16) / 0.48))
-            let brightness = 0.42 + 0.38 * edgeBias + 0.12 * Float(generator.nextUnit())
-            let density = 0.28 + 0.72 * (1.0 - abs(radial - 0.68))
-            let velocityMagnitude = (0.0025 + 0.006 * edgeBias) * (0.5 + Float(generator.nextUnit()))
-            let driftAngle = angle + Float(generator.nextUnit() - 0.5) * 0.85
-            let velocity = SIMD2<Float>(cos(driftAngle) * velocityMagnitude, sin(driftAngle) * velocityMagnitude)
-            let radius = 1.15 + 1.25 * Float(generator.nextUnit()) + coreBias * 0.35
+            let golden = 0.6180339887498949
+            let u = (Double(index) * golden + generator.nextUnit() * 0.022).truncatingRemainder(dividingBy: 1)
+            let v = (Double(index) + 0.5) / Double(count)
+            let theta = Float(u * .pi * 2)
+            let z = Float(1 - 2 * v)
+            let shell = sqrt(max(0, 1 - z * z))
+            let depth = shell * sin(theta)
+            let fold = 1
+                + 0.14 * sin(theta * 3.0 + z * 4.7)
+                + 0.09 * sin(theta * 6.0 - z * 2.6)
+                + 0.05 * sin(theta * 11.0 + z * 5.1)
+            let x = (shell * cos(theta) * 0.58 + depth * 0.075) * fold
+            let y = (z * 0.44 + 0.035 * sin(theta * 2.0 + depth * 3.0)) * fold
+            let silhouette = max(0, min(1, 1 - abs(depth) * 1.85))
+            let seamA = pow(abs(sin(theta * 3.0 + z * 4.4 + depth * 2.6)), 18)
+            let seamB = pow(abs(sin(theta * 5.0 - z * 3.1)), 22)
+            let ridge = max(silhouette * 0.72, max(seamA, seamB) * 0.95)
 
             values.append(Particle(
                 position: SIMD2<Float>(x, y),
-                velocity: velocity,
                 seed: Float(generator.nextUnit()),
-                density: density,
-                brightness: brightness,
-                radius: radius
+                ridge: ridge,
+                depth: depth
             ))
         }
 
         self.particles = values
+    }
+
+    var vertexPayloads: [SIMD4<Float>] {
+        particles.map { particle in
+            SIMD4<Float>(particle.position.x, particle.position.y, particle.ridge, particle.depth)
+        }
     }
 
     func clipBounds(aspect: Float, breathing: Float) -> (minX: Float, minY: Float, maxX: Float, maxY: Float) {

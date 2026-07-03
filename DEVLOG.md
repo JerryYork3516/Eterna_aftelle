@@ -99,6 +99,7 @@
 - 2026-07-03 — Stage 7.2 Archive — Stage 7.2 已归档，允许合并 `7.2` 到 `main`，再从最新 `main` 新建 `7.3` 分支，进入 Stage 7.3 准备。
 - 2026-07-03 — 下一阶段入口 — Stage 7.3 主题为“粒子生命体视觉底座 + 字幕基础”；第一步建议执行 7.3.0 Product Design Calibration，先锁定灰白 Shell 视觉方向、粒子状态语言、字幕策略、输入区弱化、Debug / Trace 默认隐藏与跨 Apple 平台视觉抽象预留。
 - 2026-07-03 — Abstract Bust Avatar 文档级规划调整 — 抽象半身粒子 Avatar 纳入 Stage 7 设计路线,但不扩大 7.3 范围:7.3 只保留 `particle_core` 默认形态、`avatar_mode` 本地渲染预留、渲染切换接口和字幕基础;7.4 承接抽象半身人格轮廓;7.5 承接口部粒子脉冲。未改 Swift / Xcode / DR schema / Runtime API / Provider Profile,未进入 Stage 8。
+- 2026-07-03 — Stage 7.3 particle_core v1 视觉拟合 — 新增 `docs/Stage7_3_VISION_v1.png` 作为 7.3 粒子参考,将默认粒子从均匀圆盘改为灰白折叠薄壳点云:中央不规则横向体积、细颗粒、亮脊线和 additive 发光混合。仅改 Metal 粒子外观,未改 RuntimeCore / Runtime API / DR schema / Provider / TTS / 平台 target。
 
 ---
 

@@ -55,8 +55,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         pipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add
         pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .sourceAlpha
         pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .sourceAlpha
-        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha
-        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha
+        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .one
+        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .one
 
         do {
             self.pipelineState = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
@@ -66,7 +66,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             return nil
         }
 
-        guard let particleBuffer = device.makeBuffer(length: MemoryLayout<SIMD2<Float>>.stride * model.particles.count, options: .storageModeShared) else {
+        guard let particleBuffer = device.makeBuffer(length: MemoryLayout<SIMD4<Float>>.stride * model.particles.count, options: .storageModeShared) else {
             print("[ParticleCore] vertexBuffer failed")
             return nil
         }
@@ -106,7 +106,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         if !didLogDraw {
             let aspect = max(resolution.x / max(resolution.y, 1), 1)
             let bounds = model.clipBounds(aspect: aspect, breathing: 1 + breathing)
-            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) particleColor=(0.78...0.98,alpha=1)")
+            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) particleColor=(0.72...0.98,alpha=0.35...0.96)")
         }
 
         encoder.setRenderPipelineState(pipelineState)
@@ -126,9 +126,10 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 
     private func uploadParticles() {
-        let pointer = particleBuffer.contents().bindMemory(to: SIMD2<Float>.self, capacity: model.particles.count)
-        for (index, particle) in model.particles.enumerated() {
-            pointer[index] = particle.position
+        let payloads = model.vertexPayloads
+        let pointer = particleBuffer.contents().bindMemory(to: SIMD4<Float>.self, capacity: payloads.count)
+        for (index, payload) in payloads.enumerated() {
+            pointer[index] = payload
         }
     }
 }
