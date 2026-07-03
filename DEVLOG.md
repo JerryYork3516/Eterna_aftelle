@@ -3,18 +3,18 @@
 > 这份是给我自己的,不是给 AI 自动读的。
 > 三个作用:① 提醒我做到哪、为什么这么定;② 每次开 GPT/Dify/新对话时,把"当前状态"那段粘过去当背景;③ 防止我忘了当初的决定又推翻重来。
 > **规则:每次做完一件事、或讨论出一个结论、或改完一个 bug,就来记一笔。不用长,几行即可。**
-> 
+>
 > **boundary 基线 SHA-256(改动即报警)**：`275b95889f55646e3ae99ceb2a12cc0e974fd5338aa23c7311cccff0d2d041a6`（v7 更新:G0 改 A,仅 clock/tick 归属改为 RuntimeCore,4 条 Invariants 不变;旧 v6 基线 f043f4b5…）
 
 ---
 
 ## 📌 当前状态(每次更新,粘给 AI 时就粘这一段)
 
-- **现在在做**:Stage 7.1.11 —— Orchestration Kernel Skeleton REWORK 修复
-- **上一步刚完成**:Stage 7.1.11 轻量边界审核,正在修复 DEVLOG 空白、工程 warning 与 Orchestration Kernel skeleton 收口
+- **现在在做**:Stage 7.1.14 —— Runtime Trace 面板 PASS candidate
+- **上一步刚完成**:Stage 7.1.14 轻量架构审核,正在修复 DEVLOG 当前状态与尾随空白
 - **当前卡在**:无
-- **下一步**:7.1.11 REWORK 验收通过后,等待确认再进 7.1.12
-- **额度情况**:只修审核问题,不接真实 Provider / Keychain / scheduler
+- **下一步**:7.1.14 REWORK 验收通过后,等待确认再进 7.1.15
+- **额度情况**:只修 DEVLOG,不接真实 Provider / Keychain / scheduler
 
 > - **现在在做**:Stage 7.1.6 —— Runtime Config 本地配置边界
 > - **上一步刚完成**:Stage 7.1.5 DR Loader 读取 / 浅校验 / 加载边界已正规化
@@ -114,7 +114,7 @@
 - 2026-07-03 — Stage 7.1.12 单居民 passthrough 链路：完成 OrchestrationKernel 最小单居民透传。AppController 通过 OrchestrationKernel.step(residentID:inputText:) 调用 RuntimeCore.step(...)，链路保持 RuntimeCore → ExecutionEngine mock step → RuntimeStepResponse → AppController 只读状态 → ContentView 展示；Kernel 不做调度决策，不做 scheduler / tick，不做多居民 / planner / tool selection；未新增 Swift 文件，未修改 project.pbxproj，未接真实 Provider / Keychain / 网络；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
 - 2026-07-03 — Stage 7.1.13 resident_id / session_id 结构固化：完成最小 Runtime session identity 结构。residentID 继续来自只读 DR / LoadedDR，RuntimeCore 在 loadDR 后生成独立 sessionID 并持有 RuntimeSessionContext，RuntimeLoadResult 可携带 sessionID，AppController 新增只读 sessionState 透传；sessionID 与 DR 分离，不写回 DR / fixture，不做 SessionStore / HostStateStore，不接真实 Provider / Keychain；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
 - 2026-07-03 — Stage 7.1.14 Runtime Trace 面板：完成最小只读 Runtime Trace 面板。Trace 数据来源于 RuntimeCore 返回的 RuntimeStepResponse.traceEvents / diagnostics，并由 AppController 转换为 RuntimeTraceViewState；ContentView 仅展示 trace summary、event type、message、entry id，不直连 TraceRecorder / ExecutionEngine / DRLoader / ProviderRouter / Provider；Trace 不编辑、不持久化、不写回 DR；session_id、AvatarState、cancellation 语义未破坏；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
-- 
+-
 
 ---
 
@@ -163,11 +163,11 @@ Stage 6.11 Freeze：Backend pytest 208 passed / Web typecheck passed / 6.7 Memor
 - AR / Vision Pro 身体 → Stage 8
 
 - Stage 7：单机数字居民 Runtime 闭环（生命体诞生）
-  
+
   Stage 8：iOS / iPadOS 随身化 + AR现实叠加 + 用户体系（进入现实世界）
-  
+
   Stage 9：visionOS 空间居民（空间生命体）
-  
+
   Stage 10：Apple 全平台统一生命体 + 结构化 Agent 系统（跨设备智能体）
 
 - [继续往下扔...]
