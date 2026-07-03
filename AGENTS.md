@@ -48,6 +48,7 @@
 | 08_product_designer.md | 不在写代码场景读;它是给 GPT/Dify 讨论产品用的 |
 | 09_skills_plugins.md | 配置工具时才读 |
 | feature_livestate.md | 评估 Stage 7 live-state 相关功能、MVP/Extended 分层、禁止项检查时读 |
+| stage7_forbidden_checklist.md | Stage 7 每个 PR / Codex / Cursor / Claude 任务前后做越界检查时读 |
 | runtime_api_contract.md / dr_contract_v0_3.md | 涉及 Runtime/DR 字段时读 |
 | aftelle_runtime_boundary.md | 判断架构边界是否越界时读;只读不改 |
 | DEVLOG.md | 需要了解当前进度/历史决策时读 |
@@ -116,6 +117,7 @@ shared-protocol/  → 共享定义。改动需双方同步。
 - Stage 7 live-state 相关功能先过 `docs/feature_livestate.md` 禁止项检查:默认不改 DR schema;Runtime API 只做 additive 扩展;Aftelle 只读/展示/播放/缓存展示快照,不拥有 Provider、Scheduler、Memory Kernel。
 - 崩溃日志、权限边界只预留接口,Stage 7 不实现完整逻辑。
 - 出现 Apple ecosystem / iOS / iPadOS / visionOS / watchOS / tvOS / AR / RealityKit 等关键词时,默认只按 Stage 7 文档预留处理;不得因此新增平台 target、Runtime API 字段、DR schema 字段或多平台功能代码。确需开发时先停下确认阶段边界。
+- Stage 7 任何开发、审核、PR、Codex/Cursor/Claude 任务前后都要按 `docs/stage7_forbidden_checklist.md` 输出 PASS / REWORK / FAIL。看到 iOS / visionOS / AR / Provider / DR schema / Runtime API / scheduler / memory 等高危关键词时,必须先跑 checklist 判断是否越界。
 
 ---
 

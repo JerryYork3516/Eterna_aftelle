@@ -181,7 +181,9 @@ Apple 全生态 Host 预留的额外禁止项:
 - RuntimeCore / brain 不依赖 AppKit / UIKit / SwiftUI / Metal / RealityKit / WatchKit / TVUIKit。
 - Host 不拥有 Scheduler / Memory Kernel / ProviderRouter / DR compiler。
 - 不为 Apple 多平台预留改 DR schema,也不在 Runtime API 增加平台字段。
-- 以上内容由 7.1.18 禁止项检查器纳入文档 / PR checklist。
+- 以上内容由 `docs/stage7_forbidden_checklist.md` 纳入文档 / PR checklist。
+
+7.1.18 之后,每个 Stage 7 PR / Codex / Cursor / Claude 任务前后都必须使用 `docs/stage7_forbidden_checklist.md`,并输出 PASS / REWORK / FAIL。
 
 Stage 7 MVP 只做:**macOS 单居民体验闭环(RuntimeCore + App)**。双居民(7.7/7.8)、屏幕指导(7.9)、隔离验证(7.10)属于 Extended Demo,不作为 MVP 基线。
 

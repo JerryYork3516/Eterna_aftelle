@@ -31,6 +31,8 @@ AGENTS.md 里有你必须遵守的全部核心规则,包括:
 
 Stage 7 只开发 macOS 单机 Runtime Host。看到 Apple ecosystem / iOS / iPadOS / visionOS / watchOS / tvOS / AR / RealityKit 等关键词时,只把它们当作文档级 Host 预留,不得自动扩展成 Stage 8、多平台 target、DR schema、Runtime API 或功能代码开发。未来 Apple 平台只能作为 Host 复用 RuntimeCore,不能在 Host 内复制 Scheduler / Memory Kernel / ProviderRouter / DR compiler。
 
+Stage 7 开发、审核或 PR 前后都要使用 `docs/stage7_forbidden_checklist.md` 输出 PASS / REWORK / FAIL。遇到 iOS / visionOS / AR / Provider / DR schema / Runtime API / scheduler / memory 等高危关键词时,先按 checklist 判断,再决定是否继续。
+
 ---
 
 ## 三、和 Codex 的协作边界(防止互相覆盖)

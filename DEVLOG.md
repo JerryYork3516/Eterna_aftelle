@@ -10,11 +10,11 @@
 
 ## 📌 当前状态(每次更新,粘给 AI 时就粘这一段)
 
-- **现在在做**:Stage 7.1-DOC-APPLE-HOST-RESERVE —— Apple 全生态 Host 预留文档调整 completed
-- **上一步刚完成**:Stage 7.1.17 Debug Panel 生命状态面板
+- **现在在做**:Stage 7.1.18 completed
+- **上一步刚完成**:Stage 7.1-DOC-APPLE-HOST-RESERVE Apple 全生态 Host 预留文档调整
 - **当前卡在**:无
-- **下一步**:等待确认再进 7.1.18 禁止项检查器
-- **额度情况**:纯文档预留,不改 Swift / Runtime API / DR schema / 平台 target
+- **下一步**:Stage 7.1 Final Review
+- **额度情况**:纯文档 checklist,不改 Swift / Runtime API / DR schema / 平台 target
 
 > - **现在在做**:Stage 7.1.6 —— Runtime Config 本地配置边界
 > - **上一步刚完成**:Stage 7.1.5 DR Loader 读取 / 浅校验 / 加载边界已正规化
@@ -118,6 +118,7 @@
 - 2026-07-03 — Stage 7.1.16 resident_state 基础字段：完成最小 resident_state 只读运行态链路。RuntimeCore / ExecutionEngine 返回 residentState，AppController 透传为只读 AppResidentState，ContentView 仅展示 resident_id、session_id、lifecycle_status、presence、last_activity、last_updated_at、avatar_mode；resident_state 与 DR 分离，不写回 DR / fixture，不包含 secret / provider config / memory 内容，不做 LiveState / Memory / SessionStore / HostStateStore 持久化；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
 - 2026-07-03 — Stage 7.1.17 Debug Panel 生命状态面板：完成最小只读 Debug Panel。AppController 聚合 resident_state、session_id、avatar_state、trace summary、clock、cancellation 为 debugPanelState，ContentView 仅展示只读摘要，不直连 RuntimeCore 内部组件；面板不编辑、不持久化、不写回 DR，不显示 secret / token / base_url / provider config / key_ref / secret_ref 具体值；未做 LiveState / Memory / Trace / SessionStore / HostStateStore 持久化；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
 - 2026-07-03 — Stage 7.1-DOC-APPLE-HOST-RESERVE Apple 全生态 Host 预留文档调整：完成 Apple 全生态 Host 预留边界的文档级补充。明确 Stage 7 仍只开发 macOS 单机 Runtime Host，未来 iOS / iPadOS / visionOS / watchOS / tvOS 只能作为不同 Runtime Host 复用 RuntimeCore；RuntimeCore / brain 保持平台无关，平台差异通过 HostEnv / Adapter 注入；visual_state / resident_state 作为未来多平台身体表现统一输入；本次未改 Swift 代码、未改 Runtime API、未改 DR schema、未开发 iOS / visionOS / AR / watchOS / tvOS 功能。
+- 2026-07-03 — Stage 7.1.18 Stage 7 禁止项检查器：完成 Stage 7 文档级 forbidden checklist。新增 stage7_forbidden_checklist.md，用于后续 PR / Codex / Cursor 任务前后检查 Stage 范围、RuntimeCore 边界、Host 边界、DR / Runtime API、Provider / Secret、Memory / Trace / LiveState、Scheduler / Tick / 多居民、UI / 渲染等红线；纳入 Apple 全生态 Host 预留禁止项；本节点未改 Swift 代码、未改 Runtime API、未改 DR schema、未新增平台 target，未进入 Stage 8。
 
 ---
 

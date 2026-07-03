@@ -148,3 +148,14 @@ Use this file to record each Codex task before closing the loop.
 - Verification: `git diff --check`; architecture guard; secret guard; documentation grep for sensitive terms.
 - Token note: keep this as Stage 7.1 doc reserve, not Stage 8 or multiplatform feature work.
 - Follow-up: 7.1.18 checklist should include these Host reserve prohibitions.
+
+## 7.1.18
+
+- Stage: 7.1.18
+- Date: 2026-07-03
+- Task: Add Stage 7 forbidden checklist.
+- Read scope: `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/*`, `README.md`, `DEVLOG.md`, `docs/03_dev_plan.md`, `docs/stage7_entry_gate.md`, `docs/feature_livestate.md`, `docs/STAGE7_CODEX_USAGE.md`, and referenced boundary/contract docs for verification only.
+- Changed files: `docs/stage7_forbidden_checklist.md`, `AGENTS.md`, `CLAUDE.md`, `DEVLOG.md`, `docs/03_dev_plan.md`, `docs/stage7_entry_gate.md`, this usage log.
+- Verification: `git diff --check`; architecture guard; secret guard; documentation grep for sensitive terms.
+- Token note: keep this as document / PR checklist only; do not turn it into a script, lint, or code system.
+- Follow-up: use checklist before Stage 7.1 Final Review and later Stage 7 tasks.
