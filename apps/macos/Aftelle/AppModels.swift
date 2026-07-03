@@ -246,12 +246,14 @@ public final class OrchestrationKernel {
         lastUserInput: String,
         lastResidentOutput: String,
         lastActivity: String,
+        avatarState: AvatarState,
         dialogueEntries: [RuntimeDialogueEntryState]
     ) {
         runtimeCore.saveCurrentSession(
             lastUserInput: lastUserInput,
             lastResidentOutput: lastResidentOutput,
             lastActivity: lastActivity,
+            avatarState: avatarState,
             dialogueEntries: dialogueEntries
         )
     }
@@ -260,12 +262,14 @@ public final class OrchestrationKernel {
         lastUserInput: String,
         lastResidentOutput: String,
         lastActivity: String,
+        avatarState: AvatarState,
         dialogueEntries: [RuntimeDialogueEntryState]
     ) {
         runtimeCore.markSessionUnclean(
             lastUserInput: lastUserInput,
             lastResidentOutput: lastResidentOutput,
             lastActivity: lastActivity,
+            avatarState: avatarState,
             dialogueEntries: dialogueEntries
         )
     }

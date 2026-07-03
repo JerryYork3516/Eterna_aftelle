@@ -67,7 +67,7 @@ final class AppController: ObservableObject {
                 presence: "available",
                 lastActivitySummary: restoreResult.lastActivity,
                 lastUpdatedAt: ISO8601DateFormatter().string(from: Date()),
-                avatarMode: "idle"
+                avatarMode: restoreResult.avatarMode
             )
             avatarState = AppAvatarState(
                 residentID: restoreResult.residentID,
@@ -167,6 +167,15 @@ final class AppController: ObservableObject {
             lastUpdatedAt: ISO8601DateFormatter().string(from: response.residentState.lastUpdatedAt),
             avatarMode: response.residentState.avatarMode ?? ""
         )
+        avatarState = AppAvatarState(
+            residentID: response.avatarState.residentID,
+            displayName: response.avatarState.displayName,
+            mode: response.avatarState.mode,
+            presence: response.avatarState.presence,
+            moodHint: response.avatarState.moodHint,
+            activityHint: response.avatarState.activityHint,
+            particleHint: response.avatarState.particleHint
+        )
         sessionState = AppSessionState(
             residentID: response.residentState.residentID,
             sessionID: response.residentState.sessionID,
@@ -211,12 +220,13 @@ final class AppController: ObservableObject {
         refreshDebugPanelState()
     }
 
-    func persistCurrentSessionIfPossible() {
+    func persistForNormalTerminationIfPossible() {
         guard !loadedResidentID.isEmpty, !loadedSessionID.isEmpty else { return }
         orchestrationKernel.saveCurrentSession(
             lastUserInput: sessionState.lastUserInput,
             lastResidentOutput: sessionState.lastResidentOutput,
             lastActivity: sessionState.lastActivity,
+            avatarState: currentAvatarSnapshot(),
             dialogueEntries: dialogueEntries.compactMap {
                 guard let timestamp = ISO8601DateFormatter().date(from: $0.timestamp) else { return nil }
                 return RuntimeDialogueEntryState(role: $0.role, text: $0.text, timestamp: timestamp)
@@ -230,6 +240,7 @@ final class AppController: ObservableObject {
             lastUserInput: sessionState.lastUserInput,
             lastResidentOutput: sessionState.lastResidentOutput,
             lastActivity: sessionState.lastActivity,
+            avatarState: currentAvatarSnapshot(),
             dialogueEntries: dialogueEntries.map {
                 RuntimeDialogueEntryState(
                     role: $0.role,
@@ -237,6 +248,18 @@ final class AppController: ObservableObject {
                     timestamp: ISO8601DateFormatter().date(from: $0.timestamp) ?? Date()
                 )
             }
+        )
+    }
+
+    private func currentAvatarSnapshot() -> AvatarState {
+        AvatarState(
+            residentID: avatarState.residentID.isEmpty ? loadedResidentID : avatarState.residentID,
+            displayName: avatarState.displayName,
+            mode: avatarState.mode,
+            presence: avatarState.presence,
+            moodHint: avatarState.moodHint,
+            activityHint: avatarState.activityHint,
+            particleHint: avatarState.particleHint
         )
     }
 

@@ -414,6 +414,11 @@ public final class RuntimeCore {
             return RuntimeSessionRestoreResult(didRestore: false)
         }
         let dialogueEntries = (try? sessionStore.loadMostRecentDialogueEntries()) ?? []
+        let avatarMode = displayCache?.avatarMode ?? "idle"
+        let avatarPresence = displayCache?.avatarPresence ?? "unknown"
+        let avatarMoodHint = displayCache?.avatarMoodHint ?? ""
+        let avatarActivityHint = displayCache?.avatarActivityHint ?? ""
+        let avatarParticleHint = displayCache?.avatarParticleHint ?? ""
         sessionContext = RuntimeSessionContext(
             residentID: record.residentID,
             sessionID: RuntimeSessionID(rawValue: record.sessionID)
@@ -441,11 +446,11 @@ public final class RuntimeCore {
             lastUserInput: record.lastUserInput,
             lastResidentOutput: record.lastResidentOutput,
             lastActivity: record.lastActivity,
-            avatarMode: "idle",
-            avatarPresence: "unknown",
-            avatarMoodHint: "",
-            avatarActivityHint: "",
-            avatarParticleHint: "",
+            avatarMode: avatarMode,
+            avatarPresence: avatarPresence,
+            avatarMoodHint: avatarMoodHint,
+            avatarActivityHint: avatarActivityHint,
+            avatarParticleHint: avatarParticleHint,
             shutdownState: record.shutdownState,
             recoveryRequired: recoveryRequired,
             recoveredAt: recoveredAt,
@@ -458,11 +463,11 @@ public final class RuntimeCore {
             lastUserInput: record.lastUserInput,
             lastResidentOutput: record.lastResidentOutput,
             lastActivity: record.lastActivity,
-            avatarMode: displayCache?.avatarMode ?? "idle",
-            avatarPresence: displayCache?.avatarPresence ?? "unknown",
-            avatarMoodHint: displayCache?.avatarMoodHint ?? "",
-            avatarActivityHint: displayCache?.avatarActivityHint ?? "",
-            avatarParticleHint: displayCache?.avatarParticleHint ?? "",
+            avatarMode: avatarMode,
+            avatarPresence: avatarPresence,
+            avatarMoodHint: avatarMoodHint,
+            avatarActivityHint: avatarActivityHint,
+            avatarParticleHint: avatarParticleHint,
             shutdownState: record.shutdownState,
             recoveryRequired: recoveryRequired,
             recoveredAt: recoveredAt,
@@ -476,6 +481,7 @@ public final class RuntimeCore {
         lastUserInput: String,
         lastResidentOutput: String,
         lastActivity: String,
+        avatarState: AvatarState,
         dialogueEntries: [RuntimeDialogueEntryState]
     ) {
         persistSessionSnapshot(
@@ -485,6 +491,7 @@ public final class RuntimeCore {
             lastUserInput: lastUserInput,
             lastResidentOutput: lastResidentOutput,
             lastActivity: lastActivity,
+            avatarState: avatarState,
             dialogueEntries: dialogueEntries
         )
     }
@@ -493,6 +500,7 @@ public final class RuntimeCore {
         lastUserInput: String = "",
         lastResidentOutput: String = "",
         lastActivity: String = "",
+        avatarState: AvatarState? = nil,
         dialogueEntries: [RuntimeDialogueEntryState] = []
     ) {
         persistSessionSnapshot(
@@ -502,6 +510,7 @@ public final class RuntimeCore {
             lastUserInput: lastUserInput,
             lastResidentOutput: lastResidentOutput,
             lastActivity: lastActivity,
+            avatarState: avatarState,
             dialogueEntries: dialogueEntries
         )
     }
@@ -513,6 +522,7 @@ public final class RuntimeCore {
         lastUserInput: String,
         lastResidentOutput: String,
         lastActivity: String,
+        avatarState: AvatarState?,
         dialogueEntries: [RuntimeDialogueEntryState]
     ) {
         guard let context = sessionContext else { return }
@@ -536,11 +546,11 @@ public final class RuntimeCore {
             lastUserInput: lastUserInput,
             lastResidentOutput: lastResidentOutput,
             lastActivity: lastActivity,
-            avatarMode: "idle",
-            avatarPresence: "unknown",
-            avatarMoodHint: "",
-            avatarActivityHint: "",
-            avatarParticleHint: "",
+            avatarMode: avatarState?.mode ?? "idle",
+            avatarPresence: avatarState?.presence ?? "unknown",
+            avatarMoodHint: avatarState?.moodHint ?? "",
+            avatarActivityHint: avatarState?.activityHint ?? "",
+            avatarParticleHint: avatarState?.particleHint ?? "",
             shutdownState: shutdownState,
             recoveryRequired: recoveryRequired,
             recoveredAt: recoveredAt,
@@ -567,34 +577,13 @@ public final class RuntimeCore {
             lastUserInput: request.inputText,
             lastResidentOutput: response.outputText,
             lastActivity: response.residentState.lastActivitySummary,
+            avatarState: response.avatarState,
             dialogueEntries: [
                 RuntimeDialogueEntryState(role: "user", text: request.inputText, timestamp: response.residentState.lastUpdatedAt),
                 RuntimeDialogueEntryState(role: "resident", text: response.outputText, timestamp: response.residentState.lastUpdatedAt)
             ]
         )
         return response
-    }
-
-    private func persistSessionIfPossible(inputText: String, response: RuntimeStepResponse) {
-        guard let context = sessionContext else { return }
-        let record = SessionStoreRecord(
-            residentID: context.residentID,
-            sessionID: context.sessionID.rawValue,
-            createdAt: response.residentState.lastUpdatedAt,
-            updatedAt: response.residentState.lastUpdatedAt,
-            lastUserInput: inputText,
-            lastResidentOutput: response.outputText,
-            lastActivity: response.residentState.lastActivitySummary
-        )
-        try? sessionStore.save(record: record)
-
-        var dialogueEntries = (try? sessionStore.loadMostRecentDialogueEntries()) ?? []
-        dialogueEntries.append(SessionDialogueEntry(role: "user", text: inputText, timestamp: response.residentState.lastUpdatedAt))
-        dialogueEntries.append(SessionDialogueEntry(role: "resident", text: response.outputText, timestamp: response.residentState.lastUpdatedAt))
-        if dialogueEntries.count > 20 {
-            dialogueEntries = Array(dialogueEntries.suffix(20))
-        }
-        try? sessionStore.saveDialogueEntries(dialogueEntries, for: context.sessionID.rawValue)
     }
 
     public func readMemoryValue(for key: String, residentID: String) -> String? {

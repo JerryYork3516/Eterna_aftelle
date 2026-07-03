@@ -13,7 +13,7 @@ struct AftelleApp: App {
         .commands {
             CommandGroup(replacing: .appTermination) {
                 Button(String(localized: "Quit Aftelle")) {
-                    controller.persistCurrentSessionIfPossible()
+                    controller.persistForNormalTerminationIfPossible()
                     NSApplication.shared.terminate(nil)
                 }
             }
@@ -22,7 +22,7 @@ struct AftelleApp: App {
             if phase == .active {
                 controller.markSessionUncleanIfPossible()
             } else if phase == .inactive || phase == .background {
-                controller.persistCurrentSessionIfPossible()
+                controller.markSessionUncleanIfPossible()
             }
         }
     }
