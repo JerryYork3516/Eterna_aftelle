@@ -10,11 +10,11 @@
 
 ## 📌 当前状态(每次更新,粘给 AI 时就粘这一段)
 
-- **现在在做**:Stage 7.1.18 completed
-- **上一步刚完成**:Stage 7.1-DOC-APPLE-HOST-RESERVE Apple 全生态 Host 预留文档调整
+- **现在在做**:Stage 7.2 归档与分支切换
+- **上一步刚完成**:Stage 7.2 Final Review PASS
 - **当前卡在**:无
-- **下一步**:Stage 7.1 Final Review
-- **额度情况**:纯文档 checklist,不改 Swift / Runtime API / DR schema / 平台 target
+- **下一步**:从最新 main 新建 Stage 7.3 分支,准备 Stage 7.3 粒子生命体视觉底座 + 字幕基础
+- **额度情况**:只做归档文档与 Git 分支操作,不改 Swift / Runtime API / DR schema / 平台 target
 
 > - **现在在做**:Stage 7.1.6 —— Runtime Config 本地配置边界
 > - **上一步刚完成**:Stage 7.1.5 DR Loader 读取 / 浅校验 / 加载边界已正规化
@@ -132,6 +132,7 @@
 - 2026-07-03 — Stage 7.2.8 Avatar State 状态恢复：完成 Avatar State 展示快照的最小保存与启动恢复。`SessionDisplayCache` 保存 `avatarMode`、`avatarPresence`、`avatarMoodHint`、`avatarActivityHint`、`avatarParticleHint`；启动恢复 session 时回填 `AppAvatarState`，失败则继续默认 avatar / DR fixture 加载链路。未改 DR schema / Runtime API，未接真实 Provider，未写回 `.digital_resident`，未改 Metal / 粒子渲染架构，未进入 Stage 8。验收通过：build、architecture_guard、secret_guard、git diff --check，forbidden checklist PASS。
 - 2026-07-03 — Stage 7.2 REWORK：修复 Codex 交叉复审指出的 clean / unclean shutdown 与 Avatar State snapshot 语义问题。inactive/background 不再标记 clean，clean 仅保留在明确 Quit 正常退出路径；Avatar display cache 改为保存当前 `AppAvatarState` 快照，不再硬编码默认值；同时清理旧 `persistSessionIfPossible` 死代码并修复 ContentView 本地化插值 warning。未改 DR schema / Runtime API，未接真实 Provider，未写回 `.digital_resident`，未新增平台 target，未进入 Stage 8。验收通过：build、architecture_guard、secret_guard、git diff --check，forbidden checklist PASS。
 - 2026-07-03 — Stage 7.2 Final Review：完成 Stage 7.2 记忆与会话持久化最终审核，结论 PASS。Stage 7.2.1–7.2.8 已闭环：会话保存、当前居民状态恢复、最近对话 display cache、单居民 key-value memory、退出保存/启动恢复、clean/unclean shutdown、单居民记忆边界、Avatar State 展示快照恢复均通过。Codex 指出的 shutdown 与 avatar snapshot 语义问题已由 rework commit `3d082953cad86bdf5d78014697cabff7cee0eb77` 修复。未写回 `.digital_resident`，未改 DR schema / Runtime API contract，未接真实 Provider，未保存 secret / provider response / prompt，未新增平台 target，未进入 Stage 8。验收通过：`xcodebuild` BUILD SUCCEEDED，`architecture_guard` ok，`secret_guard` ok，`git diff --check` 通过，Final Review 判定允许 Stage 7.2 归档并准备进入 Stage 7.3。
+- 2026-07-03 — Stage 7.2 Archive：完成 Stage 7.2 归档记录。Stage 7.2.1–7.2.8 已完成并通过 Final Review；rework commit `3d082953cad86bdf5d78014697cabff7cee0eb77` 已修复 shutdown / avatar snapshot 语义问题；本阶段未进入 Stage 8，未改 DR schema / Runtime API contract，未接真实 Provider，未写回 `.digital_resident`，未新增平台 target。下一步从最新 main 新建 `7.3` 分支，进入 Stage 7.3 准备。
 
 ---
 
