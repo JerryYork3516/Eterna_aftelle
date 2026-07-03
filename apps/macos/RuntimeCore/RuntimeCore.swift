@@ -342,6 +342,7 @@ public final class RuntimeCore {
 
             let sessionID = RuntimeSessionID.make()
             sessionContext = RuntimeSessionContext(residentID: loadedDR.residentID, sessionID: sessionID)
+            memoryController.setActiveResidentID(loadedDR.residentID)
             let avatarState = AvatarState(
                 residentID: loadedDR.residentID,
                 displayName: loadedDR.displayName,
@@ -401,6 +402,7 @@ public final class RuntimeCore {
             residentID: record.residentID,
             sessionID: RuntimeSessionID(rawValue: record.sessionID)
         )
+        memoryController.setActiveResidentID(record.residentID)
         let recoveredAt = Date()
         let recoveryRequired = record.shutdownState == .unclean
         let updatedRecord = SessionStoreRecord(

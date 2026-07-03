@@ -73,20 +73,31 @@ public final class MemoryStore {
 public final class MemoryController {
     public static let schemaVersion = "0.1.0"
     private let store: MemoryStore
+    private var activeResidentID: String?
 
     public init(store: MemoryStore = MemoryStore()) {
         self.store = store
     }
 
+    public func setActiveResidentID(_ residentID: String?) {
+        activeResidentID = residentID?.isEmpty == true ? nil : residentID
+    }
+
     public func loadValue(for key: String, residentID: String) -> String? {
-        guard let record = try? store.load(residentID: residentID), record.schemaVersion == Self.schemaVersion else { return nil }
+        guard matchesActiveResident(residentID), let record = try? store.load(residentID: residentID), record.schemaVersion == Self.schemaVersion else { return nil }
         return record.entries.last(where: { $0.key == key })?.value
     }
 
     public func saveValue(_ value: String, for key: String, residentID: String) {
+        guard matchesActiveResident(residentID) else { return }
         let existing = (try? store.load(residentID: residentID))
         let entries = (existing?.entries ?? []).filter { $0.key != key } + [MemoryEntryRecord(key: key, value: value, updatedAt: Date())]
         let record = MemoryStoreRecord(residentID: residentID, entries: entries)
         try? store.save(record: record)
+    }
+
+    private func matchesActiveResident(_ residentID: String) -> Bool {
+        guard let activeResidentID else { return false }
+        return !residentID.isEmpty && residentID == activeResidentID
     }
 }

@@ -53,18 +53,18 @@
 - [x] **【G0·已拍板 v7 改选 A】Runtime 策略：A. Swift RuntimeCore（App 内置运行内核）** ← v7 由 B 改 A;只有我能定
 - [x] **【G0·已拍板】DR 字段对齐：以 Studio 导出的 DR v0.3 envelope + Runtime API 6.11.0 实际返回字段为准**
 - [x] **【G0·已拍板】真实 LLM 来源：Stage 7 MVP 可 mock；真实 Provider 只能走 RuntimeCore ProviderConfig/Profile → ProviderRouter → ProviderAdapter → ExecutionEngine；UI 不直连 OpenAI/Claude/Qwen**
-- [ ] 把 `Agent.md` 改成正确的 `AGENTS.md`
-- [ ] 建 GitHub/Gitee **私有**仓库,放进全部文档,锁好 .gitignore(密钥/真实DR不进库)
-- [ ] 做 2-3 个测试 DR fixture(1 个正常 + 1 个错误 + 空壳)
+- [x] 把 `Agent.md` 改成正确的 `AGENTS.md`
+- [x] 建 GitHub/Gitee **私有**仓库,放进全部文档,锁好 .gitignore(密钥/真实DR不进库)
+- [x] 做 2-3 个测试 DR fixture(1 个正常 + 1 个错误 + 空壳)
 - [x] Stage 6 收尾完成：DR v0.3 Contract Freeze 已完成，Aftelle 读取字段以后以 `dr_contract_v0_3.md` 为准
-- [ ] 开工首日锁定技术栈版本(Swift / Xcode / 最低 macOS),写进仓库
-- [ ] 用 Claude Code `/status` 确认我的额度和计费方式
+- [x] 开工首日锁定技术栈版本(Swift / Xcode / 最低 macOS),写进仓库
+- [x] 用 Claude Code `/status` 确认我的额度和计费方式
 
 进 7.1 后:
 
-- [ ] 搭空 Xcode 项目,放约 10 个粒子
-- [ ] 走通:加载 DR → 改粒子逻辑 → 看到变化
-- [ ] 记下:7.1 花了多少额度、AI 读了多少文件、卡在哪 → 用它外推整个 Stage 7
+- [x] 搭空 Xcode 项目,放约 10 个粒子
+- [x] 走通:加载 DR → 改粒子逻辑 → 看到变化
+- [x] 记下:7.1 花了多少额度、AI 读了多少文件、卡在哪 → 用它外推整个 Stage 7
 
 ---
 
@@ -128,6 +128,7 @@
 - 2026-07-03 — Stage 7.2.4-GUARD-FIX：修复 `architecture_guard` 对 `MemoryController.swift` 本地 memory JSON 写入的误报。确认 `MemoryController` 只写入 `Application Support/Aftelle/MemoryStore`，不写回 `.digital_resident`；本次仅收窄 guard 检测范围，DR 只读红线不变。验收通过：build、architecture_guard、secret_guard、git diff --check，forbidden checklist PASS。
 - 2026-07-03 — Stage 7.2.5 退出保存 / 启动恢复：完成最小 App 生命周期保存/恢复触发。启动时复用 `restoreMostRecentSession()` 链路，失败后继续走原有 DR fixture 加载；退出或 scenePhase 进入 inactive/background 时，通过 `AppController` → `OrchestrationKernel` → `RuntimeCore` 公共入口保存当前 session / display cache。未做崩溃恢复、长期记忆、Memory Kernel、向量数据库、人格成长或多居民社会记忆；未写回 `.digital_resident`，未接真实 Provider，未改 Runtime API / DR schema，未新增平台 target。验收通过：build、architecture_guard、secret_guard、git diff --check，forbidden checklist PASS。
 - 2026-07-03 — Stage 7.2.6 崩溃恢复基础：完成最小 clean / unclean shutdown 标记与启动恢复识别。App 活跃或 step 后标记 `unclean`，正常退出保存时标记 `clean`；启动时若发现上次为 `unclean`，继续恢复最近 session / display cache，并在 App / Debug 状态暴露 `recovery_required` / `recovered_at`。未做 crash reporter、崩溃日志、自动诊断、数据修复或复杂恢复 UI；未改 Runtime API / DR schema，未接真实 Provider，未写回 `.digital_resident`。验收通过：build、architecture_guard、secret_guard、git diff --check，forbidden checklist PASS。
+- 2026-07-03 — Stage 7.2.7 单居民记忆边界：完成 key-value memory 的单居民访问边界。`MemoryController` 增加 `activeResidentID`，仅允许当前 active resident 读写 memory；跨 `resident_id` 读取返回 nil，写入直接忽略。`RuntimeCore` 只负责设置当前居民边界，`SessionStore` 仍只负责 session / display cache。未做 Memory Kernel、长期记忆、向量数据库、人格成长、多居民社会记忆，未写回 `.digital_resident`，未改 Runtime API / DR schema，未接真实 Provider。验收通过：build、architecture_guard、secret_guard、git diff --check，forbidden checklist PASS。
 
 ---
 
