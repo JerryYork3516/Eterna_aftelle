@@ -115,3 +115,47 @@ Use this file to record each Codex task before closing the loop.
 - Verification: JSON lint passed; Aftelle build passed; architecture_guard passed; secret_guard passed; no Eterna references remain under apps/macos.
 - Token note: keep cleanup scoped to macOS app tree only.
 - Follow-up: none.
+
+## 7.1.1
+
+- Stage: 7.1.1
+- Date: 2026-07-02
+- Task: Add Platform Adapter boundary.
+- Read scope: `AGENTS.md`, `README.md`, `DEVLOG.md`, `docs/03_dev_plan.md`, `docs/04_code_standards.md`, `docs/STAGE7_CODEX_USAGE.md`, `apps/macos/RuntimeCore/*`, `apps/macos/Aftelle/Aftelle.xcodeproj/project.pbxproj`.
+- Changed files: `apps/macos/RuntimeCore/PlatformAdapter.swift`, `apps/macos/Aftelle/Aftelle.xcodeproj/project.pbxproj`, `DEVLOG.md`, this usage log.
+- Verification: `xcodebuild -project apps/macos/Aftelle/Aftelle.xcodeproj -scheme Aftelle -destination 'platform=macOS' -derivedDataPath /tmp/aftelle-7-1-1-derived build` passed; `tools/architecture_guard/check.sh` ok; `tools/secret_guard/check.sh` ok.
+- Token note: keep platform boundary no-op and platform-independent.
+- Follow-up: proceed to 7.1.2 desktop shell only.
+
+## 7.1.2
+
+- Stage: 7.1.2
+- Date: 2026-07-02
+- Task: Organize macOS desktop shell.
+- Read scope: `AGENTS.md`, `README.md`, `DEVLOG.md`, `.cursor/rules/*`, `docs/03_dev_plan.md`, `docs/02_architecture.md`, `docs/aftelle_runtime_boundary.md`, `docs/04_code_standards.md`, `apps/macos/Aftelle/*`, `apps/macos/RuntimeCore/*`.
+- Changed files: `apps/macos/Aftelle/AftelleApp.swift`, `apps/macos/Aftelle/ContentView.swift`, `DEVLOG.md`, this usage log.
+- Verification: `xcodebuild -project apps/macos/Aftelle/Aftelle.xcodeproj -scheme Aftelle -destination 'platform=macOS' -derivedDataPath /tmp/aftelle-7-1-2-derived build` passed; `tools/architecture_guard/check.sh` ok; `tools/secret_guard/check.sh` ok.
+- Token note: keep shell thin; do not add startup flow or provider wiring.
+- Follow-up: 7.1.3 startup flow only when explicitly started.
+
+## 7.1-DOC-APPLE-HOST-RESERVE
+
+- Stage: 7.1-DOC-APPLE-HOST-RESERVE
+- Date: 2026-07-03
+- Task: Add document-only Apple ecosystem Host reserve boundary.
+- Read scope: `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/*`, `README.md`, `DEVLOG.md`, `docs/02_architecture.md`, `docs/03_dev_plan.md`, `docs/04_code_standards.md`, `docs/aftelle_runtime_boundary.md`, `docs/stage7_entry_gate.md`, `docs/runtime_strategy.md`, this usage log.
+- Changed files: documentation only; no Swift, project, DR schema, Runtime API, provider, token, or fixture files.
+- Verification: `git diff --check`; architecture guard; secret guard; documentation grep for sensitive terms.
+- Token note: keep this as Stage 7.1 doc reserve, not Stage 8 or multiplatform feature work.
+- Follow-up: 7.1.18 checklist should include these Host reserve prohibitions.
+
+## 7.1.18
+
+- Stage: 7.1.18
+- Date: 2026-07-03
+- Task: Add Stage 7 forbidden checklist.
+- Read scope: `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/*`, `README.md`, `DEVLOG.md`, `docs/03_dev_plan.md`, `docs/stage7_entry_gate.md`, `docs/feature_livestate.md`, `docs/STAGE7_CODEX_USAGE.md`, and referenced boundary/contract docs for verification only.
+- Changed files: `docs/stage7_forbidden_checklist.md`, `AGENTS.md`, `CLAUDE.md`, `DEVLOG.md`, `docs/03_dev_plan.md`, `docs/stage7_entry_gate.md`, this usage log.
+- Verification: `git diff --check`; architecture guard; secret guard; documentation grep for sensitive terms.
+- Token note: keep this as document / PR checklist only; do not turn it into a script, lint, or code system.
+- Follow-up: use checklist before Stage 7.1 Final Review and later Stage 7 tasks.

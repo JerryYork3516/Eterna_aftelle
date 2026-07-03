@@ -2,9 +2,12 @@ import SwiftUI
 
 @main
 struct AftelleApp: App {
+    @StateObject private var controller = AppController()
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        WindowGroup("Aftelle") {
+            ContentView(controller: controller)
         }
+        .windowResizability(.contentSize)
     }
 }

@@ -69,6 +69,8 @@ shared-protocol/  DR schema、协议常量
 
 **硬规则:**
 - `brain/` 内**禁止出现** `import Metal` / `import AppKit` / `import SwiftUI` / 直接 SQLite/Keychain 调用。→ **可自动检测,设为 lint/hook 规则。**
+- RuntimeCore / brain 默认只允许 Foundation 与内部纯逻辑依赖;未经显式架构批准,不得 import AppKit / UIKit / SwiftUI / Metal / RealityKit / WatchKit / TVUIKit。
+- AppKit / UIKit / SwiftUI / Metal / RealityKit / WatchKit / TVUIKit 只能出现在 Host / UI / Adapter 层;平台能力必须经 HostEnv / StorageAdapter / RenderAdapter / AudioAdapter / InputAdapter / SecureCredentialAdapter 注入 RuntimeCore。
 - 平台实现文件名带平台后缀:`HostEnvMacOS`、`ParticleRendererMetal`。
 - 一个文件一个主类型,文件名 = 主类型名。
 

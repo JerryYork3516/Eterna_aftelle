@@ -242,6 +242,15 @@ Stage 7 正式实现 macOS Adapter。
 7.10 只检查:业务逻辑无 macOS 硬编码、Runtime 无平台依赖、Avatar State Protocol 固化、粒子坐标抽象、Windows-readiness、AR 坐标隔离。
 不正式开发:Windows App、iOS/Android App、AR 身体、移动端 Runtime。
 
+### 3.13 Apple 全生态 Host 预留边界
+Stage 7 只交付 macOS 单机 Runtime Host。Apple 全生态在本阶段只是 Host 预留,不是功能扩展:未来 iOS / iPadOS / visionOS / watchOS / tvOS 若进入规划,也只能作为不同 Runtime Host 复用 RuntimeCore。
+
+边界:
+- RuntimeCore / brain 保持平台无关,只解释 DR、执行居民逻辑、管理 Provider 调用、处理 session / memory / trace。
+- macOS 与未来 Apple Host 只能通过 Runtime API / HostEnv / Adapter 注入平台能力,不得实现 Scheduler / Memory Kernel / ProviderRouter / DR compiler。
+- `visual_state` / `resident_state` 是"同一居民,不同身体"的统一输入;不同 Host 可重做 UI / 渲染 / 输入适配,不承诺复用 macOS UI 或 Metal 画法。
+- Stage 7.1 不正式拆分 Swift Package,只保持 RuntimeCore 未来 package-ready 的边界。
+
 ---
 
 ## 4. 对照03_dev_plan.md v5 的架构落点

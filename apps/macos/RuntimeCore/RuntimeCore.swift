@@ -10,20 +10,121 @@ public struct RuntimeStepRequest {
     }
 }
 
+public struct RuntimeLoadRequest {
+    public var drData: Data
+
+    public init(drData: Data) {
+        self.drData = drData
+    }
+}
+
+public enum RuntimeInterruptReason: String {
+    case cancelled
+    case interrupted
+}
+
+public struct RuntimeCancellationRequest {
+    public var reason: RuntimeInterruptReason
+
+    public init(reason: RuntimeInterruptReason) {
+        self.reason = reason
+    }
+}
+
+public struct RuntimeCancellationState {
+    public var isCancelled: Bool
+    public var reason: RuntimeInterruptReason?
+
+    public init(isCancelled: Bool = false, reason: RuntimeInterruptReason? = nil) {
+        self.isCancelled = isCancelled
+        self.reason = reason
+    }
+
+    public static let none = RuntimeCancellationState()
+}
+
+public struct AvatarState {
+    public var residentID: String
+    public var displayName: String
+    public var mode: String
+    public var presence: String
+    public var moodHint: String
+    public var activityHint: String
+    public var particleHint: String
+    public var updatedAt: Date
+
+    public init(
+        residentID: String,
+        displayName: String,
+        mode: String,
+        presence: String,
+        moodHint: String,
+        activityHint: String,
+        particleHint: String,
+        updatedAt: Date = Date()
+    ) {
+        self.residentID = residentID
+        self.displayName = displayName
+        self.mode = mode
+        self.presence = presence
+        self.moodHint = moodHint
+        self.activityHint = activityHint
+        self.particleHint = particleHint
+        self.updatedAt = updatedAt
+    }
+}
+
+public struct RuntimeResidentState {
+    public var residentID: String
+    public var sessionID: String
+    public var lifecycleStatus: String
+    public var presence: String
+    public var lastActivitySummary: String
+    public var lastUpdatedAt: Date
+    public var avatarMode: String?
+
+    public init(
+        residentID: String,
+        sessionID: String,
+        lifecycleStatus: String,
+        presence: String,
+        lastActivitySummary: String,
+        lastUpdatedAt: Date = Date(),
+        avatarMode: String? = nil
+    ) {
+        self.residentID = residentID
+        self.sessionID = sessionID
+        self.lifecycleStatus = lifecycleStatus
+        self.presence = presence
+        self.lastActivitySummary = lastActivitySummary
+        self.lastUpdatedAt = lastUpdatedAt
+        self.avatarMode = avatarMode
+    }
+}
+
 public struct RuntimeStepResponse {
     public var outputText: String
     public var visualState: VisualState
+    public var avatarState: AvatarState
+    public var residentState: RuntimeResidentState
+    public var cancellationState: RuntimeCancellationState
     public var traceEvents: [TraceEvent]
     public var diagnostics: RuntimeDiagnostics
 
     public init(
         outputText: String,
         visualState: VisualState,
+        avatarState: AvatarState,
+        residentState: RuntimeResidentState,
+        cancellationState: RuntimeCancellationState = .none,
         traceEvents: [TraceEvent],
         diagnostics: RuntimeDiagnostics
     ) {
         self.outputText = outputText
         self.visualState = visualState
+        self.avatarState = avatarState
+        self.residentState = residentState
+        self.cancellationState = cancellationState
         self.traceEvents = traceEvents
         self.diagnostics = diagnostics
     }
@@ -32,10 +133,25 @@ public struct RuntimeStepResponse {
 public struct RuntimeDiagnostics {
     public var runtimeStepCount: Int
     public var providerMode: String
+    public var providerProfileID: String?
+    public var providerSecretRefPresent: Bool
+    public var providerKeyRefPresent: Bool
+    public var cancellationState: String
 
-    public init(runtimeStepCount: Int = 0, providerMode: String = "mock") {
+    public init(
+        runtimeStepCount: Int = 0,
+        providerMode: String = "mock",
+        providerProfileID: String? = nil,
+        providerSecretRefPresent: Bool = false,
+        providerKeyRefPresent: Bool = false,
+        cancellationState: String = "none"
+    ) {
         self.runtimeStepCount = runtimeStepCount
         self.providerMode = providerMode
+        self.providerProfileID = providerProfileID
+        self.providerSecretRefPresent = providerSecretRefPresent
+        self.providerKeyRefPresent = providerKeyRefPresent
+        self.cancellationState = cancellationState
     }
 }
 
@@ -69,49 +185,185 @@ public struct VisualState {
     }
 }
 
+public struct RuntimeSessionID: Equatable {
+    public var rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public static func make() -> RuntimeSessionID {
+        RuntimeSessionID(rawValue: UUID().uuidString)
+    }
+}
+
+public struct RuntimeSessionContext: Equatable {
+    public var residentID: String
+    public var sessionID: RuntimeSessionID
+
+    public init(residentID: String, sessionID: RuntimeSessionID) {
+        self.residentID = residentID
+        self.sessionID = sessionID
+    }
+}
+
+public struct RuntimeClockState: Equatable {
+    public var tickCount: Int
+    public var lastTickAt: Date?
+
+    public init(tickCount: Int = 0, lastTickAt: Date? = nil) {
+        self.tickCount = tickCount
+        self.lastTickAt = lastTickAt
+    }
+}
+
+public struct RuntimeTickRequest {
+    public var reason: String
+
+    public init(reason: String = "noop") {
+        self.reason = reason
+    }
+}
+
+public struct RuntimeTickResponse {
+    public var clockState: RuntimeClockState
+    public var traceEvent: TraceEvent
+    public var diagnostics: RuntimeDiagnostics
+
+    public init(clockState: RuntimeClockState, traceEvent: TraceEvent, diagnostics: RuntimeDiagnostics) {
+        self.clockState = clockState
+        self.traceEvent = traceEvent
+        self.diagnostics = diagnostics
+    }
+}
+
 public struct RuntimeLoadResult {
     public let isLoaded: Bool
     public let residentID: String
+    public let sessionID: RuntimeSessionID?
     public let displayName: String
     public let statusMessage: String
     public let diagnostics: String
+    public let avatarState: AvatarState?
+    public let residentState: RuntimeResidentState?
 }
 
 public final class RuntimeCore {
     private let drLoader: DRLoader
     private let executionEngine: ExecutionEngine
+    private let providerRouter: ProviderRouter
+    private let hostEnv: HostEnv
+    private var cancellationState = RuntimeCancellationState.none
+    private var sessionContext: RuntimeSessionContext?
+    private var clockState = RuntimeClockState()
 
     public init(
         drLoader: DRLoader = DRLoader(),
-        executionEngine: ExecutionEngine = ExecutionEngine()
+        executionEngine: ExecutionEngine = ExecutionEngine(),
+        providerRouter: ProviderRouter = ProviderRouter(),
+        hostEnv: HostEnv = DefaultHostEnv()
     ) {
         self.drLoader = drLoader
         self.executionEngine = executionEngine
+        self.providerRouter = providerRouter
+        self.hostEnv = hostEnv
     }
 
     public func loadDR(from data: Data) -> RuntimeLoadResult {
         do {
-            let loadedDR = try drLoader.load(drData: data)
+            let result = try drLoader.load(request: DRLoadRequest(drData: data))
+            guard let loadedDR = result.loadedDR, result.isLoaded else {
+                return RuntimeLoadResult(
+                    isLoaded: false,
+                    residentID: "",
+                    sessionID: nil,
+                    displayName: "",
+                    statusMessage: "DR load failed",
+                    diagnostics: result.diagnostics,
+                    avatarState: nil,
+                    residentState: nil
+                )
+            }
+
+            let sessionID = RuntimeSessionID.make()
+            sessionContext = RuntimeSessionContext(residentID: loadedDR.residentID, sessionID: sessionID)
+            let avatarState = AvatarState(
+                residentID: loadedDR.residentID,
+                displayName: loadedDR.displayName,
+                mode: "idle",
+                presence: "present",
+                moodHint: "calm",
+                activityHint: "ready",
+                particleHint: "calibration_idle"
+            )
+            let residentState = RuntimeResidentState(
+                residentID: loadedDR.residentID,
+                sessionID: sessionID.rawValue,
+                lifecycleStatus: "loaded",
+                presence: "available",
+                lastActivitySummary: "DR loaded",
+                avatarMode: avatarState.mode
+            )
+
             return RuntimeLoadResult(
                 isLoaded: true,
                 residentID: loadedDR.residentID,
+                sessionID: sessionID,
                 displayName: loadedDR.displayName,
                 statusMessage: "DR loaded",
-                diagnostics: "OK"
+                diagnostics: result.diagnostics,
+                avatarState: avatarState,
+                residentState: residentState
             )
         } catch {
             return RuntimeLoadResult(
                 isLoaded: false,
                 residentID: "",
+                sessionID: nil,
                 displayName: "",
                 statusMessage: "DR load failed",
-                diagnostics: "Read-only fixture load failed"
+                diagnostics: "DR load failed",
+                avatarState: nil,
+                residentState: nil
             )
         }
     }
 
-    public func step(inputText: String) -> RuntimeStepResponse {
-        let request = RuntimeStepRequest(residentID: "", inputText: inputText)
-        return executionEngine.step(request: request)
+    public func loadDR(request: RuntimeLoadRequest) -> RuntimeLoadResult {
+        loadDR(from: request.drData)
     }
+
+    public func step(inputText: String) -> RuntimeStepResponse {
+        let residentID = sessionContext?.residentID ?? ""
+        let request = RuntimeStepRequest(residentID: residentID, inputText: inputText)
+        return step(request: request)
+    }
+
+    public func step(request: RuntimeStepRequest) -> RuntimeStepResponse {
+        let pendingCancellation = cancellationState
+        cancellationState = .none
+        let response = executionEngine.step(request: request, cancellationState: pendingCancellation)
+        sessionContext = RuntimeSessionContext(residentID: request.residentID, sessionID: sessionContext?.sessionID ?? .make())
+        return response
+    }
+
+    public func cancelCurrentStep() {
+        cancellationState = RuntimeCancellationState(isCancelled: true, reason: .cancelled)
+    }
+
+    public func interrupt(request: RuntimeCancellationRequest) {
+        cancellationState = RuntimeCancellationState(isCancelled: true, reason: request.reason)
+    }
+
+    public func runtimeTick(request: RuntimeTickRequest = RuntimeTickRequest()) -> RuntimeTickResponse {
+        clockState = RuntimeClockState(tickCount: clockState.tickCount + 1, lastTickAt: Date())
+        let traceEvent = TraceEvent(type: .runtimeStep, message: "system.tick no-op")
+        let diagnostics = RuntimeDiagnostics(cancellationState: "none")
+        return RuntimeTickResponse(clockState: clockState, traceEvent: traceEvent, diagnostics: diagnostics)
+    }
+
+    public func currentRuntimeConfig() -> RuntimeConfig {
+        hostEnv.runtimeConfig.currentRuntimeConfig()
+    }
+
 }

@@ -86,6 +86,15 @@ Stage 7 live-state 功能不得让 Aftelle 变成 Runtime owner:
 
 **越界信号**: UI 自己跑 scheduler、后台自动发消息、直接写长期记忆、直接调 TTS/LLM Provider、把活态写回 `.digital_resident`。
 
+### Host 边界补充 · Apple 全生态只做 Runtime Host 预留
+
+Aftelle macOS 是 Stage 7 唯一正在实现的 Runtime Host。未来 iOS / iPadOS / visionOS / watchOS / tvOS 只能作为不同 Host 复用 RuntimeCore,不是新的 Runtime owner。
+
+- Host 只能通过 Runtime API / HostEnv / Adapter 与 RuntimeCore 交互。
+- Host 消费 RuntimeCore 返回的 `resident_state` / `visual_state` / audio / subtitle / trace / diagnostics,不得持久化或写回 DR。
+- Host 不得拥有 Scheduler、Memory Kernel、ProviderRouter、DR compiler,也不得直连 Provider / Keychain / 网络模型调用。
+- Apple 全生态预留不引入 DR schema 字段、Runtime API 平台字段或平台 target。Stage 7 只把边界写清,不做 iOS / visionOS / AR 功能。
+
 ---
 
 ### INV-4 · I/O 抽象是 environment→resident,不是 user→resident

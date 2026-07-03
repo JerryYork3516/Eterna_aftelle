@@ -3,25 +3,48 @@
 > 这份是给我自己的,不是给 AI 自动读的。
 > 三个作用:① 提醒我做到哪、为什么这么定;② 每次开 GPT/Dify/新对话时,把"当前状态"那段粘过去当背景;③ 防止我忘了当初的决定又推翻重来。
 > **规则:每次做完一件事、或讨论出一个结论、或改完一个 bug,就来记一笔。不用长,几行即可。**
->
+> 
 > **boundary 基线 SHA-256(改动即报警)**：`275b95889f55646e3ae99ceb2a12cc0e974fd5338aa23c7311cccff0d2d041a6`（v7 更新:G0 改 A,仅 clock/tick 归属改为 RuntimeCore,4 条 Invariants 不变;旧 v6 基线 f043f4b5…）
 
 ---
 
 ## 📌 当前状态(每次更新,粘给 AI 时就粘这一段)
 
-- **现在在做**:Stage 7.x —— [一句话:具体哪一步]
-- **上一步刚完成**:[做完了什么]
-- **当前卡在**:[如果有卡点,写在这;没有就写"无"]
-- **下一步**:[接下来要做什么]
-- **额度情况**:[这周大概用了多少 / 还够不够]
+- **现在在做**:Stage 7.1.18 completed
+- **上一步刚完成**:Stage 7.1-DOC-APPLE-HOST-RESERVE Apple 全生态 Host 预留文档调整
+- **当前卡在**:无
+- **下一步**:Stage 7.1 Final Review
+- **额度情况**:纯文档 checklist,不改 Swift / Runtime API / DR schema / 平台 target
+
+> - **现在在做**:Stage 7.1.6 —— Runtime Config 本地配置边界
+> - **上一步刚完成**:Stage 7.1.5 DR Loader 读取 / 浅校验 / 加载边界已正规化
+> - **当前卡在**:无
+> - **下一步**:只做 7.1.6 验收与记录,不进 7.1.7
+> - **额度情况**:保持本地 mock 配置,不接真实 provider
+
+> - **现在在做**:Stage 7.1.5 —— DR Loader 读取 / 浅校验 / 加载边界
+> - **上一步刚完成**:Stage 7.1.4 RuntimeCore 最小运行闭环已接入,开始正规化 DR 只读加载边界
+> - **当前卡在**:无
+> - **下一步**:只做 7.1.5 验收与记录,不进 7.1.6
+> - **额度情况**:保持最小加载路径,不碰执行层扩展
+
+> - **现在在做**:Stage 7.1.4 —— RuntimeCore 最小运行闭环接入
+> - **上一步刚完成**:Stage 7.1.3 App 启动流程,7.1.4 轻量边界审核修复中
+> - **当前卡在**:无
+> - **下一步**:7.1.4 修复验收后,等待确认再进 7.1.5
+> - **额度情况**:保持最小启动路径,不碰运行闭环
+
+> - **现在在做**:Stage 7.1.2 —— macOS Desktop Shell 整理
+> - **上一步刚完成**:Stage 7.1.1 Platform Adapter boundary 已就绪,开始收口 App shell
+> - **当前卡在**:无
+> - **下一步**:只做 7.1.2 验收与记录,不进 7.1.3
+> - **额度情况**:按节点推进,保持最小 shell 改动
 
 > - **现在在做**: v7 文档收口(G0 改 A / Swift RuntimeCore),准备进 Stage 7.0 Calibration
 > - **上一步刚完成**: Stage 6.11 Freeze Audit，后端 pytest 208 passed，前端 typecheck passed，6.7–6.10 手动验收完成
 > - **当前卡在**: Stage 7 Gate 缺少冻结文档：DEVLOG.md、runtime_api_contract.md、aftelle_runtime_boundary.md
-> - **下一步**: 补齐 Gate 文档后，让 Cursor 重新验收 Stage 7 Entry Gate
-> - **额度情况**: 进入 Stage 7 前先控 token，只做文档冻结，不改代码
-
+> - **下一步**:补齐 Gate 文档后，让 Cursor 重新验收 Stage 7 Entry Gate
+> - **额度情况**:进入 Stage 7 前先控 token，只做文档冻结，不改代码
 
 ## ✅ 我现在要做的事(开工清单,做完打勾)
 
@@ -77,13 +100,34 @@
 - 2026-07-02 — Stage 7.0 final review fix — 将 App 内 calibration fixture 修正为脱敏 DR v0.3-shaped 结构,DRLoader 浅校验读取 revision / manifest / resident_identity / lattice_config / safety flags,不依赖真实 `.digital_resident`。
 - 2026-07-02 — Stage 7.0 app cleanup — 修正 Bundle 资源查找为 `Freezev03.calibration_fixture.json`,清理旧 `Eterna_aftelle` 模板工程/测试/顶层无效 `Aftelle.xcodeproj`,保留当前 `apps/macos/Aftelle/` 与 `RuntimeCore/`。
 - 2026-07-02 — Stage 7.0 Calibration PASS — 上机验证 Load DR 成功,显示 `schema_canvas` / `Schema Canvas`,mock step / trace / diagnostics 正常;允许合并到 main 并进入 Stage 7.1。
-
+- 2026-07-02 — Stage 7.1.1 Platform Adapter boundary — 新增最小 `HostEnv` / `PlatformAdapter` 协议与 noop 实现,RuntimeCore 通过平台无关接口预留 clock / file access / runtime config / provider profile reference / secure secret reference,未接真实平台实现,未引入 SwiftUI / AppKit / Metal。
+- 2026-07-02 — Stage 7.1.2 macOS Desktop Shell — 收敛 Aftelle App 为最小 Desktop Shell,只保留启动壳/窗口壳/加载 DR 的状态展示入口,不再暴露输入/响应/trace 粒子演示,继续通过 RuntimeCore 加载本地 calibration fixture,不接真实 Provider/DR 写回。
+- 2026-07-02 — Stage 7.1.3 App 启动流程 — App 启动改为 App Controller 统一负责,由壳层触发加载 bundled calibration fixture,再通过 RuntimeCore 公共入口读取 DR 并展示只读启动状态,不让 ContentView 直接承担启动逻辑。
+- 2026-07-02 — Stage 7.1.4 RuntimeCore 最小运行闭环接入 — RuntimeCore 成为运行真相源入口,App Controller 仅调 RuntimeCore 公共入口,ExecutionEngine 继续作为唯一内部 step 入口,保留 mock/calibration step 及 diagnostics/trace/visual_state 返回,不接真实 Provider。
+- 2026-07-02 — Stage 7.1.5 DR Loader 读取 / 浅校验 / 加载边界 — DRLoader 只负责只读读取与浅校验,通过 RuntimeCore 公共入口接入,返回脱敏 diagnostics,不直连 ExecutionEngine / ProviderRouter / Provider,不改 fixture、不改 schema。
+- 2026-07-02 — Stage 7.1.6 Runtime Config 本地配置边界 — 新增本地 RuntimeConfig 模型与 no-op provider,RuntimeCore 通过 HostEnv / PlatformAdapter 读取配置,配置不含真实 secret/token/base_url/credential,不接真实 provider。
+- 2026-07-02 — Stage 7.1.7 RuntimeCore Provider 配置入口 — 新增 ProviderRuntimeConfig 与 ProviderRouter 脱敏诊断入口,Provider 配置引用仅收口在 RuntimeCore 内,不接真实 ProviderAdapter/网络调用,不泄露 secret 值。
+- 2026-07-02 — Stage 7.1.8 Provider key_ref / Keychain 入口：完成 Provider secret 引用边界。RuntimeConfig 仅保存 key_ref / secret_ref，不保存 secret 值；新增 SecretReferenceState / SecretResolutionStatus 与 no-op resolver；HostEnv / PlatformAdapter 保留 SecureSecretReferenceAccess 边界；ProviderRouter diagnostics 仅暴露 providerProfileID、secretRefPresent、keyRefPresent、mode；未接真实 Keychain、未接真实 Provider、未输出 secret value；xcodebuild、architecture_guard、secret_guard 均通过。
+- 2026-07-02 — Stage 7.1.9 Avatar State Protocol 契约：完成最小 AvatarState 只读状态契约。在现有文件内为 RuntimeCore 的 load / step response 增加 avatarState 输出，由 VisualStateMapper 负责最小映射，AppController 只转发只读状态，ContentView 只展示状态；未新增 Swift 文件，未修改 project.pbxproj，未写回 DR，未接真实 Provider / Keychain，未做 Metal / scheduler；xcodebuild、architecture_guard、secret_guard 均通过。
+- 2026-07-02 — Stage 7.1.10 统一取消 / 中断语义：完成 RuntimeCore 最小 cancel / interrupt 语义。新增 cancelCurrentStep() / interrupt(request:) 公共入口，ExecutionEngine 可返回 cancelled / interrupted 结果，RuntimeStepResponse 与 diagnostics 携带 cancellationState，Trace 仅记录脱敏取消事件；AppController 只调用 RuntimeCore 公共入口，ContentView 只展示只读状态；未新增 Swift 文件，未修改 project.pbxproj，未接真实 Provider / Keychain，未做 scheduler / tick；xcodebuild、architecture_guard、secret_guard 均通过。
+- 2026-07-03 — Stage 7.1.11 Orchestration Kernel Skeleton：完成最小 OrchestrationKernel 骨架。Kernel 位于 AppController 与 RuntimeCore 之间，只保存 RuntimeCore 公共入口引用，并提供 prepare / loadResident / step 的薄壳边界；AppController 已通过 OrchestrationKernel 组织运行入口，Kernel 不直连 DRLoader / ExecutionEngine / ProviderRouter / Provider；未新增 Swift 文件，未修改 project.pbxproj，未做 scheduler / planner / 多居民 / tool selection；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
+- 2026-07-03 — Stage 7.1.12 单居民 passthrough 链路：完成 OrchestrationKernel 最小单居民透传。AppController 通过 OrchestrationKernel.step(residentID:inputText:) 调用 RuntimeCore.step(...)，链路保持 RuntimeCore → ExecutionEngine mock step → RuntimeStepResponse → AppController 只读状态 → ContentView 展示；Kernel 不做调度决策，不做 scheduler / tick，不做多居民 / planner / tool selection；未新增 Swift 文件，未修改 project.pbxproj，未接真实 Provider / Keychain / 网络；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
+- 2026-07-03 — Stage 7.1.13 resident_id / session_id 结构固化：完成最小 Runtime session identity 结构。residentID 继续来自只读 DR / LoadedDR，RuntimeCore 在 loadDR 后生成独立 sessionID 并持有 RuntimeSessionContext，RuntimeLoadResult 可携带 sessionID，AppController 新增只读 sessionState 透传；sessionID 与 DR 分离，不写回 DR / fixture，不做 SessionStore / HostStateStore，不接真实 Provider / Keychain；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
+- 2026-07-03 — Stage 7.1.14 Runtime Trace 面板：完成最小只读 Runtime Trace 面板。Trace 数据来源于 RuntimeCore 返回的 RuntimeStepResponse.traceEvents / diagnostics，并由 AppController 转换为 RuntimeTraceViewState；ContentView 仅展示 trace summary、event type、message、entry id，不直连 TraceRecorder / ExecutionEngine / DRLoader / ProviderRouter / Provider；Trace 不编辑、不持久化、不写回 DR；session_id、AvatarState、cancellation 语义未破坏；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
+- 2026-07-03 — Stage 7.1.15 RuntimeClock / Scheduler 存在性验证：完成 RuntimeClock / Scheduler 最小存在性验证。RuntimeCore 增加 runtimeTick no-op 公共入口，仅递增 tickCount 并返回脱敏 system.tick trace / diagnostics；OrchestrationKernel.runtimeTick 只透传 RuntimeCore 公共入口，AppController / ContentView 只读展示 clock / trace 状态；未启动后台循环、定时器或真实调度，未做多居民 / planner / tool selection，未接真实 Provider / Keychain / 网络；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
+- 2026-07-03 — Stage 7.1.16 resident_state 基础字段：完成最小 resident_state 只读运行态链路。RuntimeCore / ExecutionEngine 返回 residentState，AppController 透传为只读 AppResidentState，ContentView 仅展示 resident_id、session_id、lifecycle_status、presence、last_activity、last_updated_at、avatar_mode；resident_state 与 DR 分离，不写回 DR / fixture，不包含 secret / provider config / memory 内容，不做 LiveState / Memory / SessionStore / HostStateStore 持久化；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
+- 2026-07-03 — Stage 7.1.17 Debug Panel 生命状态面板：完成最小只读 Debug Panel。AppController 聚合 resident_state、session_id、avatar_state、trace summary、clock、cancellation 为 debugPanelState，ContentView 仅展示只读摘要，不直连 RuntimeCore 内部组件；面板不编辑、不持久化、不写回 DR，不显示 secret / token / base_url / provider config / key_ref / secret_ref 具体值；未做 LiveState / Memory / Trace / SessionStore / HostStateStore 持久化；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
+- 2026-07-03 — Stage 7.1-DOC-APPLE-HOST-RESERVE Apple 全生态 Host 预留文档调整：完成 Apple 全生态 Host 预留边界的文档级补充。明确 Stage 7 仍只开发 macOS 单机 Runtime Host，未来 iOS / iPadOS / visionOS / watchOS / tvOS 只能作为不同 Runtime Host 复用 RuntimeCore；RuntimeCore / brain 保持平台无关，平台差异通过 HostEnv / Adapter 注入；visual_state / resident_state 作为未来多平台身体表现统一输入；本次未改 Swift 代码、未改 Runtime API、未改 DR schema、未开发 iOS / visionOS / AR / watchOS / tvOS 功能。
+- 2026-07-03 — Stage 7.1.18 Stage 7 禁止项检查器：完成 Stage 7 文档级 forbidden checklist。新增 stage7_forbidden_checklist.md，用于后续 PR / Codex / Cursor 任务前后检查 Stage 范围、RuntimeCore 边界、Host 边界、DR / Runtime API、Provider / Secret、Memory / Trace / LiveState、Scheduler / Tick / 多居民、UI / 渲染等红线；纳入 Apple 全生态 Host 预留禁止项；本节点未改 Swift 代码、未改 Runtime API、未改 DR schema、未新增平台 target，未进入 Stage 8。
+- 2026-07-03 — Stage 7.1 Final Review：完成 Stage 7.1 最终审核。Fable 5 主审与 Codex 交叉复审均判定 PASS；7.1 已形成技术底座、平台抽象、编排薄壳、只读状态面板、RuntimeClock no-op、resident_state、trace、Debug Panel、Apple Host 文档预留与 Stage 7 forbidden checklist；未发现 BLOCKER / HIGH / MEDIUM 风险。已确认 RuntimeCore 平台无关，Aftelle 仅作为 macOS Runtime Host，DR / Runtime API / Provider / Secret / Memory / Trace / LiveState / Scheduler 边界未被破坏。允许进入 Stage 7.2 准备。已知 LOW 风险：project.pbxproj 中 AppController.swift / AppModels.swift 存在冗余 PBXBuildFile / PBXFileReference 记录，当前不影响 build，可作为进入 7.2 前的工程卫生项单独清理。
+- 2026-07-03 — Stage 7.1-CLEANUP-XCODEPROJ-WARNINGS：完成进入 Stage 7.2 前的工程卫生清理。复核 `project.pbxproj` 中 `AppController.swift` / `AppModels.swift` / `RuntimeConfig.swift` 的引用、source entry 与资源归属；当前工程文件中 `AppController.swift`、`AppModels.swift`、`RuntimeConfig.swift` 均为唯一有效引用，`PBXSourcesBuildPhase` 各仅 1 条有效 source entry，`RuntimeConfig.swift` 不在 Resources；完整 `xcodebuild` 通过，日志仅剩可接受环境 warning（multiple matching macOS destinations），未见 Swift deprecated API 或真实工程 warning；未改 Runtime API、未改 DR schema、未新增平台 target；architecture_guard、secret_guard、git diff --check 均通过。
 
 ---
 
 ## 🧊 Stage 7 Gate 冻结文档清单
 
 进入 Stage 7 的冻结文档(Gate 用):
+
 - Runtime 策略：`runtime_strategy.md`
 - Runtime API 契约：`runtime_api_contract.md`
 - DR v0.3 契约：`dr_contract_v0_3.md`
@@ -117,9 +161,21 @@ Stage 6.11 Freeze：Backend pytest 208 passed / Web typecheck passed / 6.7 Memor
 > 任何"想到但现在不该做"的,扔这里,别立刻去做
 
 - 双居民复杂互动 → Stage 7 后半段
+
 - 付费/登录/云端 → Stage 9
+
 - Android/Windows 移植 → 远期,大脑现成只重做身体
+
 - AR / Vision Pro 身体 → Stage 8
+
+- Stage 7：单机数字居民 Runtime 闭环（生命体诞生）
+  
+  Stage 8：iOS / iPadOS 随身化 + AR现实叠加 + 用户体系（进入现实世界）
+  
+  Stage 9：visionOS 空间居民（空间生命体）
+  
+  Stage 10：Apple 全平台统一生命体 + 结构化 Agent 系统（跨设备智能体）
+
 - [继续往下扔...]
 
 ---

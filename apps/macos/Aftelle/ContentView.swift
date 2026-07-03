@@ -1,138 +1,70 @@
 import SwiftUI
 
 struct ContentView: View {
-    private let runtimeCore = RuntimeCore()
-    @State private var statusMessage = "Runtime status: not loaded"
-    @State private var fixtureStatusMessage = "DR fixture: not loaded"
-    @State private var residentID = "resident_id: -"
-    @State private var displayName = "display_name: -"
-    @State private var diagnostics = ""
-    @State private var inputText = ""
-    @State private var responseText = ""
-    @State private var visualStateText = "visual_state: idle"
-    @State private var traceLines: [String] = []
-    @State private var particleState: ParticleState = .idle
+    @ObservedObject var controller: AppController
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "Aftelle Stage 7.0 Calibration"))
+        VStack(alignment: .leading, spacing: 16) {
+            Text(String(localized: "Aftelle Runtime Host"))
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            Text(statusMessage)
-            Text(fixtureStatusMessage)
-            Text(residentID)
-            Text(displayName)
+            Text(String(localized: "Minimal desktop shell for Stage 7."))
+                .foregroundStyle(.secondary)
 
-            particleStrip
+            shellStatusCard
+            debugPanel
 
-            TextField("Enter a message", text: $inputText)
-                .textFieldStyle(.roundedBorder)
-
-            Button(String(localized: "Send")) {
-                sendMessage()
-            }
-
-            if !responseText.isEmpty {
-                Text(responseText)
-            }
-
-            Text(visualStateText)
-
-            if !traceLines.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(traceLines, id: \.self) { line in
-                        Text(line)
-                    }
-                }
+            Text(String(localized: "RuntimeCore remains behind the shell boundary."))
                 .font(.caption)
-            }
-
-            if !diagnostics.isEmpty {
-                Text(diagnostics)
-                    .foregroundStyle(.secondary)
-            }
-
-            Button(String(localized: "Load DR")) {
-                loadFixture()
-            }
+                .foregroundStyle(.secondary)
         }
         .padding(32)
-        .frame(minWidth: 420, minHeight: 280)
-    }
-
-    private func loadFixture() {
-        guard let fixtureURL = Bundle.main.url(forResource: "Freezev03.calibration_fixture", withExtension: "json") else {
-            statusMessage = "Runtime status: DR load failed"
-            fixtureStatusMessage = "DR fixture: not loaded"
-            diagnostics = "Fixture not found"
-            return
-        }
-
-        guard let fixtureData = try? Data(contentsOf: fixtureURL) else {
-            statusMessage = "Runtime status: DR load failed"
-            fixtureStatusMessage = "DR fixture: not loaded"
-            diagnostics = "Fixture unreadable"
-            return
-        }
-
-        let result = runtimeCore.loadDR(from: fixtureData)
-        statusMessage = "Runtime status: \(result.statusMessage)"
-        fixtureStatusMessage = result.isLoaded ? "DR fixture: loaded" : "DR fixture: not loaded"
-        residentID = "resident_id: \(result.residentID.isEmpty ? "-" : result.residentID)"
-        displayName = "display_name: \(result.displayName.isEmpty ? "-" : result.displayName)"
-        diagnostics = result.diagnostics
-    }
-
-    private func sendMessage() {
-        let result = runtimeCore.step(inputText: inputText)
-        responseText = result.outputText
-        visualStateText = "visual_state: idle → thinking → speaking → idle"
-        particleState = .thinking
-        traceLines = result.traceEvents.map { "\($0.type.rawValue): \($0.message)" }
-        diagnostics = "diagnostics: \(result.diagnostics.providerMode), steps: \(result.diagnostics.runtimeStepCount)"
-        particleState = .speaking
-    }
-
-    private var particleStrip: some View {
-        HStack(spacing: 8) {
-            ForEach(0..<10, id: \.self) { index in
-                Circle()
-                    .fill(Color.accentColor.opacity(particleOpacity(for: index)))
-                    .frame(width: particleSize(for: index), height: particleSize(for: index))
-            }
+        .frame(minWidth: 420, minHeight: 220)
+        .task {
+            controller.start()
         }
     }
 
-    private func particleOpacity(for index: Int) -> Double {
-        switch particleState {
-        case .idle:
-            return 0.45
-        case .thinking:
-            return index.isMultiple(of: 2) ? 0.7 : 0.5
-        case .speaking:
-            return index.isMultiple(of: 3) ? 1.0 : 0.85
+    private var shellStatusCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(controller.runtimeStatus)
+            Text(controller.fixtureStatus)
+            Text(controller.residentID)
+            Text(controller.displayName)
+            Text("\(String(localized: "avatar_mode:")) \(controller.avatarState.mode)")
+            Text("\(String(localized: "avatar_presence:")) \(controller.avatarState.presence)")
+            Text("\(String(localized: "avatar_mood_hint:")) \(controller.avatarState.moodHint)")
+            Text("\(String(localized: "avatar_activity_hint:")) \(controller.avatarState.activityHint)")
+            Text("\(String(localized: "avatar_particle_hint:")) \(controller.avatarState.particleHint)")
+            Text("\(String(localized: "runtime_state:")) \(String(describing: controller.runtimeState))")
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 12))
     }
 
-    private func particleSize(for index: Int) -> CGFloat {
-        switch particleState {
-        case .idle:
-            return 8
-        case .thinking:
-            return index.isMultiple(of: 2) ? 10 : 9
-        case .speaking:
-            return index.isMultiple(of: 3) ? 12 : 9
+    private var debugPanel: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(String(localized: "Debug Panel"))
+                .fontWeight(.semibold)
+            Text("\(String(localized: "resident_id:")) \(controller.debugPanelState.residentID)")
+            Text("\(String(localized: "session_id:")) \(controller.debugPanelState.sessionID)")
+            Text("\(String(localized: "lifecycle_status:")) \(controller.debugPanelState.lifecycleStatus)")
+            Text("\(String(localized: "presence:")) \(controller.debugPanelState.presence)")
+            Text("\(String(localized: "avatar_mode:")) \(controller.debugPanelState.avatarMode)")
+            Text("\(String(localized: "last_activity_summary:")) \(controller.debugPanelState.lastActivitySummary)")
+            Text("\(String(localized: "trace_summary:")) \(controller.debugPanelState.traceSummary)")
+            Text("\(String(localized: "tick_count:")) \(controller.debugPanelState.tickCount)")
+            Text("\(String(localized: "clock_status:")) \(controller.debugPanelState.clockStatus)")
+            Text("\(String(localized: "cancellation_status:")) \(controller.debugPanelState.cancellationStatus)")
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 12))
     }
-}
-
-private enum ParticleState {
-    case idle
-    case thinking
-    case speaking
 }
 
 #Preview {
-    ContentView()
+    ContentView(controller: AppController())
 }
