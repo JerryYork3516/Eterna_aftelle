@@ -17,10 +17,22 @@ public enum AppRuntimeState: Equatable {
 public struct AppSessionState: Equatable {
     public var residentID: String
     public var sessionID: String
+    public var lastUserInput: String
+    public var lastResidentOutput: String
+    public var lastActivity: String
 
-    public init(residentID: String = "", sessionID: String = "") {
+    public init(
+        residentID: String = "",
+        sessionID: String = "",
+        lastUserInput: String = "",
+        lastResidentOutput: String = "",
+        lastActivity: String = ""
+    ) {
         self.residentID = residentID
         self.sessionID = sessionID
+        self.lastUserInput = lastUserInput
+        self.lastResidentOutput = lastResidentOutput
+        self.lastActivity = lastActivity
     }
 }
 
@@ -185,6 +197,13 @@ public final class OrchestrationKernel {
         prepare()
         let result = runtimeCore.loadDR(request: RuntimeLoadRequest(drData: fixtureData))
         lastDiagnostics = OrchestrationKernelDiagnostics(stateSummary: result.isLoaded ? "resident_loaded" : "resident_load_failed")
+        return result
+    }
+
+    public func restoreMostRecentSession() -> RuntimeSessionRestoreResult {
+        prepare()
+        let result = runtimeCore.restoreMostRecentSession()
+        lastDiagnostics = OrchestrationKernelDiagnostics(stateSummary: result.didRestore ? "session_restored" : "session_restore_empty")
         return result
     }
 

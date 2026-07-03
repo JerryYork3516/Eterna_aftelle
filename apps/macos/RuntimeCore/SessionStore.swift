@@ -31,6 +31,31 @@ public struct SessionStoreRecord: Codable, Equatable {
     }
 }
 
+public struct SessionDisplayCache: Equatable {
+    public var residentID: String
+    public var sessionID: String
+    public var lastUserInput: String
+    public var lastResidentOutput: String
+    public var lastActivity: String
+    public var updatedAt: Date
+
+    public init(
+        residentID: String,
+        sessionID: String,
+        lastUserInput: String,
+        lastResidentOutput: String,
+        lastActivity: String,
+        updatedAt: Date
+    ) {
+        self.residentID = residentID
+        self.sessionID = sessionID
+        self.lastUserInput = lastUserInput
+        self.lastResidentOutput = lastResidentOutput
+        self.lastActivity = lastActivity
+        self.updatedAt = updatedAt
+    }
+}
+
 public final class SessionStore {
     public static let schemaVersion = "0.1.0"
 
@@ -63,6 +88,24 @@ public final class SessionStore {
         guard fileManager.fileExists(atPath: url.path) else { return nil }
         let data = try Data(contentsOf: url)
         return try decoder.decode(SessionStoreRecord.self, from: data)
+    }
+
+    public func loadMostRecentRecord() throws -> SessionStoreRecord? {
+        guard fileManager.fileExists(atPath: baseURL.path) else { return nil }
+        let urls = try fileManager.contentsOfDirectory(at: baseURL, includingPropertiesForKeys: [.contentModificationDateKey], options: [.skipsHiddenFiles])
+        let sortedURLs = urls.sorted { lhs, rhs in
+            let lhsDate = (try? lhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+            let rhsDate = (try? rhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+            return lhsDate > rhsDate
+        }
+        for url in sortedURLs where url.pathExtension == "json" {
+            guard fileManager.fileExists(atPath: url.path) else { continue }
+            let data = try Data(contentsOf: url)
+            if let record = try? decoder.decode(SessionStoreRecord.self, from: data), record.schemaVersion == Self.schemaVersion {
+                return record
+            }
+        }
+        return nil
     }
 
     private func ensureDirectoryExists() throws {

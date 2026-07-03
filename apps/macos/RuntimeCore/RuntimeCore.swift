@@ -248,6 +248,31 @@ public struct RuntimeLoadResult {
     public let residentState: RuntimeResidentState?
 }
 
+public struct RuntimeSessionRestoreResult {
+    public let didRestore: Bool
+    public let residentID: String
+    public let sessionID: String
+    public let lastUserInput: String
+    public let lastResidentOutput: String
+    public let lastActivity: String
+
+    public init(
+        didRestore: Bool,
+        residentID: String = "",
+        sessionID: String = "",
+        lastUserInput: String = "",
+        lastResidentOutput: String = "",
+        lastActivity: String = ""
+    ) {
+        self.didRestore = didRestore
+        self.residentID = residentID
+        self.sessionID = sessionID
+        self.lastUserInput = lastUserInput
+        self.lastResidentOutput = lastResidentOutput
+        self.lastActivity = lastActivity
+    }
+}
+
 public final class RuntimeCore {
     private let drLoader: DRLoader
     private let executionEngine: ExecutionEngine
@@ -335,6 +360,27 @@ public final class RuntimeCore {
 
     public func loadDR(request: RuntimeLoadRequest) -> RuntimeLoadResult {
         loadDR(from: request.drData)
+    }
+
+    public func restoreMostRecentSession() -> RuntimeSessionRestoreResult {
+        guard let record = try? sessionStore.loadMostRecentRecord() else {
+            return RuntimeSessionRestoreResult(didRestore: false)
+        }
+        guard record.schemaVersion == SessionStore.schemaVersion else {
+            return RuntimeSessionRestoreResult(didRestore: false)
+        }
+        sessionContext = RuntimeSessionContext(
+            residentID: record.residentID,
+            sessionID: RuntimeSessionID(rawValue: record.sessionID)
+        )
+        return RuntimeSessionRestoreResult(
+            didRestore: true,
+            residentID: record.residentID,
+            sessionID: record.sessionID,
+            lastUserInput: record.lastUserInput,
+            lastResidentOutput: record.lastResidentOutput,
+            lastActivity: record.lastActivity
+        )
     }
 
     public func step(inputText: String) -> RuntimeStepResponse {

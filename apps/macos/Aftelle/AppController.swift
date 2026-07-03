@@ -32,6 +32,38 @@ final class AppController: ObservableObject {
     func start() {
         startupState = .loading
 
+        let restoreResult = orchestrationKernel.restoreMostRecentSession()
+        if restoreResult.didRestore {
+            loadedResidentID = restoreResult.residentID
+            loadedSessionID = restoreResult.sessionID
+            runtimeStatus = "Runtime status: session restored"
+            fixtureStatus = "DR fixture: loaded"
+            residentID = "resident_id: \(restoreResult.residentID.isEmpty ? "-" : restoreResult.residentID)"
+            displayName = "display_name: restored session"
+            sessionState = AppSessionState(
+                residentID: restoreResult.residentID,
+                sessionID: restoreResult.sessionID,
+                lastUserInput: restoreResult.lastUserInput,
+                lastResidentOutput: restoreResult.lastResidentOutput,
+                lastActivity: restoreResult.lastActivity
+            )
+            residentState = AppResidentState(
+                residentID: restoreResult.residentID,
+                sessionID: restoreResult.sessionID,
+                lifecycleStatus: "restored",
+                presence: "available",
+                lastActivitySummary: restoreResult.lastActivity,
+                lastUpdatedAt: ISO8601DateFormatter().string(from: Date()),
+                avatarMode: "idle"
+            )
+            avatarState = AppAvatarState(residentID: restoreResult.residentID, displayName: "restored session")
+            diagnostics = "Session restored"
+            traceState = RuntimeTraceViewState(summary: "Session restored", entries: [])
+            refreshDebugPanelState()
+            startupState = .loaded
+            return
+        }
+
         guard let fixtureURL = Bundle.main.url(forResource: "Freezev03.calibration_fixture", withExtension: "json") else {
             applyFailure(runtimeMessage: "Runtime status: DR load failed", diagnosticsMessage: "Fixture not found")
             return
@@ -51,7 +83,8 @@ final class AppController: ObservableObject {
         displayName = "display_name: \(result.displayName.isEmpty ? "-" : result.displayName)"
         sessionState = AppSessionState(
             residentID: result.residentID,
-            sessionID: loadedSessionID
+            sessionID: loadedSessionID,
+            lastActivity: result.residentState?.lastActivitySummary ?? ""
         )
         avatarState = result.avatarState.map {
             AppAvatarState(
