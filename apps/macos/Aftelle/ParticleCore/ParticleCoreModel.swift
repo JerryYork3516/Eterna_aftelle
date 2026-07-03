@@ -44,11 +44,11 @@ struct ParticleCoreModel {
             let angle = Float(generator.nextUnit() * .pi * 2)
             let ring = Float(pow(generator.nextUnit(), 0.72))
             let coreBias = Float(generator.nextUnit())
-            let radial = 0.18 + 0.82 * ring
+            let radial = 0.06 + 0.58 * ring
             let irregular = 0.88 + 0.16 * sin(Float(index) * 0.17 + radial * 8.0)
             let x = cos(angle) * radial * irregular
             let y = sin(angle) * radial * (0.86 + 0.14 * cos(angle * 3.0 + radial * 6.0))
-            let edgeBias = max(0.0, min(1.0, (radial - 0.35) / 0.65))
+            let edgeBias = max(0.0, min(1.0, (radial - 0.16) / 0.48))
             let brightness = 0.42 + 0.38 * edgeBias + 0.12 * Float(generator.nextUnit())
             let density = 0.28 + 0.72 * (1.0 - abs(radial - 0.68))
             let velocityMagnitude = (0.0025 + 0.006 * edgeBias) * (0.5 + Float(generator.nextUnit()))
@@ -67,5 +67,23 @@ struct ParticleCoreModel {
         }
 
         self.particles = values
+    }
+
+    func clipBounds(aspect: Float, breathing: Float) -> (minX: Float, minY: Float, maxX: Float, maxY: Float) {
+        var minX = Float.greatestFiniteMagnitude
+        var minY = Float.greatestFiniteMagnitude
+        var maxX = -Float.greatestFiniteMagnitude
+        var maxY = -Float.greatestFiniteMagnitude
+
+        for particle in particles {
+            let clipX = particle.position.x * breathing / max(aspect, 1)
+            let clipY = particle.position.y * breathing
+            minX = min(minX, clipX)
+            minY = min(minY, clipY)
+            maxX = max(maxX, clipX)
+            maxY = max(maxY, clipY)
+        }
+
+        return (minX, minY, maxX, maxY)
     }
 }

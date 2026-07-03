@@ -12,6 +12,7 @@
 		A070C0000000000000000101 /* ParticleCoreModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000102 /* ParticleCoreModel.swift */; };
 		A070C0000000000000000103 /* ParticleCoreRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000104 /* ParticleCoreRenderer.swift */; };
 		A070C0000000000000000105 /* ParticleCoreMetalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000106 /* ParticleCoreMetalView.swift */; };
+		A070C0000000000000000108 /* ParticleCoreShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000109 /* ParticleCoreShaders.metal */; };
 		A070C0000000000000000026 /* AppModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000027 /* AppModels.swift */; };
 		A070C0000000000000000028 /* AppController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000029 /* AppController.swift */; };
 		A070C0000000000000000013 /* RuntimeCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000014 /* RuntimeCore.swift */; };
@@ -33,6 +34,7 @@
 		A070C0000000000000000102 /* ParticleCoreModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleCoreModel.swift; sourceTree = "<group>"; };
 		A070C0000000000000000104 /* ParticleCoreRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleCoreRenderer.swift; sourceTree = "<group>"; };
 		A070C0000000000000000106 /* ParticleCoreMetalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleCoreMetalView.swift; sourceTree = "<group>"; };
+		A070C0000000000000000109 /* ParticleCoreShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = ParticleCoreShaders.metal; sourceTree = "<group>"; };
 		A070C0000000000000000027 /* AppModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModels.swift; sourceTree = "<group>"; };
 		A070C0000000000000000029 /* AppController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppController.swift; sourceTree = "<group>"; };
 		A070C0000000000000000006 /* Aftelle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Aftelle.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -78,6 +80,7 @@
 				A070C0000000000000000102 /* ParticleCoreModel.swift */,
 				A070C0000000000000000104 /* ParticleCoreRenderer.swift */,
 				A070C0000000000000000106 /* ParticleCoreMetalView.swift */,
+				A070C0000000000000000109 /* ParticleCoreShaders.metal */,
 			);
 			path = ParticleCore;
 			sourceTree = "<group>";
@@ -195,6 +198,7 @@
 				A070C0000000000000000101 /* ParticleCoreModel.swift in Sources */,
 				A070C0000000000000000103 /* ParticleCoreRenderer.swift in Sources */,
 				A070C0000000000000000105 /* ParticleCoreMetalView.swift in Sources */,
+				A070C0000000000000000108 /* ParticleCoreShaders.metal in Sources */,
 				A070C0000000000000000013 /* RuntimeCore.swift in Sources */,
 				A070C0000000000000000040 /* MemoryController.swift in Sources */,
 				A070C0000000000000000015 /* DRLoader.swift in Sources */,

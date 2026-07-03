@@ -122,6 +122,7 @@ Stage 6.11 Freeze：Backend pytest 208 passed / Web typecheck passed / 6.7 Memor
 > 格式:**问题 — 原因 — 怎么修的**
 
 - [示范] DR 加载报错 — 原因是 fixture 缺了 schema_version 字段 — 给 fixture 补上字段后正常
+- Stage 7.3.1 particle_core 黑窗口 — 原因是 `ParticleCoreShaders.metal` 未加入 Aftelle target,运行时 default library 找不到 shader,renderer 初始化失败且 delegate 未设置;同时缺少链路日志定位 — 将 `.metal` 加入 Sources,补 makeNSView / shader / pipeline / draw 一次性日志,验证 xcodebuild、drawPrimitives 和前台截图通过
 
 ---
 

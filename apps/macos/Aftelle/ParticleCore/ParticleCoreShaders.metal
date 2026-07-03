@@ -48,9 +48,8 @@ vertex ParticleVertexOut particleVertex(const device float2 *positions [[buffer(
 }
 
 fragment half4 particleFragment(ParticleVertexOut in [[stage_in]]) {
-    float alpha = clamp(in.brightness * (0.66 + in.density * 0.52), 0.24, 1.0);
     half3 base = half3(0.96, 0.97, 0.98);
     half3 tint = half3(0.78, 0.81, 0.84);
     half3 color = mix(tint, base, half(in.density));
-    return half4(color, half(alpha));
+    return half4(color, 1.0h);
 }
