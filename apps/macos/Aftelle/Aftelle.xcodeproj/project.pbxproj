@@ -13,8 +13,6 @@
 		A070C0000000000000000028 /* AppController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000029 /* AppController.swift */; };
 		A070C0000000000000000013 /* RuntimeCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000014 /* RuntimeCore.swift */; };
 		A070C0000000000000000015 /* DRLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000016 /* DRLoader.swift */; };
-		A070C000000000000000002A /* AppController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C000000000000000002B /* AppController.swift */; };
-		A070C000000000000000002C /* AppModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C000000000000000002D /* AppModels.swift */; };
 		A070C0000000000000000018 /* ExecutionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000019 /* ExecutionEngine.swift */; };
 		A070C000000000000000001A /* ProviderRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C000000000000000001B /* ProviderRouter.swift */; };
 		A070C000000000000000001C /* TraceRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C000000000000000001D /* TraceRecorder.swift */; };
@@ -32,8 +30,6 @@
 		A070C0000000000000000006 /* Aftelle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Aftelle.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A070C0000000000000000014 /* RuntimeCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/RuntimeCore.swift; sourceTree = SOURCE_ROOT; };
 		A070C0000000000000000016 /* DRLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/DRLoader.swift; sourceTree = SOURCE_ROOT; };
-		A070C000000000000000002B /* AppController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppController.swift; sourceTree = "<group>"; };
-		A070C000000000000000002D /* AppModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModels.swift; sourceTree = "<group>"; };
 		A070C0000000000000000019 /* ExecutionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/ExecutionEngine.swift; sourceTree = SOURCE_ROOT; };
 		A070C000000000000000001B /* ProviderRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/ProviderRouter.swift; sourceTree = SOURCE_ROOT; };
 		A070C000000000000000001D /* TraceRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/TraceRecorder.swift; sourceTree = SOURCE_ROOT; };
@@ -59,8 +55,6 @@
 			children = (
 				A070C0000000000000000002 /* AftelleApp.swift */,
 				A070C0000000000000000005 /* ContentView.swift */,
-				A070C000000000000000002B /* AppController.swift */,
-				A070C000000000000000002D /* AppModels.swift */,
 				A070C0000000000000000022 /* Fixtures */,
 				A070C0000000000000000017 /* RuntimeCore */,
 				A070C0000000000000000009 /* Products */,
@@ -173,8 +167,8 @@
 			files = (
 				A070C0000000000000000001 /* AftelleApp.swift in Sources */,
 				A070C0000000000000000003 /* ContentView.swift in Sources */,
-				A070C000000000000000002A /* AppController.swift in Sources */,
-				A070C000000000000000002C /* AppModels.swift in Sources */,
+				A070C0000000000000000028 /* AppController.swift in Sources */,
+				A070C0000000000000000026 /* AppModels.swift in Sources */,
 				A070C0000000000000000013 /* RuntimeCore.swift in Sources */,
 				A070C0000000000000000015 /* DRLoader.swift in Sources */,
 				A070C0000000000000000018 /* ExecutionEngine.swift in Sources */,
