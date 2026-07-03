@@ -83,6 +83,7 @@ public final class OrchestrationKernel {
 
     public func step(residentID: String, inputText: String) -> RuntimeStepResponse {
         prepare()
+        lastDiagnostics = OrchestrationKernelDiagnostics(stateSummary: "passthrough_step")
         return runtimeCore.step(request: RuntimeStepRequest(residentID: residentID, inputText: inputText))
     }
 
