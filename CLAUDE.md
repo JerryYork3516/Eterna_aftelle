@@ -27,6 +27,10 @@ AGENTS.md 里有你必须遵守的全部核心规则,包括:
 
 > 红线 1 对你尤其重要:`brain/`(RuntimeCore) 里**禁止** import Metal / AppKit / SwiftUI / Keychain SDK / SQLite 驱动 —— 一切外部访问走 HostEnv。这是你最容易踩的线,写之前自检。
 
+### Apple Host 预留边界
+
+Stage 7 只开发 macOS 单机 Runtime Host。看到 Apple ecosystem / iOS / iPadOS / visionOS / watchOS / tvOS / AR / RealityKit 等关键词时,只把它们当作文档级 Host 预留,不得自动扩展成 Stage 8、多平台 target、DR schema、Runtime API 或功能代码开发。未来 Apple 平台只能作为 Host 复用 RuntimeCore,不能在 Host 内复制 Scheduler / Memory Kernel / ProviderRouter / DR compiler。
+
 ---
 
 ## 三、和 Codex 的协作边界(防止互相覆盖)

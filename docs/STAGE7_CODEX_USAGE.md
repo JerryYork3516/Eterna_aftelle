@@ -137,3 +137,14 @@ Use this file to record each Codex task before closing the loop.
 - Verification: `xcodebuild -project apps/macos/Aftelle/Aftelle.xcodeproj -scheme Aftelle -destination 'platform=macOS' -derivedDataPath /tmp/aftelle-7-1-2-derived build` passed; `tools/architecture_guard/check.sh` ok; `tools/secret_guard/check.sh` ok.
 - Token note: keep shell thin; do not add startup flow or provider wiring.
 - Follow-up: 7.1.3 startup flow only when explicitly started.
+
+## 7.1-DOC-APPLE-HOST-RESERVE
+
+- Stage: 7.1-DOC-APPLE-HOST-RESERVE
+- Date: 2026-07-03
+- Task: Add document-only Apple ecosystem Host reserve boundary.
+- Read scope: `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/*`, `README.md`, `DEVLOG.md`, `docs/02_architecture.md`, `docs/03_dev_plan.md`, `docs/04_code_standards.md`, `docs/aftelle_runtime_boundary.md`, `docs/stage7_entry_gate.md`, `docs/runtime_strategy.md`, this usage log.
+- Changed files: documentation only; no Swift, project, DR schema, Runtime API, provider, token, or fixture files.
+- Verification: `git diff --check`; architecture guard; secret guard; documentation grep for sensitive terms.
+- Token note: keep this as Stage 7.1 doc reserve, not Stage 8 or multiplatform feature work.
+- Follow-up: 7.1.18 checklist should include these Host reserve prohibitions.

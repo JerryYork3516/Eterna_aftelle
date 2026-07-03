@@ -12,6 +12,7 @@
 - **职责**:加载并做契约级浅校验 → 跑 Runtime 对话 → 缓存会话/展示状态 → 用粒子表现居民的情绪与生命。
 - **上游**:Studio(另一个项目)产出居民文件,Aftelle 只负责运行,**不改居民文件**。
 - **当前阶段**:Stage 7 —— 本地单机展示版,目标是一条可信的最小闭环,不是大而全。
+- **Apple 全生态口径**:Stage 7 只开发 macOS 单机 Runtime Host;未来 iOS / iPadOS / visionOS / watchOS / tvOS 只能作为不同 Host 复用 RuntimeCore,当前只做文档预留。
 
 **Stage 7 的命脉链路(优先打通这一条):**
 
@@ -114,6 +115,7 @@ shared-protocol/  → 共享定义。改动需双方同步。
 - DR 加载时 UI/DR Loader 只做契约级浅校验(版本/大小/安全 flag/必要字段/未知高危字段),**拒绝加载未知高危字段**;完整 DR schema 校验由 RuntimeCore 执行。
 - Stage 7 live-state 相关功能先过 `docs/feature_livestate.md` 禁止项检查:默认不改 DR schema;Runtime API 只做 additive 扩展;Aftelle 只读/展示/播放/缓存展示快照,不拥有 Provider、Scheduler、Memory Kernel。
 - 崩溃日志、权限边界只预留接口,Stage 7 不实现完整逻辑。
+- 出现 Apple ecosystem / iOS / iPadOS / visionOS / watchOS / tvOS / AR / RealityKit 等关键词时,默认只按 Stage 7 文档预留处理;不得因此新增平台 target、Runtime API 字段、DR schema 字段或多平台功能代码。确需开发时先停下确认阶段边界。
 
 ---
 

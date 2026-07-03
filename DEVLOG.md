@@ -3,18 +3,18 @@
 > 这份是给我自己的,不是给 AI 自动读的。
 > 三个作用:① 提醒我做到哪、为什么这么定;② 每次开 GPT/Dify/新对话时,把"当前状态"那段粘过去当背景;③ 防止我忘了当初的决定又推翻重来。
 > **规则:每次做完一件事、或讨论出一个结论、或改完一个 bug,就来记一笔。不用长,几行即可。**
-> 
+>
 > **boundary 基线 SHA-256(改动即报警)**：`275b95889f55646e3ae99ceb2a12cc0e974fd5338aa23c7311cccff0d2d041a6`（v7 更新:G0 改 A,仅 clock/tick 归属改为 RuntimeCore,4 条 Invariants 不变;旧 v6 基线 f043f4b5…）
 
 ---
 
 ## 📌 当前状态(每次更新,粘给 AI 时就粘这一段)
 
-- **现在在做**:Stage 7.1.14 —— Runtime Trace 面板 PASS candidate
-- **上一步刚完成**:Stage 7.1.14 轻量架构审核,正在修复 DEVLOG 当前状态与尾随空白
+- **现在在做**:Stage 7.1-DOC-APPLE-HOST-RESERVE —— Apple 全生态 Host 预留文档调整 completed
+- **上一步刚完成**:Stage 7.1.17 Debug Panel 生命状态面板
 - **当前卡在**:无
-- **下一步**:7.1.14 REWORK 验收通过后,等待确认再进 7.1.15
-- **额度情况**:只修 DEVLOG,不接真实 Provider / Keychain / scheduler
+- **下一步**:等待确认再进 7.1.18 禁止项检查器
+- **额度情况**:纯文档预留,不改 Swift / Runtime API / DR schema / 平台 target
 
 > - **现在在做**:Stage 7.1.6 —— Runtime Config 本地配置边界
 > - **上一步刚完成**:Stage 7.1.5 DR Loader 读取 / 浅校验 / 加载边界已正规化
@@ -117,6 +117,7 @@
 - 2026-07-03 — Stage 7.1.15 RuntimeClock / Scheduler 存在性验证：完成 RuntimeClock / Scheduler 最小存在性验证。RuntimeCore 增加 runtimeTick no-op 公共入口，仅递增 tickCount 并返回脱敏 system.tick trace / diagnostics；OrchestrationKernel.runtimeTick 只透传 RuntimeCore 公共入口，AppController / ContentView 只读展示 clock / trace 状态；未启动后台循环、定时器或真实调度，未做多居民 / planner / tool selection，未接真实 Provider / Keychain / 网络；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
 - 2026-07-03 — Stage 7.1.16 resident_state 基础字段：完成最小 resident_state 只读运行态链路。RuntimeCore / ExecutionEngine 返回 residentState，AppController 透传为只读 AppResidentState，ContentView 仅展示 resident_id、session_id、lifecycle_status、presence、last_activity、last_updated_at、avatar_mode；resident_state 与 DR 分离，不写回 DR / fixture，不包含 secret / provider config / memory 内容，不做 LiveState / Memory / SessionStore / HostStateStore 持久化；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
 - 2026-07-03 — Stage 7.1.17 Debug Panel 生命状态面板：完成最小只读 Debug Panel。AppController 聚合 resident_state、session_id、avatar_state、trace summary、clock、cancellation 为 debugPanelState，ContentView 仅展示只读摘要，不直连 RuntimeCore 内部组件；面板不编辑、不持久化、不写回 DR，不显示 secret / token / base_url / provider config / key_ref / secret_ref 具体值；未做 LiveState / Memory / Trace / SessionStore / HostStateStore 持久化；xcodebuild、architecture_guard、secret_guard、git diff --check 均通过。
+- 2026-07-03 — Stage 7.1-DOC-APPLE-HOST-RESERVE Apple 全生态 Host 预留文档调整：完成 Apple 全生态 Host 预留边界的文档级补充。明确 Stage 7 仍只开发 macOS 单机 Runtime Host，未来 iOS / iPadOS / visionOS / watchOS / tvOS 只能作为不同 Runtime Host 复用 RuntimeCore；RuntimeCore / brain 保持平台无关，平台差异通过 HostEnv / Adapter 注入；visual_state / resident_state 作为未来多平台身体表现统一输入；本次未改 Swift 代码、未改 Runtime API、未改 DR schema、未开发 iOS / visionOS / AR / watchOS / tvOS 功能。
 
 ---
 
@@ -165,11 +166,11 @@ Stage 6.11 Freeze：Backend pytest 208 passed / Web typecheck passed / 6.7 Memor
 - AR / Vision Pro 身体 → Stage 8
 
 - Stage 7：单机数字居民 Runtime 闭环（生命体诞生）
-  
+
   Stage 8：iOS / iPadOS 随身化 + AR现实叠加 + 用户体系（进入现实世界）
-  
+
   Stage 9：visionOS 空间居民（空间生命体）
-  
+
   Stage 10：Apple 全平台统一生命体 + 结构化 Agent 系统（跨设备智能体）
 
 - [继续往下扔...]

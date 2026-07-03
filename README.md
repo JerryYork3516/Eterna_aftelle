@@ -14,6 +14,8 @@ Aftelle Desktop 是 `.digital_resident` 数字居民文件的 macOS 运行容器
 Stage 7 MVP = 7.1–7.5 单居民闭环。7.6–7.11 为 Stage 7 Extended Demo,每段单独 Gate。
 RuntimeCore 拥有 runtime clock/state/tick;UI 只注入外部事件,不模拟 tick、不拥有调度时间。
 
+Apple 全生态只做 Host 预留:Stage 7 当前交付目标仍是 macOS Runtime Host。未来 iOS / iPadOS / visionOS / watchOS / tvOS 若进入规划,也只能作为不同 Host 复用 RuntimeCore,不改变 DR schema 或 Runtime API。
+
 ## 怎么运行
 
 Stage 7 的运行是一个自包含的 macOS App:RuntimeCore 内置于 App,无需单独启动外部进程。
@@ -86,3 +88,4 @@ shared-protocol/
 - `.digital_resident` 只读;运行状态、记忆、Trace 不写回 DR 文件。
 - API Key / Provider secret / 真实 DR 文件不得进 Git、日志、Trace、Memory 或导出文件。
 - 留缝协议只标 reserved,不要提前定义字段。
+- 不因 Apple 全生态、AR、visionOS 等关键词提前开发多平台 target;Stage 7 只保留 Host 边界文档。
