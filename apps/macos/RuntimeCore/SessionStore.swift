@@ -51,6 +51,11 @@ public struct SessionDisplayCache: Codable, Equatable {
     public var lastUserInput: String
     public var lastResidentOutput: String
     public var lastActivity: String
+    public var avatarMode: String
+    public var avatarPresence: String
+    public var avatarMoodHint: String
+    public var avatarActivityHint: String
+    public var avatarParticleHint: String
     public var shutdownState: SessionShutdownState
     public var recoveryRequired: Bool
     public var recoveredAt: Date?
@@ -62,6 +67,11 @@ public struct SessionDisplayCache: Codable, Equatable {
         lastUserInput: String,
         lastResidentOutput: String,
         lastActivity: String,
+        avatarMode: String = "idle",
+        avatarPresence: String = "unknown",
+        avatarMoodHint: String = "",
+        avatarActivityHint: String = "",
+        avatarParticleHint: String = "",
         shutdownState: SessionShutdownState = .unclean,
         recoveryRequired: Bool = false,
         recoveredAt: Date? = nil,
@@ -72,6 +82,11 @@ public struct SessionDisplayCache: Codable, Equatable {
         self.lastUserInput = lastUserInput
         self.lastResidentOutput = lastResidentOutput
         self.lastActivity = lastActivity
+        self.avatarMode = avatarMode
+        self.avatarPresence = avatarPresence
+        self.avatarMoodHint = avatarMoodHint
+        self.avatarActivityHint = avatarActivityHint
+        self.avatarParticleHint = avatarParticleHint
         self.shutdownState = shutdownState
         self.recoveryRequired = recoveryRequired
         self.recoveredAt = recoveredAt

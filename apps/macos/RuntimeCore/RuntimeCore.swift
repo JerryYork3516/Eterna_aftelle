@@ -267,6 +267,11 @@ public struct RuntimeSessionRestoreResult {
     public let lastUserInput: String
     public let lastResidentOutput: String
     public let lastActivity: String
+    public let avatarMode: String
+    public let avatarPresence: String
+    public let avatarMoodHint: String
+    public let avatarActivityHint: String
+    public let avatarParticleHint: String
     public let shutdownState: SessionShutdownState
     public let recoveryRequired: Bool
     public let recoveredAt: Date?
@@ -279,6 +284,11 @@ public struct RuntimeSessionRestoreResult {
         lastUserInput: String = "",
         lastResidentOutput: String = "",
         lastActivity: String = "",
+        avatarMode: String = "idle",
+        avatarPresence: String = "unknown",
+        avatarMoodHint: String = "",
+        avatarActivityHint: String = "",
+        avatarParticleHint: String = "",
         shutdownState: SessionShutdownState = .unclean,
         recoveryRequired: Bool = false,
         recoveredAt: Date? = nil,
@@ -290,6 +300,11 @@ public struct RuntimeSessionRestoreResult {
         self.lastUserInput = lastUserInput
         self.lastResidentOutput = lastResidentOutput
         self.lastActivity = lastActivity
+        self.avatarMode = avatarMode
+        self.avatarPresence = avatarPresence
+        self.avatarMoodHint = avatarMoodHint
+        self.avatarActivityHint = avatarActivityHint
+        self.avatarParticleHint = avatarParticleHint
         self.shutdownState = shutdownState
         self.recoveryRequired = recoveryRequired
         self.recoveredAt = recoveredAt
@@ -394,6 +409,7 @@ public final class RuntimeCore {
         guard let record = try? sessionStore.loadMostRecentRecord() else {
             return RuntimeSessionRestoreResult(didRestore: false)
         }
+        let displayCache = try? sessionStore.loadDisplayCache()
         guard record.schemaVersion == SessionStore.schemaVersion else {
             return RuntimeSessionRestoreResult(didRestore: false)
         }
@@ -425,6 +441,11 @@ public final class RuntimeCore {
             lastUserInput: record.lastUserInput,
             lastResidentOutput: record.lastResidentOutput,
             lastActivity: record.lastActivity,
+            avatarMode: "idle",
+            avatarPresence: "unknown",
+            avatarMoodHint: "",
+            avatarActivityHint: "",
+            avatarParticleHint: "",
             shutdownState: record.shutdownState,
             recoveryRequired: recoveryRequired,
             recoveredAt: recoveredAt,
@@ -437,6 +458,11 @@ public final class RuntimeCore {
             lastUserInput: record.lastUserInput,
             lastResidentOutput: record.lastResidentOutput,
             lastActivity: record.lastActivity,
+            avatarMode: displayCache?.avatarMode ?? "idle",
+            avatarPresence: displayCache?.avatarPresence ?? "unknown",
+            avatarMoodHint: displayCache?.avatarMoodHint ?? "",
+            avatarActivityHint: displayCache?.avatarActivityHint ?? "",
+            avatarParticleHint: displayCache?.avatarParticleHint ?? "",
             shutdownState: record.shutdownState,
             recoveryRequired: recoveryRequired,
             recoveredAt: recoveredAt,
@@ -510,6 +536,11 @@ public final class RuntimeCore {
             lastUserInput: lastUserInput,
             lastResidentOutput: lastResidentOutput,
             lastActivity: lastActivity,
+            avatarMode: "idle",
+            avatarPresence: "unknown",
+            avatarMoodHint: "",
+            avatarActivityHint: "",
+            avatarParticleHint: "",
             shutdownState: shutdownState,
             recoveryRequired: recoveryRequired,
             recoveredAt: recoveredAt,

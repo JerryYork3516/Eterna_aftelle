@@ -69,7 +69,15 @@ final class AppController: ObservableObject {
                 lastUpdatedAt: ISO8601DateFormatter().string(from: Date()),
                 avatarMode: "idle"
             )
-            avatarState = AppAvatarState(residentID: restoreResult.residentID, displayName: "restored session")
+            avatarState = AppAvatarState(
+                residentID: restoreResult.residentID,
+                displayName: "restored session",
+                mode: restoreResult.avatarMode,
+                presence: restoreResult.avatarPresence,
+                moodHint: restoreResult.avatarMoodHint,
+                activityHint: restoreResult.avatarActivityHint,
+                particleHint: restoreResult.avatarParticleHint
+            )
             diagnostics = restoreResult.recoveryRequired ? "Session restored after unclean shutdown" : "Session restored"
             traceState = RuntimeTraceViewState(summary: diagnostics, entries: [])
             refreshDebugPanelState(shutdownState: restoreResult.shutdownState.rawValue, recoveryRequired: restoreResult.recoveryRequired, recoveredAt: restoreResult.recoveredAt.map { ISO8601DateFormatter().string(from: $0) } ?? "")
