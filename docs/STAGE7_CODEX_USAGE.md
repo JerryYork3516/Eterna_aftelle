@@ -13,6 +13,21 @@ Use this file to record each Codex task before closing the loop.
 - Token note:
 - Follow-up:
 
+## Apple Official Reference Rule
+
+When a task touches SwiftUI, Metal, FileManager, Keychain, HIG, or Accessibility, read only the current-node minimum Apple official reference listed in `docs/apple_official_reference_stage7.md`. Do not system-learn iOS / visionOS / ARKit / RealityKit, do not add platform targets, and do not treat Apple docs as a new Aftelle architecture source.
+
+## 7.3-apple-official-reference-doc
+
+- Stage: 7.3
+- Date: 2026-07-03
+- Task: Add document-only Stage 7 Apple official reference rule.
+- Read scope: `AGENTS.md`, `CLAUDE.md`, `docs/STAGE7_CODEX_USAGE.md`, targeted search for existing Apple reference mentions.
+- Changed files: `docs/apple_official_reference_stage7.md`, `AGENTS.md`, `CLAUDE.md`, this usage log.
+- Verification: `git diff --check`; `tools/architecture_guard/check.sh`; `tools/secret_guard/check.sh`.
+- Token note: only use Apple docs as minimum implementation references; do not expand Stage 7 or copy Apple documentation text.
+- Follow-up: use this rule when Stage 7 tasks touch SwiftUI / Metal / FileManager / Keychain / HIG / Accessibility.
+
 ## 7.3-abstract-bust-doc-plan
 
 - Stage: 7.3
