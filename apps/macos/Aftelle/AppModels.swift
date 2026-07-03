@@ -52,6 +52,28 @@ public struct AppAvatarState: Equatable {
     }
 }
 
+public struct RuntimeTraceEntryViewState: Equatable, Identifiable {
+    public var id: String
+    public var type: String
+    public var message: String
+
+    public init(id: String, type: String, message: String) {
+        self.id = id
+        self.type = type
+        self.message = message
+    }
+}
+
+public struct RuntimeTraceViewState: Equatable {
+    public var summary: String
+    public var entries: [RuntimeTraceEntryViewState]
+
+    public init(summary: String = "", entries: [RuntimeTraceEntryViewState] = []) {
+        self.summary = summary
+        self.entries = entries
+    }
+}
+
 public struct OrchestrationKernelDiagnostics: Equatable {
     public var stateSummary: String
 

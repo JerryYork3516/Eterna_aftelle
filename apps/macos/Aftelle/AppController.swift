@@ -11,6 +11,7 @@ final class AppController: ObservableObject {
     @Published private(set) var diagnostics = ""
     @Published private(set) var sessionState = AppSessionState()
     @Published private(set) var avatarState = AppAvatarState()
+    @Published private(set) var traceState = RuntimeTraceViewState()
     @Published private(set) var runtimeState: AppRuntimeState = .idle
 
     private let orchestrationKernel: OrchestrationKernel
@@ -59,12 +60,19 @@ final class AppController: ObservableObject {
             )
         } ?? AppAvatarState(residentID: result.residentID, displayName: result.displayName)
         diagnostics = result.diagnostics
+        traceState = RuntimeTraceViewState(summary: result.diagnostics, entries: [])
         startupState = result.isLoaded ? .loaded : .failed
     }
 
     func step(inputText: String) -> RuntimeStepResponse {
         let response = orchestrationKernel.step(residentID: loadedResidentID, inputText: inputText)
         runtimeState = response.cancellationState.isCancelled ? (response.cancellationState.reason == .interrupted ? .interrupted : .cancelled) : .running
+        traceState = RuntimeTraceViewState(
+            summary: response.diagnostics.cancellationState,
+            entries: response.traceEvents.enumerated().map {
+                RuntimeTraceEntryViewState(id: "\($0.offset)", type: $0.element.type.rawValue, message: $0.element.message)
+            }
+        )
         return response
     }
 
@@ -86,6 +94,7 @@ final class AppController: ObservableObject {
         displayName = "display_name: -"
         sessionState = AppSessionState()
         avatarState = AppAvatarState()
+        traceState = RuntimeTraceViewState(summary: diagnosticsMessage, entries: [])
         runtimeState = .idle
         diagnostics = diagnosticsMessage
         startupState = .failed

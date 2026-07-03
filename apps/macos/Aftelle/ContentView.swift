@@ -38,6 +38,8 @@ struct ContentView: View {
             Text("\(String(localized: "avatar_particle_hint:")) \(controller.avatarState.particleHint)")
             Text("\(String(localized: "runtime_state:")) \(String(describing: controller.runtimeState))")
 
+            tracePanel
+
             if !controller.diagnostics.isEmpty {
                 Text(controller.diagnostics)
                     .foregroundStyle(.secondary)
@@ -46,6 +48,25 @@ struct ContentView: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var tracePanel: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "Runtime Trace"))
+                .fontWeight(.semibold)
+            Text("\(String(localized: "trace_summary:")) \(controller.traceState.summary)")
+                .foregroundStyle(.secondary)
+
+            ForEach(controller.traceState.entries) { entry in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(entry.type): \(entry.message)")
+                    Text(entry.id)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(.top, 8)
     }
 }
 
