@@ -294,6 +294,7 @@ public final class RuntimeCore {
     private let providerRouter: ProviderRouter
     private let hostEnv: HostEnv
     private let sessionStore: SessionStore
+    private let memoryController: MemoryController
     private var cancellationState = RuntimeCancellationState.none
     private var sessionContext: RuntimeSessionContext?
     private var clockState = RuntimeClockState()
@@ -303,13 +304,15 @@ public final class RuntimeCore {
         executionEngine: ExecutionEngine = ExecutionEngine(),
         providerRouter: ProviderRouter = ProviderRouter(),
         hostEnv: HostEnv = DefaultHostEnv(),
-        sessionStore: SessionStore = SessionStore()
+        sessionStore: SessionStore = SessionStore(),
+        memoryController: MemoryController = MemoryController()
     ) {
         self.drLoader = drLoader
         self.executionEngine = executionEngine
         self.providerRouter = providerRouter
         self.hostEnv = hostEnv
         self.sessionStore = sessionStore
+        self.memoryController = memoryController
     }
 
     public func loadDR(from data: Data) -> RuntimeLoadResult {
@@ -437,6 +440,14 @@ public final class RuntimeCore {
             dialogueEntries = Array(dialogueEntries.suffix(20))
         }
         try? sessionStore.saveDialogueEntries(dialogueEntries, for: context.sessionID.rawValue)
+    }
+
+    public func readMemoryValue(for key: String, residentID: String) -> String? {
+        memoryController.loadValue(for: key, residentID: residentID)
+    }
+
+    public func saveMemoryValue(_ value: String, for key: String, residentID: String) {
+        memoryController.saveValue(value, for: key, residentID: residentID)
     }
 
     public func cancelCurrentStep() {
