@@ -41,34 +41,23 @@ struct ParticleCoreModel {
 
         for index in 0..<count {
             let golden = 0.6180339887498949
-            let u = (Double(index) * golden + generator.nextUnit() * 0.030).truncatingRemainder(dividingBy: 1)
+            let u = (Double(index) * golden + generator.nextUnit() * 0.022).truncatingRemainder(dividingBy: 1)
+            let v = (Double(index) + 0.5) / Double(count)
             let theta = Float(u * .pi * 2)
-            let radialPick = generator.nextUnit()
-            let radialJitter = Float(generator.nextUnit())
-            let radius: Float
-            if radialPick < 0.76 {
-                radius = 0.56 + 0.42 * pow(radialJitter, 0.68)
-            } else if radialPick < 0.94 {
-                radius = 0.34 + 0.28 * radialJitter
-            } else {
-                radius = 0.18 + 0.22 * radialJitter
-            }
-
-            let contour = 1
-                + 0.052 * sin(theta * 3.0 + 0.35)
-                + 0.034 * sin(theta * 5.0 - 1.15)
-                + 0.018 * sin(theta * 9.0 + 0.70)
-            let shellX = cos(theta) * radius * contour
-            let shellY = sin(theta) * radius * contour
-            let x = shellX * 0.68 + shellY * 0.110
-            let y = shellY * 0.54 - shellX * 0.055
-            let depthNoise = Float(generator.nextUnit()) - 0.5
-            let depth = max(-1, min(1, sin(theta + 0.42) * (0.54 + radius * 0.34) + depthNoise * 0.18))
-            let shellBand = max(0, min(1, (radius - 0.30) / 0.62))
-            let seamA = pow(abs(sin(theta * 3.0 + radius * 2.4 + depth * 1.6)), 13)
-            let seamB = pow(abs(sin(theta * 5.0 - radius * 1.8 - depth * 1.2)), 17)
-            let ridge = max(shellBand * 0.62, max(seamA, seamB) * shellBand * 0.96)
-            let edgeWeight = shellBand
+            let z = Float(1 - 2 * v)
+            let shell = sqrt(max(0, 1 - z * z))
+            let depth = shell * sin(theta)
+            let fold = 1
+                + 0.14 * sin(theta * 3.0 + z * 4.7)
+                + 0.09 * sin(theta * 6.0 - z * 2.6)
+                + 0.05 * sin(theta * 11.0 + z * 5.1)
+            let x = (shell * cos(theta) * 0.58 + depth * 0.075) * fold
+            let y = (z * 0.44 + 0.035 * sin(theta * 2.0 + depth * 3.0)) * fold
+            let silhouette = max(0, min(1, 1 - abs(depth) * 1.85))
+            let seamA = pow(abs(sin(theta * 3.0 + z * 4.4 + depth * 2.6)), 18)
+            let seamB = pow(abs(sin(theta * 5.0 - z * 3.1)), 22)
+            let ridge = max(silhouette * 0.72, max(seamA, seamB) * 0.95)
+            let edgeWeight = max(0, min(1, 0.18 + abs(depth) * 0.72 + (1 - silhouette) * 0.34))
 
             values.append(Particle(
                 position: SIMD2<Float>(x, y),
