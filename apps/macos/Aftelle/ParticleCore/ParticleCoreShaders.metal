@@ -24,6 +24,12 @@ float hash11(float n) {
     return fract(sin(n) * 43758.5453123);
 }
 
+float2 rotate2(float2 p, float angle) {
+    float s = sin(angle);
+    float c = cos(angle);
+    return float2(p.x * c - p.y * s, p.x * s + p.y * c);
+}
+
 float morphField(float angle, float depth, float slowTime, float seed) {
     float phase = seed * 6.2831853;
     float lobeA = 2.2 + hash11(seed * 11.7) * 1.4;
@@ -41,6 +47,12 @@ float2 globalDirection(float time) {
         sin(time * 0.23 + 1.15) + cos(time * 0.17 + 0.4) * 0.28
     );
     return normalize(direction + float2(0.001, 0.001));
+}
+
+float globalTurnAngle(float time) {
+    return time * 0.24
+        + sin(time * 0.43 + 0.7) * 0.13
+        + sin(time * 0.19 + 2.1) * 0.08;
 }
 
 float globalShapeWave(float2 p, float depth, float time, float2 axis, float2 side) {
@@ -74,8 +86,8 @@ float2 coherentDirectionField(float2 p,
     float2 field = axis * wave * (0.018 + layer * 0.020);
     field += side * roll * (0.010 + midBand * 0.014 + edge * 0.010);
     field += radial * wave * (midBand * 0.012 + edge * 0.020);
-    field += tangent * fold * membrane * (0.005 + edge * 0.011);
-    field += axis * sin(time * 0.42 + 0.6) * 0.006;
+    field += tangent * fold * membrane * (0.012 + edge * 0.026 + midBand * 0.008);
+    field += axis * sin(time * 0.42 + 0.6) * 0.012;
     return field;
 }
 
@@ -158,13 +170,25 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     p += directionWarp;
     p += localWarp;
 
+    float turnAngle = globalTurnAngle(fieldTime);
+    float layerTurn = turnAngle * (0.82 + midBand * 0.18 + edge * 0.24 + depth * 0.045);
+    p = rotate2(p, layerTurn);
+    float2 turnedAxis = rotate2(globalAxis, turnAngle);
+    float2 turnedSide = float2(-turnedAxis.y, turnedAxis.x);
+    float stretch = sin(fieldTime * 0.58 + globalWave * 0.65);
+    float sail = cos(fieldTime * 0.46 + dot(p, turnedSide) * 2.8);
+    p += turnedAxis * dot(p, turnedSide) * stretch * (0.030 + midBand * 0.020 + edge * 0.016);
+    p += turnedSide * dot(p, turnedAxis) * sail * (0.014 + midBand * 0.014 + edge * 0.010);
+    p += turnedAxis * sin(fieldTime * 0.33 + 0.4) * 0.018
+        + turnedSide * cos(fieldTime * 0.29 + 1.2) * 0.012;
+
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);
     float2 clip = float2(p.x / aspect, p.y);
 
     ParticleVertexOut out;
     out.position = float4(clip, 0.0, 1.0);
-    float animatedTravel = dot(p, globalAxis);
-    float animatedCross = dot(p, globalSide);
+    float animatedTravel = dot(p, turnedAxis);
+    float animatedCross = dot(p, turnedSide);
     float ridgeWave = 0.5 + 0.5 * sin(animatedTravel * 6.0 + animatedCross * 1.8 - fieldTime * 0.96 + depth * 2.2 + localPhase * 0.18 + morph * 1.1);
     float ridgeFlow = smoothstep(0.56, 0.96, ridgeWave) * ridge;
     float densityFlow = smoothstep(0.46, 0.92, 0.5 + 0.5 * sin(animatedTravel * 7.4 - animatedCross * 2.6 - fieldTime * 0.82 + phaseB + globalWave * 0.9));
