@@ -17,6 +17,17 @@ Use this file to record each Codex task before closing the loop.
 
 When a task touches SwiftUI, Metal, FileManager, Keychain, HIG, or Accessibility, read only the current-node minimum Apple official reference listed in `docs/apple_official_reference_stage7.md`. Do not system-learn iOS / visionOS / ARKit / RealityKit, do not add platform targets, and do not treat Apple docs as a new Aftelle architecture source.
 
+## 7.5-voice-input-v8-doc-plan
+
+- Stage: 7.5 / 7.11 / 7.12 documentation plan
+- Date: 2026-07-04
+- Task: Upgrade Stage 7 planning docs to v8: add Voice Input MVP, move Demo Readiness Polish to 7.11, and move Demo Lock + recording freeze to 7.12.
+- Read scope: `AGENTS.md`, `docs/03_dev_plan.md`, `docs/06_product_design.md`, `docs/02_architecture.md`, `docs/aftelle_runtime_boundary.md`, `docs/stage7_forbidden_checklist.md`, `DEVLOG.md`, this usage log.
+- Changed files: `docs/03_dev_plan.md`, `docs/06_product_design.md`, `docs/02_architecture.md`, `docs/aftelle_runtime_boundary.md`, `docs/stage7_forbidden_checklist.md`, `DEVLOG.md`, this usage log.
+- Verification: `git diff --check`; `tools/architecture_guard/check.sh`; `tools/secret_guard/check.sh`.
+- Token note: documentation-only change; do not modify Swift, Xcode, `runtime_api_contract.md`, `dr_contract_v0_3.md`, `provider_profile_contract.md`, `feature_livestate.md`, `07_dr_blueprint.md`, or `09_skills_plugins.md`.
+- Follow-up: implement Voice Input MVP only when Stage 7.5 starts; keep it as record-to-text entering the existing Runtime step path.
+
 ## 7.3-apple-official-reference-doc
 
 - Stage: 7.3

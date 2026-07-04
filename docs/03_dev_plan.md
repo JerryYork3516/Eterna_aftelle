@@ -1,27 +1,28 @@
-# Aftelle Desktop · 开发计划 · Stage 7 · v7
+# Aftelle Desktop · 开发计划 · Stage 7 · v8
 
-> 7.1→7.11 的开发顺序与每阶段内容、验收。与02_architecture.md v5、04_code_standards.md、AGENTS.md 配套。
-> v7 变更:**G0 由 B 改 A(Swift RuntimeCore)**;只改 7.1 底层实现描述,7.2–7.11 产品阶段与顺序不变。secret 归 Apple Keychain。
+> 7.1→7.12 的开发顺序与每阶段内容、验收。与02_architecture.md v8、04_code_standards.md、AGENTS.md 配套。
+> v8 变更:7.5 增加 Voice Input MVP(录音转文字,进入现有 text input / Runtime step 链路);7.11 改为 Demo Readiness Polish;新增 7.12 Demo Lock + 录屏冻结。完整语音交流系统后移,不进入 Stage 7。
 
 ## 主线顺序
 
-**Stage 7 MVP = 7.1–7.5 单居民闭环。** 正式开发基线只锁 MVP:单居民 + `resident_id/session_id` 结构、Runtime 对话、会话/展示状态、粒子、TTS/字幕与安全边界。
+**Stage 7 MVP = 7.1–7.5 单居民闭环。** 正式开发基线只锁 MVP:单居民 + `resident_id/session_id` 结构、Runtime 对话、会话/展示状态、粒子、TTS/字幕、Voice Input MVP 与安全边界。
 Live-state 相关功能按 `feature_livestate.md` 分层:1/2/3/4/5/7/11/12 只做最小版;6 可在 7.4 后半评审但不进 MVP 验收线;8/9/10 只属于 Extended Demo。
 
-**Stage 7 Extended Demo = 7.6–7.11。** 行业居民、双居民、屏幕指导、隔离验证与 Demo Lock 每段单独 Gate,不作为 MVP 前提。
+**Stage 7 Extended Demo = 7.6–7.12。** 行业居民、双居民、屏幕指导、隔离验证、展示版体验打磨与 Demo Lock 每段单独 Gate,不作为 MVP 前提。
 
 ```
 7.1 技术底座 + 平台抽象 + 编排薄壳
 → 7.2 记忆与会话持久化(PASS / completed)
 → 7.3 粒子生命体视觉底座 + 字幕基础(准备中)
 → 7.4 人文共情居民打磨
-→ 7.5 TTS / 音效 / 字幕同步
+→ 7.5 TTS / 音效 / 字幕同步 + Voice Input MVP
 → 7.6 行业专精居民基础版
 → 7.7 本地双居民导入与主次切换
 → 7.8 编排系统双居民调度
 → 7.9 屏幕捕获指导原型
 → 7.10 Windows / AR 适配隔离验证
-→ 7.11 Demo Lock + 展示版稳定与录屏
+→ 7.11 Demo Readiness Polish / 展示版体验打磨
+→ 7.12 Demo Lock + 录屏冻结
 ```
 
 ---
@@ -209,9 +210,9 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 
 ---
 
-## Stage 7.5 TTS / 音效 / 字幕同步
+## Stage 7.5 TTS / 音效 / 字幕同步 + Voice Input MVP
 
-目标:让居民有声音和节奏。
+目标:让居民有声音和节奏,并提供最小语音输入入口。Voice Input MVP 只做"录音转文字",转写结果进入现有文字输入 / Runtime step 链路,不做完整语音交流系统。
 
 7.5.1 TTS Provider 接入
 7.5.2 人文居民音色
@@ -223,14 +224,21 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 7.5.8 导入 DR 音效
 7.5.9 退出音效
 7.5.10 打断 / 停止说话
-7.5.11 语音输入预留
-7.5.12 抽象嘴部粒子脉冲 / 轻量口部同步
+7.5.11 Voice Input MVP:点击 / 按住录音
+7.5.12 macOS 麦克风权限与录音状态展示
+7.5.13 record → transcribe → text input / Runtime step
+7.5.14 转写失败 fallback 到文字输入
+7.5.15 Voice Provider boundary reserve
+7.5.16 抽象嘴部粒子脉冲 / 轻量口部同步
 
 注意:打断机制必须复用 7.1.10 的统一中断语义。
 注意:真实 TTS 必须走 `RuntimeCore ProviderRouter → ProviderAdapter → ExecutionEngine`;Aftelle 只播放 RuntimeCore 返回的音频/字幕载荷,不直连 TTS Provider。
+注意:Voice Input MVP 只负责录音、权限、状态展示和把转写结果交给现有输入链路。真实 ASR / voice model Provider 必须走 `RuntimeCore ProviderRouter → ProviderAdapter → ExecutionEngine`;Aftelle 不直连 ASR / TTS / voice model Provider。
 注意:抽象嘴部同步只做 speaking 状态下的粒子脉冲,不做精准 lip sync、viseme、牙齿、舌头或真实口腔。
 
-验收:文字/声音/字幕/粒子节奏一致;延迟可接受;打断行为与编排层一致。
+禁止:不做实时双向语音,不做 VAD,不做唤醒词,不做 streaming ASR / TTS,不做声纹识别,不做后台监听。
+
+验收:文字/声音/字幕/粒子节奏一致;延迟可接受;打断行为与编排层一致;语音输入能录音转文字并进入现有 Runtime step 链路,失败时可回到文字输入。
 
 ---
 
@@ -347,30 +355,55 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 
 ---
 
-## Stage 7.11 Demo Lock + 展示版稳定与录屏
+## Stage 7.11 Demo Readiness Polish / 展示版体验打磨
+
+> Extended Demo,不属于 Stage 7 MVP 基线。
+
+目标:在 Demo Lock 前,把展示版体验从"功能可用"打磨到"可稳定展示"。
+
+7.11.1 交互基线审查
+7.11.2 启动体验打磨
+7.11.3 产品 UI 去 Debug 化
+7.11.4 粒子状态打磨
+7.11.5 单居民交互打磨
+7.11.6 双居民交互打磨(若 7.7 / 7.8 未完成则跳过,不阻塞 7.12)
+7.11.7 语音输入体验打磨
+7.11.8 TTS / 字幕 / 粒子同步打磨
+7.11.9 音效体验打磨
+7.11.10 权限流程打磨
+7.11.11 macOS 原生体验检查
+7.11.12 性能与稳定性 pass
+7.11.13 Presentation Mode
+7.11.14 最终禁止项复查
+
+验收:核心演示路径稳定、Debug 痕迹默认隐藏、Presentation Mode 可用、粒子 / 字幕 / TTS / Voice Input MVP 体验不割裂,且不扩大成完整语音交流系统。
+
+---
+
+## Stage 7.12 Demo Lock + 录屏冻结
 
 > Extended Demo,不属于 Stage 7 MVP 基线。
 
 目标:冻结演示版本,准备公开视频和投资人展示。
 
-7.11.0 Demo Lock(冻结策略:开 `demo-lock-7.11` 分支 + 打 `v7-demo-YYYYMMDD` tag;录屏只用 release build)
-7.11.1 冻结演示流程
-7.11.2 冻结演示居民
-7.11.3 冻结视觉状态
-7.11.4 冻结对话脚本
-7.11.5 首启演示
-7.11.6 导入 DR 演示
-7.11.7 人文情感对话演示
-7.11.8 行业专业回答演示
-7.11.9 双居民协作演示
-7.11.10 粒子视觉演示
-7.11.11 TTS / 字幕演示
-7.11.12 屏幕指导原型演示
-7.11.13 Bug 修复
-7.11.14 性能优化
-7.11.15 崩溃兜底(对接 7.2.6 崩溃恢复)
-7.11.16 录屏素材准备
-7.11.17 Stage 8 AR 预告素材
+7.12.0 Demo Lock(冻结策略:开 `demo-lock-7.12` 分支 + 打 `v7-demo-YYYYMMDD` tag;录屏只用 release build)
+7.12.1 冻结演示流程
+7.12.2 冻结演示居民
+7.12.3 冻结视觉状态
+7.12.4 冻结对话脚本
+7.12.5 首启演示
+7.12.6 导入 DR 演示
+7.12.7 人文情感对话演示
+7.12.8 行业专业回答演示
+7.12.9 双居民协作演示
+7.12.10 粒子视觉演示
+7.12.11 TTS / 字幕 / Voice Input MVP 演示
+7.12.12 屏幕指导原型演示
+7.12.13 Bug 修复
+7.12.14 性能优化
+7.12.15 崩溃兜底(对接 7.2.6 崩溃恢复)
+7.12.16 录屏素材准备
+7.12.17 Stage 8 AR 预告素材
 
 验收:连续演示 10 分钟不崩;核心流程可重复录屏;视觉有记忆点;居民有生命感;双居民逻辑可被看懂;能自然预告 Stage 8 AR。
 
@@ -380,13 +413,13 @@ App Controller 调 RuntimeCore 同进程接口,UI 不直连 Provider。
 
 **区分两个标准,别都叫"Stage 7 成功":**
 
-- **Stage 7 MVP 成立标准(7.1–7.5 单居民闭环)**:加载 DR → Runtime 对话(可 mock,7.4 居民打磨前接真实 LLM) → SessionStore/HostStateStore → 粒子表现 → TTS/字幕最小闭环 → Trace 可见 → 安全边界不破。
+- **Stage 7 MVP 成立标准(7.1–7.5 单居民闭环)**:加载 DR → Runtime 对话(可 mock,7.4 居民打磨前接真实 LLM) → SessionStore/HostStateStore → 粒子表现 → TTS/字幕最小闭环 → Voice Input MVP 录音转文字进入现有 Runtime step 链路 → Trace 可见 → 安全边界不破。
 
-- **Stage 7 Extended Demo 标准(7.6–7.11)**:行业居民、双居民、屏幕指导、隔离验证、录屏展示按各段 Gate 单独评审。
+- **Stage 7 Extended Demo 标准(7.6–7.12)**:行业居民、双居民、屏幕指导、隔离验证、展示版体验打磨、Demo Lock 与录屏展示按各段 Gate 单独评审。
 
 - **小阶段(每个 7.x 做完)**:快速自查,用本阶段验收标准 + 粒子日志/帧率达标。以小阶段勤验收为主。
 
-- **大阶段(整个 Stage 7)**:先验收 MVP,再逐段进入 Extended Demo。
+- **大阶段(整个 Stage 7)**:先验收 MVP(7.1–7.5),再逐段进入 Extended Demo,最后进入 7.11 polish 与 7.12 lock。
 
 ---
 
@@ -396,10 +429,10 @@ Stage 7 只做 AR 铺垫。Stage 8 才开始:iOS / Android App、AR 相机、空
 
 ---
 
-## V5 总结
+## V8 总结
 
 Stage 7 MVP = 单居民桌面闭环。核心:能运行、能记忆/缓存会话、能说话、能展示生命感、安全边界不破。
-Stage 7 Extended Demo = 展示扩展。核心:行业居民、双居民、屏幕指导、隔离验证与录屏按段 Gate。
+Stage 7 Extended Demo = 展示扩展。核心:行业居民、双居民、屏幕指导、隔离验证、展示体验打磨与录屏按段 Gate。
 Stage 8 = 移动端 + AR 身体。核心:数字居民从桌面粒子生命体过渡到现实空间。
 
-**V5 相对 V4 的变化:**收敛 Stage 7 MVP/Extended 口径;补 RuntimeClock/Scheduler no-op tick 存在性;provider secret 归 Apple Keychain;7.10 只做坐标抽象检查,不定义 AR/Mobile 新接口。
+**V8 相对 V7 的变化:**7.5 新增 Voice Input MVP,但仅录音转文字并进入现有 Runtime step 链路;7.11 改为展示版体验打磨;7.12 承接 Demo Lock + 录屏冻结。Stage 7 不做完整语音交流系统,不改 Runtime API / DR schema / Provider Profile。

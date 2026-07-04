@@ -10,10 +10,10 @@
 
 ## 📌 当前状态(每次更新,粘给 AI 时就粘这一段)
 
-- **现在在做**:Stage 7.3 文档级视觉规划调整(Abstract Bust Avatar)
+- **现在在做**:Stage 7 v8 文档规划调整(Voice Input MVP / 7.11 Polish / 7.12 Demo Lock)
 - **上一步刚完成**:Stage 7.2 Final Review PASS
 - **当前卡在**:无
-- **下一步**:进入 Stage 7.3 粒子生命体视觉底座 + 字幕基础;7.3 只做 particle_core、avatar_mode 预留、渲染切换接口和字幕基础
+- **下一步**:继续按 Stage 7 小阶段推进;7.5 才实现 Voice Input MVP,7.11 做展示版体验打磨,7.12 做 Demo Lock + 录屏冻结
 - **额度情况**:只做文档规划调整,不改 Swift / Runtime API / DR schema / Provider Profile / 平台 target
 
 > - **现在在做**:Stage 7.1.6 —— Runtime Config 本地配置边界
@@ -100,6 +100,7 @@
 - 2026-07-03 — 下一阶段入口 — Stage 7.3 主题为“粒子生命体视觉底座 + 字幕基础”；第一步建议执行 7.3.0 Product Design Calibration，先锁定灰白 Shell 视觉方向、粒子状态语言、字幕策略、输入区弱化、Debug / Trace 默认隐藏与跨 Apple 平台视觉抽象预留。
 - 2026-07-03 — Abstract Bust Avatar 文档级规划调整 — 抽象半身粒子 Avatar 纳入 Stage 7 设计路线,但不扩大 7.3 范围:7.3 只保留 `particle_core` 默认形态、`avatar_mode` 本地渲染预留、渲染切换接口和字幕基础;7.4 承接抽象半身人格轮廓;7.5 承接口部粒子脉冲。未改 Swift / Xcode / DR schema / Runtime API / Provider Profile,未进入 Stage 8。
 - 2026-07-03 — Stage 7.3 particle_core v1 视觉拟合 — 新增 `docs/Stage7_3_VISION_v1.png` 作为 7.3 粒子参考,将默认粒子从均匀圆盘改为灰白折叠薄壳点云:中央不规则横向体积、细颗粒、亮脊线和 additive 发光混合。仅改 Metal 粒子外观,未改 RuntimeCore / Runtime API / DR schema / Provider / TTS / 平台 target。
+- 2026-07-04 — Stage 7 v8 文档规划调整 — 7.5 新增 Voice Input MVP(录音转文字,进入现有 text input / Runtime step 链路);7.11 从 Demo Lock 改为 Demo Readiness Polish / 展示版体验打磨;7.12 承接 Demo Lock + 录屏冻结。完整语音交流系统后移,不进入 Stage 7;未改代码、Runtime API、DR schema 或 Provider Profile。
 
 ---
 
