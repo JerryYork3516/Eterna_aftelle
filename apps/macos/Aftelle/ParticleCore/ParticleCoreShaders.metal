@@ -271,8 +271,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float dynamicDensity = saturate(densityFlow * 0.58 + smoothstep(0.40, 0.92, densitySheet) * 0.42);
     float layerDensity = saturate(dynamicDensity * (0.34 + interior * 0.34 + midBand * 0.48 + edge * 0.18) + ridgeFlow * 0.28);
     float localRidge = saturate(ridge * 0.34 + ridgeFlow * 0.42 + layerDensity * (0.34 + midBand * 0.18) + edge * ridgeFlow * 0.10);
-    float pointSizePhase = sin(t * (0.21 + seedB * 0.07) + phaseB + shellLayer);
-    out.pointSize = (mix(1.88, 5.88, localRidge) + layerDensity * 0.48 + edge * 0.16 + pointSizePhase * (0.030 + 0.040 * localRidge))
+    out.pointSize = (mix(1.88, 5.88, localRidge) + layerDensity * 0.56 + edge * 0.16)
         * mix(0.88, 1.16, smoothstep(-0.65, 0.75, visibleDepth));
     out.ridge = localRidge;
     out.depth = visibleDepth;
@@ -287,18 +286,17 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float d = distance(pointCoord, float2(0.5, 0.5));
     float core = 1.0 - smoothstep(0.08, 0.28, d);
     float halo = 1.0 - smoothstep(0.14, 0.52, d);
-    float front = smoothstep(-0.48, 0.62, in.depth);
+    float front = smoothstep(-0.46, 0.66, in.depth);
     float ridge = saturate(in.ridge);
     float density = saturate(in.density);
-    float localPulse = mix(0.985, 1.018, in.shimmer);
-    float glow = saturate(0.08 + ridge * 0.36 + density * 0.42 + front * 0.30 + in.flow * 0.08);
-    float alpha = halo * mix(0.07, 0.27, glow) + core * mix(0.20, 0.82, glow);
-    alpha *= mix(0.34, 1.05, front);
-    alpha *= mix(0.76, 1.18, density);
-    alpha *= localPulse;
+    float densityLight = smoothstep(0.10, 0.92, density);
+    float glow = saturate(front * 0.58 + densityLight * (0.20 + front * 0.22) + ridge * (0.08 + front * 0.14) + in.flow * 0.04);
+    float alpha = halo * (0.045 + densityLight * 0.17) + core * (0.12 + densityLight * 0.55);
+    alpha *= mix(0.28, 1.08, front);
     half3 back = half3(0.26, 0.29, 0.32);
-    half3 dim = mix(back, half3(0.68, 0.71, 0.73), half(front));
+    half3 frontBase = half3(0.70, 0.73, 0.75);
+    half3 dim = mix(back, frontBase, half(front));
     half3 bright = half3(0.96, 0.97, 0.98);
-    half3 color = mix(dim, bright, half(glow * (0.35 + density * 0.65)));
+    half3 color = mix(dim, bright, half(glow * (0.22 + densityLight * 0.50 + front * 0.28)));
     return half4(color, half(alpha));
 }
