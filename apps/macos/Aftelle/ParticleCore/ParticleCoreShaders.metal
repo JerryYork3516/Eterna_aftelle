@@ -68,19 +68,19 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tangentialDrift = edge * (0.0038 + 0.0028 * seedB)
         * sin(t * (0.20 + particleSeed * 0.08) + localPhase * 0.7 + depth * 2.8);
     float radialDrift = localBreath * (0.42 + edge * 0.72) + globalReference + edgeMembrane;
-    float morphCycle = t / 18.0;
+    float morphCycle = t / 5.0;
     float morphIndex = floor(morphCycle);
     float morphBlend = smoothstep(0.0, 1.0, fract(morphCycle));
     float morphSeedA = morphIndex + float(uniforms.seed) * 0.0017;
     float morphSeedB = morphSeedA + 1.0;
-    float slowMorphTime = t * 0.32;
+    float slowMorphTime = t * 1.05;
     float morphA = morphField(angle, depth, slowMorphTime, morphSeedA);
     float morphB = morphField(angle, depth, slowMorphTime, morphSeedB);
     float morph = mix(morphA, morphB, morphBlend);
-    float edgeMorph = edge * edge * (0.010 + 0.024 * edge + 0.006 * particleSeed) * morph;
-    float innerMorph = interior * (0.0025 + 0.0055 * seedB)
+    float edgeMorph = edge * edge * (0.020 + 0.052 * edge + 0.012 * particleSeed) * morph;
+    float innerMorph = interior * (0.0060 + 0.0130 * seedB)
         * morphField(angle + p.y * 1.8, depth, slowMorphTime * 0.7, morphSeedA + particleSeed);
-    float membraneRoll = edge * (0.004 + 0.008 * seedB)
+    float membraneRoll = edge * (0.010 + 0.018 * seedB)
         * sin(angle * (2.6 + seedB * 1.8) - slowMorphTime * 0.72 + phaseB + morph * 0.8);
     p += radial * radialDrift;
     p += radial * edgeMorph;
