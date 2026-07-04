@@ -35,38 +35,71 @@ float morphField(float angle, float depth, float slowTime, float seed) {
     return (a * 0.48 + b * 0.34 + c * 0.22) / 1.04;
 }
 
-float2 blobDeformation(float2 p, float angle, float depth, float time, float seed) {
-    float phase = seed * 6.2831853;
-    float2 total = float2(0.0, 0.0);
+float2 globalDirection(float time) {
+    float2 direction = float2(
+        cos(time * 0.27 + 0.65) + sin(time * 0.13 + 1.9) * 0.34,
+        sin(time * 0.23 + 1.15) + cos(time * 0.17 + 0.4) * 0.28
+    );
+    return normalize(direction + float2(0.001, 0.001));
+}
 
-    float2 c1 = float2(sin(time * 0.74 + phase) * 0.26,
-                       cos(time * 0.58 + phase * 1.31) * 0.22);
-    float2 d1 = p - c1;
-    float f1 = exp(-dot(d1, d1) * 7.8);
-    total += normalize(d1 + float2(0.001, -0.001)) * f1
-        * sin(time * 1.18 + angle * 2.1 + depth * 1.7 + phase) * 0.034;
+float globalShapeWave(float2 p, float depth, float time, float2 axis, float2 side) {
+    float travel = dot(p, axis);
+    float cross = dot(p, side);
+    float primary = sin(travel * 5.4 + cross * 1.2 - time * 0.88 + depth * 1.2);
+    float secondary = sin(travel * 2.8 - cross * 3.2 - time * 0.54 + depth * 2.0 + 1.7);
+    float tertiary = sin(travel * 7.0 + cross * 2.4 - time * 1.05 - depth * 1.5 + 0.8);
+    return primary * 0.58 + secondary * 0.30 + tertiary * 0.12;
+}
 
-    float2 c2 = float2(cos(time * 0.52 + phase * 1.73) * 0.30,
-                       sin(time * 0.86 + phase * 0.79) * 0.24);
-    float2 d2 = p - c2;
-    float f2 = exp(-dot(d2, d2) * 9.6);
-    total += float2(-d2.y, d2.x) * f2
-        * sin(time * 1.34 - angle * 1.6 + phase * 0.7) * 0.110;
+float2 coherentDirectionField(float2 p,
+                              float radius,
+                              float depth,
+                              float time,
+                              float edge,
+                              float interior,
+                              float midBand,
+                              float2 axis,
+                              float2 side,
+                              float wave) {
+    float travel = dot(p, axis);
+    float cross = dot(p, side);
+    float2 radial = normalize(p + float2(0.001, 0.001));
+    float2 tangent = float2(-radial.y, radial.x);
+    float layer = 0.34 + interior * 0.44 + midBand * 0.78 + edge * 0.88;
+    float roll = sin(travel * 4.1 + cross * 2.0 - time * 0.76 + depth * 1.5);
+    float fold = sin(cross * 5.5 - travel * 1.4 + time * 0.62 + depth * 2.4);
+    float membrane = smoothstep(0.34, 0.72, radius);
 
-    float2 c3 = float2(sin(time * 0.67 + phase * 2.2) * 0.18,
-                       sin(time * 0.43 + phase * 0.6) * 0.28);
-    float2 d3 = p - c3;
-    float f3 = exp(-dot(d3, d3) * 12.4);
-    total += normalize(d3 + float2(-0.001, 0.001)) * f3
-        * sin(time * 1.47 + angle * 3.4 - depth * 2.2 + phase * 1.4) * 0.026;
+    float2 field = axis * wave * (0.018 + layer * 0.020);
+    field += side * roll * (0.010 + midBand * 0.014 + edge * 0.010);
+    field += radial * wave * (midBand * 0.012 + edge * 0.020);
+    field += tangent * fold * membrane * (0.005 + edge * 0.011);
+    field += axis * sin(time * 0.42 + 0.6) * 0.006;
+    return field;
+}
 
-    float cellular = sin(p.x * 7.4 + time * 0.95 + phase)
-        * cos(p.y * 6.2 - time * 0.82 + phase * 1.9);
-    total += float2(cos(angle * 2.7 + time * 1.22 + phase),
-                    sin(angle * 3.1 - time * 1.05 + phase * 1.2))
-        * cellular * 0.012;
-
-    return total;
+float2 localNoiseField(float2 p,
+                       float depth,
+                       float time,
+                       float particleSeed,
+                       float seedB,
+                       float edge,
+                       float interior,
+                       float midBand,
+                       float2 axis,
+                       float2 side,
+                       float globalWave) {
+    float phase = particleSeed * 6.2831853;
+    float detail = sin(dot(p, axis) * (7.0 + seedB * 1.8)
+        + dot(p, side) * (4.2 + particleSeed * 1.4)
+        - time * (0.82 + seedB * 0.22)
+        + depth * 1.8
+        + phase);
+    float coupled = 0.45 + 0.55 * abs(globalWave);
+    float strength = (0.0035 + midBand * 0.0065 + edge * 0.0075 + interior * 0.0035) * coupled;
+    float2 diagonal = normalize(axis * (0.65 + seedB * 0.35) + side * (particleSeed - 0.5));
+    return diagonal * detail * strength;
 }
 
 vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(0)]],
@@ -102,42 +135,39 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tangentialDrift = edge * (0.0038 + 0.0028 * seedB)
         * sin(t * (0.20 + particleSeed * 0.08) + localPhase * 0.7 + depth * 2.8);
     float radialDrift = localBreath * (0.42 + edge * 0.72) + globalReference + edgeMembrane;
-    float morphCycle = t / 5.0;
-    float morphIndex = floor(morphCycle);
-    float morphBlend = smoothstep(0.0, 1.0, fract(morphCycle));
-    float morphSeedA = morphIndex + float(uniforms.seed) * 0.0017;
-    float morphSeedB = morphSeedA + 1.0;
-    float slowMorphTime = t * 1.05;
-    float morphA = morphField(angle, depth, slowMorphTime, morphSeedA);
-    float morphB = morphField(angle, depth, slowMorphTime, morphSeedB);
-    float morph = mix(morphA, morphB, morphBlend);
+    float fieldTime = t * 0.92;
     float midBand = smoothstep(0.14, 0.40, lengthP) * (1.0 - smoothstep(0.54, 0.72, lengthP));
-    float edgeMorph = edge * edge * (0.024 + 0.066 * edge + 0.014 * particleSeed) * morph;
+    float2 globalAxis = globalDirection(fieldTime);
+    float2 globalSide = float2(-globalAxis.y, globalAxis.x);
+    float globalWave = globalShapeWave(p, depth, fieldTime, globalAxis, globalSide);
+    float localMorph = morphField(angle, depth, fieldTime * 0.72, float(uniforms.seed) * 0.0017 + particleSeed * 0.41);
+    float morph = globalWave * 0.74 + localMorph * 0.26;
+    float edgeMorph = edge * edge * (0.016 + 0.038 * edge + 0.008 * particleSeed) * morph;
     float innerMorph = (interior * 0.85 + midBand * 0.70) * (0.0110 + 0.0180 * seedB)
-        * morphField(angle + p.y * 1.8, depth, slowMorphTime * 0.7, morphSeedA + particleSeed);
+        * (globalWave * 0.72 + localMorph * 0.28);
     float membraneRoll = edge * (0.010 + 0.018 * seedB)
-        * sin(angle * (2.6 + seedB * 1.8) - slowMorphTime * 0.72 + phaseB + morph * 0.8);
-    float2 structuralWarpA = blobDeformation(p, angle, depth, slowMorphTime, morphSeedA + particleSeed * 0.37);
-    float2 structuralWarpB = blobDeformation(p, angle, depth, slowMorphTime * 0.86 + 1.7, morphSeedB + seedB * 0.53);
-    float2 structuralWarp = mix(structuralWarpA, structuralWarpB, morphBlend);
-    float warpMask = 0.34 + interior * 0.62 + midBand * 0.86 + edge * 0.74;
+        * sin(dot(p, globalAxis) * 4.2 + dot(p, globalSide) * 1.9 - fieldTime * 0.82 + phaseB + globalWave * 0.8);
+    float2 directionWarp = coherentDirectionField(p, lengthP, depth, fieldTime, edge, interior, midBand, globalAxis, globalSide, globalWave);
+    float2 localWarp = localNoiseField(p, depth, fieldTime, particleSeed, seedB, edge, interior, midBand, globalAxis, globalSide, globalWave);
     p += radial * radialDrift;
     p += radial * edgeMorph;
     p += tangent * tangentialDrift;
     p += tangent * membraneRoll;
     p += innerFlow * innerFlowStrength;
     p += innerFlow * innerMorph;
-    p += structuralWarp * warpMask;
+    p += directionWarp;
+    p += localWarp;
 
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);
     float2 clip = float2(p.x / aspect, p.y);
 
     ParticleVertexOut out;
     out.position = float4(clip, 0.0, 1.0);
-    float animatedAngle = atan2(p.y, p.x);
-    float ridgeWave = 0.5 + 0.5 * sin(animatedAngle * 4.2 + depth * 3.4 - t * 0.78 + localPhase * 0.28 + morph * 1.3);
+    float animatedTravel = dot(p, globalAxis);
+    float animatedCross = dot(p, globalSide);
+    float ridgeWave = 0.5 + 0.5 * sin(animatedTravel * 6.0 + animatedCross * 1.8 - fieldTime * 0.96 + depth * 2.2 + localPhase * 0.18 + morph * 1.1);
     float ridgeFlow = smoothstep(0.56, 0.96, ridgeWave) * ridge;
-    float densityFlow = smoothstep(0.46, 0.92, 0.5 + 0.5 * sin(p.x * 8.0 - p.y * 6.5 + t * 0.94 + phaseB));
+    float densityFlow = smoothstep(0.46, 0.92, 0.5 + 0.5 * sin(animatedTravel * 7.4 - animatedCross * 2.6 - fieldTime * 0.82 + phaseB + globalWave * 0.9));
     float localRidge = saturate(ridge * 0.70 + ridgeFlow * 0.38 + densityFlow * midBand * 0.18 + edge * ridge * 0.10);
     float pointSizePhase = sin(t * (0.21 + seedB * 0.07) + phaseB + shellLayer);
     out.pointSize = mix(2.04, 6.04, localRidge) + edge * 0.22 + pointSizePhase * (0.055 + 0.075 * localRidge);
