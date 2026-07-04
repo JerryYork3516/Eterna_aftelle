@@ -35,6 +35,40 @@ float morphField(float angle, float depth, float slowTime, float seed) {
     return (a * 0.48 + b * 0.34 + c * 0.22) / 1.04;
 }
 
+float2 blobDeformation(float2 p, float angle, float depth, float time, float seed) {
+    float phase = seed * 6.2831853;
+    float2 total = float2(0.0, 0.0);
+
+    float2 c1 = float2(sin(time * 0.74 + phase) * 0.26,
+                       cos(time * 0.58 + phase * 1.31) * 0.22);
+    float2 d1 = p - c1;
+    float f1 = exp(-dot(d1, d1) * 7.8);
+    total += normalize(d1 + float2(0.001, -0.001)) * f1
+        * sin(time * 1.18 + angle * 2.1 + depth * 1.7 + phase) * 0.034;
+
+    float2 c2 = float2(cos(time * 0.52 + phase * 1.73) * 0.30,
+                       sin(time * 0.86 + phase * 0.79) * 0.24);
+    float2 d2 = p - c2;
+    float f2 = exp(-dot(d2, d2) * 9.6);
+    total += float2(-d2.y, d2.x) * f2
+        * sin(time * 1.34 - angle * 1.6 + phase * 0.7) * 0.110;
+
+    float2 c3 = float2(sin(time * 0.67 + phase * 2.2) * 0.18,
+                       sin(time * 0.43 + phase * 0.6) * 0.28);
+    float2 d3 = p - c3;
+    float f3 = exp(-dot(d3, d3) * 12.4);
+    total += normalize(d3 + float2(-0.001, 0.001)) * f3
+        * sin(time * 1.47 + angle * 3.4 - depth * 2.2 + phase * 1.4) * 0.026;
+
+    float cellular = sin(p.x * 7.4 + time * 0.95 + phase)
+        * cos(p.y * 6.2 - time * 0.82 + phase * 1.9);
+    total += float2(cos(angle * 2.7 + time * 1.22 + phase),
+                    sin(angle * 3.1 - time * 1.05 + phase * 1.2))
+        * cellular * 0.012;
+
+    return total;
+}
+
 vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(0)]],
                                    const device ParticleCoreFrameUniforms &uniforms [[buffer(1)]],
                                    uint vid [[vertex_id]]) {
@@ -77,32 +111,40 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float morphA = morphField(angle, depth, slowMorphTime, morphSeedA);
     float morphB = morphField(angle, depth, slowMorphTime, morphSeedB);
     float morph = mix(morphA, morphB, morphBlend);
-    float edgeMorph = edge * edge * (0.020 + 0.052 * edge + 0.012 * particleSeed) * morph;
-    float innerMorph = interior * (0.0060 + 0.0130 * seedB)
+    float midBand = smoothstep(0.14, 0.40, lengthP) * (1.0 - smoothstep(0.54, 0.72, lengthP));
+    float edgeMorph = edge * edge * (0.024 + 0.066 * edge + 0.014 * particleSeed) * morph;
+    float innerMorph = (interior * 0.85 + midBand * 0.70) * (0.0110 + 0.0180 * seedB)
         * morphField(angle + p.y * 1.8, depth, slowMorphTime * 0.7, morphSeedA + particleSeed);
     float membraneRoll = edge * (0.010 + 0.018 * seedB)
         * sin(angle * (2.6 + seedB * 1.8) - slowMorphTime * 0.72 + phaseB + morph * 0.8);
+    float2 structuralWarpA = blobDeformation(p, angle, depth, slowMorphTime, morphSeedA + particleSeed * 0.37);
+    float2 structuralWarpB = blobDeformation(p, angle, depth, slowMorphTime * 0.86 + 1.7, morphSeedB + seedB * 0.53);
+    float2 structuralWarp = mix(structuralWarpA, structuralWarpB, morphBlend);
+    float warpMask = 0.34 + interior * 0.62 + midBand * 0.86 + edge * 0.74;
     p += radial * radialDrift;
     p += radial * edgeMorph;
     p += tangent * tangentialDrift;
     p += tangent * membraneRoll;
     p += innerFlow * innerFlowStrength;
     p += innerFlow * innerMorph;
+    p += structuralWarp * warpMask;
 
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);
     float2 clip = float2(p.x / aspect, p.y);
 
     ParticleVertexOut out;
     out.position = float4(clip, 0.0, 1.0);
-    float ridgeWave = 0.5 + 0.5 * sin(angle * 4.2 + depth * 3.4 - t * 0.42 + localPhase * 0.28);
+    float animatedAngle = atan2(p.y, p.x);
+    float ridgeWave = 0.5 + 0.5 * sin(animatedAngle * 4.2 + depth * 3.4 - t * 0.78 + localPhase * 0.28 + morph * 1.3);
     float ridgeFlow = smoothstep(0.56, 0.96, ridgeWave) * ridge;
-    float localRidge = saturate(ridge * 0.78 + ridgeFlow * 0.34 + edge * ridge * 0.10);
+    float densityFlow = smoothstep(0.46, 0.92, 0.5 + 0.5 * sin(p.x * 8.0 - p.y * 6.5 + t * 0.94 + phaseB));
+    float localRidge = saturate(ridge * 0.70 + ridgeFlow * 0.38 + densityFlow * midBand * 0.18 + edge * ridge * 0.10);
     float pointSizePhase = sin(t * (0.21 + seedB * 0.07) + phaseB + shellLayer);
     out.pointSize = mix(2.04, 6.04, localRidge) + edge * 0.22 + pointSizePhase * (0.055 + 0.075 * localRidge);
     out.ridge = localRidge;
     out.depth = depth;
     out.shimmer = 0.5 + 0.5 * sin(t * (0.18 + particleSeed * 0.10) + phaseB + angle * 0.45);
-    out.flow = ridgeFlow;
+    out.flow = saturate(ridgeFlow + densityFlow * (interior * 0.20 + midBand * 0.28));
     return out;
 }
 
