@@ -138,6 +138,25 @@ float2 localNoiseField(float2 p,
     return diagonal * detail * strength;
 }
 
+float3 volumeFlow(float3 body,
+                  float time,
+                  float particleSeed,
+                  float seedB,
+                  float edge,
+                  float interior,
+                  float midBand,
+                  float globalWave) {
+    float waveA = sin(body.x * 5.0 + body.z * 4.2 - time * 0.82 + particleSeed * 6.2831853);
+    float waveB = cos(body.y * 4.6 - body.z * 3.8 + time * 0.67 + seedB * 6.2831853);
+    float waveC = sin((body.x - body.y) * 3.4 + body.z * 5.3 - time * 0.54 + globalWave);
+    float strength = 0.010 + interior * 0.020 + midBand * 0.026 + edge * 0.015;
+    return float3(
+        waveA * (0.68 + midBand * 0.28),
+        waveB * (0.56 + interior * 0.34),
+        waveC * (0.42 + edge * 0.22)
+    ) * strength;
+}
+
 vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(0)]],
                                    const device ParticleCoreFrameUniforms &uniforms [[buffer(1)]],
                                    uint vid [[vertex_id]]) {
@@ -211,6 +230,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     );
     float bodyDepth = depth * 0.46 + globalWave * (0.038 + midBand * 0.062 + edge * 0.050) + centerFollow * 0.030;
     float3 body = float3(p.x, p.y, bodyDepth);
+    float3 flowOffset = volumeFlow(body, fieldTime, particleSeed, seedB, edge, interior, midBand, globalWave);
+    float3 materialBody = body + flowOffset;
+    body += flowOffset * (0.52 + midBand * 0.20 + interior * 0.14);
     body = rotateBody(body, bodyAngles);
     float perspective = clamp(1.0 / (1.0 - body.z * 0.26), 0.86, 1.18);
     p = body.xy * perspective;
@@ -229,13 +251,15 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
 
     ParticleVertexOut out;
     out.position = float4(clip, 0.0, 1.0);
-    float animatedTravel = dot(p, turnedAxis);
-    float animatedCross = dot(p, turnedSide);
     float visibleDepth = clamp(body.z * 1.55, -1.0, 1.0);
-    float ridgeWave = 0.5 + 0.5 * sin(animatedTravel * 6.0 + animatedCross * 1.8 - fieldTime * 0.96 + depth * 2.2 + localPhase * 0.18 + morph * 1.1);
-    float ridgeFlow = smoothstep(0.56, 0.96, ridgeWave) * ridge;
-    float densityFlow = smoothstep(0.46, 0.92, 0.5 + 0.5 * sin(animatedTravel * 7.4 - animatedCross * 2.6 - fieldTime * 0.82 + phaseB + globalWave * 0.9));
-    float localRidge = saturate(ridge * 0.70 + ridgeFlow * 0.38 + densityFlow * midBand * 0.18 + edge * ridge * 0.10);
+    float3 flowBody = rotateBody(materialBody, bodyAngles * 0.72 + float3(0.11, -0.07, 0.05));
+    float volumeTravel = dot(flowBody.xy, turnedAxis);
+    float volumeCross = dot(flowBody.xy, turnedSide);
+    float ridgeWave = 0.5 + 0.5 * sin(volumeTravel * 6.2 + flowBody.z * 5.1 - fieldTime * 1.02 + localPhase * 0.12 + morph * 1.2);
+    float ridgeSheet = 0.5 + 0.5 * sin(volumeCross * 5.0 - flowBody.z * 4.8 + fieldTime * 0.76 + phaseB * 0.42);
+    float ridgeFlow = smoothstep(0.54, 0.95, ridgeWave) * smoothstep(0.18, 0.86, ridgeSheet);
+    float densityFlow = smoothstep(0.44, 0.90, 0.5 + 0.5 * sin(volumeTravel * 7.0 - volumeCross * 2.4 + flowBody.z * 3.6 - fieldTime * 0.86 + globalWave));
+    float localRidge = saturate(ridge * 0.38 + ridgeFlow * 0.52 + densityFlow * (midBand * 0.30 + interior * 0.14) + edge * ridgeFlow * 0.12);
     float pointSizePhase = sin(t * (0.21 + seedB * 0.07) + phaseB + shellLayer);
     out.pointSize = (mix(2.04, 6.04, localRidge) + edge * 0.22 + pointSizePhase * (0.055 + 0.075 * localRidge))
         * mix(0.88, 1.16, smoothstep(-0.65, 0.75, visibleDepth));
