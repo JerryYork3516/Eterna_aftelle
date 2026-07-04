@@ -24,6 +24,17 @@ float hash11(float n) {
     return fract(sin(n) * 43758.5453123);
 }
 
+float morphField(float angle, float depth, float slowTime, float seed) {
+    float phase = seed * 6.2831853;
+    float lobeA = 2.2 + hash11(seed * 11.7) * 1.4;
+    float lobeB = 3.7 + hash11(seed * 17.3) * 1.8;
+    float lobeC = 5.1 + hash11(seed * 23.9) * 2.2;
+    float a = sin(angle * lobeA + depth * 2.1 + slowTime * (0.42 + hash11(seed * 31.1) * 0.20) + phase);
+    float b = sin(angle * lobeB - depth * 2.8 - slowTime * (0.30 + hash11(seed * 37.5) * 0.18) + phase * 1.7);
+    float c = sin(angle * lobeC + depth * 1.4 + slowTime * (0.18 + hash11(seed * 43.2) * 0.16) + phase * 2.4);
+    return (a * 0.48 + b * 0.34 + c * 0.22) / 1.04;
+}
+
 vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(0)]],
                                    const device ParticleCoreFrameUniforms &uniforms [[buffer(1)]],
                                    uint vid [[vertex_id]]) {
@@ -57,9 +68,26 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tangentialDrift = edge * (0.0038 + 0.0028 * seedB)
         * sin(t * (0.20 + particleSeed * 0.08) + localPhase * 0.7 + depth * 2.8);
     float radialDrift = localBreath * (0.42 + edge * 0.72) + globalReference + edgeMembrane;
+    float morphCycle = t / 18.0;
+    float morphIndex = floor(morphCycle);
+    float morphBlend = smoothstep(0.0, 1.0, fract(morphCycle));
+    float morphSeedA = morphIndex + float(uniforms.seed) * 0.0017;
+    float morphSeedB = morphSeedA + 1.0;
+    float slowMorphTime = t * 0.32;
+    float morphA = morphField(angle, depth, slowMorphTime, morphSeedA);
+    float morphB = morphField(angle, depth, slowMorphTime, morphSeedB);
+    float morph = mix(morphA, morphB, morphBlend);
+    float edgeMorph = edge * edge * (0.010 + 0.024 * edge + 0.006 * particleSeed) * morph;
+    float innerMorph = interior * (0.0025 + 0.0055 * seedB)
+        * morphField(angle + p.y * 1.8, depth, slowMorphTime * 0.7, morphSeedA + particleSeed);
+    float membraneRoll = edge * (0.004 + 0.008 * seedB)
+        * sin(angle * (2.6 + seedB * 1.8) - slowMorphTime * 0.72 + phaseB + morph * 0.8);
     p += radial * radialDrift;
+    p += radial * edgeMorph;
     p += tangent * tangentialDrift;
+    p += tangent * membraneRoll;
     p += innerFlow * innerFlowStrength;
+    p += innerFlow * innerMorph;
 
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);
     float2 clip = float2(p.x / aspect, p.y);
