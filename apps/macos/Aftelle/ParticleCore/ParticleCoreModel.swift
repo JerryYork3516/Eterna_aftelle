@@ -33,16 +33,21 @@ struct ParticleCoreModel {
     let particles: [Particle]
     let seed: UInt64
 
-    init(count: Int = 8_000, seed: UInt64 = 0xA7F7E11E) {
+    init(count: Int = 12_000, seed: UInt64 = 0xA7F7E11E) {
         self.seed = seed
         var generator = ParticleCoreSeededGenerator(seed: seed)
         var values: [Particle] = []
         values.reserveCapacity(count)
 
-        for index in 0..<count {
+        let candidateCount = Int(Double(count) * 1.8)
+        var candidateIndex = 0
+
+        while values.count < count {
+            let index = candidateIndex
+            candidateIndex += 1
             let golden = 0.6180339887498949
             let u = (Double(index) * golden + generator.nextUnit() * 0.022).truncatingRemainder(dividingBy: 1)
-            let v = (Double(index) + 0.5) / Double(count)
+            let v = (Double(index % candidateCount) + 0.5) / Double(candidateCount)
             let theta = Float(u * .pi * 2)
             let z = Float(1 - 2 * v)
             let shell = sqrt(max(0, 1 - z * z))
@@ -68,6 +73,10 @@ struct ParticleCoreModel {
             let seamB = pow(abs(sin(theta * 5.0 - z * 3.1)), 22)
             let ridge = max(silhouette * 0.72, max(seamA, seamB) * 0.95 + outlineBand * 0.10)
             let edgeWeight = max(0, min(1, 0.18 + abs(depth) * 0.72 + (1 - silhouette) * 0.34 + outlineBand * 0.16))
+            let ridgeKeep = 0.20 + Double(min(1, ridge)) * 0.58 + Double(outlineBand) * 0.16
+            if generator.nextUnit() > ridgeKeep && candidateIndex < candidateCount * 3 {
+                continue
+            }
 
             values.append(Particle(
                 position: SIMD2<Float>(x, y),
