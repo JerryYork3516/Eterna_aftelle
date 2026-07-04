@@ -68,9 +68,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     out.position = float4(clip, 0.0, 1.0);
     float ridgeWave = 0.5 + 0.5 * sin(angle * 4.2 + depth * 3.4 - t * 0.42 + localPhase * 0.28);
     float ridgeFlow = smoothstep(0.56, 0.96, ridgeWave) * ridge;
-    float localRidge = saturate(ridge * 0.78 + ridgeFlow * 0.34 + edge * ridge * 0.10);
+    float shellBand = smoothstep(0.20, 0.56, lengthP);
+    float localRidge = saturate(ridge * (0.66 + shellBand * 0.20) + ridgeFlow * 0.30 + edge * ridge * 0.08);
     float pointSizePhase = sin(t * (0.21 + seedB * 0.07) + phaseB + shellLayer);
-    out.pointSize = mix(2.04, 6.04, localRidge) + edge * 0.22 + pointSizePhase * (0.055 + 0.075 * localRidge);
+    out.pointSize = mix(2.12, 6.28, localRidge) + edge * 0.22 + pointSizePhase * (0.040 + 0.060 * localRidge);
     out.ridge = localRidge;
     out.depth = depth;
     out.shimmer = 0.5 + 0.5 * sin(t * (0.18 + particleSeed * 0.10) + phaseB + angle * 0.45);
@@ -86,8 +87,8 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float front = smoothstep(-0.62, 0.52, in.depth);
     float ridge = saturate(in.ridge);
     float localPulse = mix(0.96, 1.035, in.shimmer);
-    float glow = saturate(0.14 + ridge * 0.65 + front * 0.13 + in.flow * 0.11 + in.shimmer * 0.025);
-    float alpha = halo * mix(0.14, 0.31, glow) + core * mix(0.40, 0.86, glow);
+    float glow = saturate(0.15 + ridge * 0.76 + front * 0.12 + in.flow * 0.09 + in.shimmer * 0.020);
+    float alpha = halo * mix(0.14, 0.36, glow) + core * mix(0.38, 0.92, glow);
     alpha *= localPulse;
     half3 dim = half3(0.72, 0.75, 0.77);
     half3 bright = half3(0.96, 0.97, 0.98);
