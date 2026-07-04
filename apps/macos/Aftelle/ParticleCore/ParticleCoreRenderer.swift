@@ -100,12 +100,15 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
               let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
 
         let elapsed = Float(CACurrentMediaTime() - startTime)
+        let speedPhaseRate: Float = 0.025
+        let speedScale = 0.20 + 0.10 * sin(elapsed * speedPhaseRate)
+        let motionElapsed = 0.20 * elapsed + (0.10 / speedPhaseRate) * (1 - cos(elapsed * speedPhaseRate))
         let resolution = SIMD2<Float>(Float(drawableSize.width), Float(drawableSize.height))
-        let breathing = 0.010 * sin(elapsed * 0.23) + 0.006 * sin(elapsed * 0.13 + 0.9)
-        let edgeBreathing = 0.012 * sin(elapsed * 0.19 + 1.4) + 0.005 * sin(elapsed * 0.37 + 0.3)
+        let breathing = 0.010 * sin(motionElapsed * 0.23) + 0.006 * sin(motionElapsed * 0.13 + 0.9)
+        let edgeBreathing = 0.012 * sin(motionElapsed * 0.19 + 1.4) + 0.005 * sin(motionElapsed * 0.37 + 0.3)
         let coreStability = 1 - min(0.025, abs(breathing) * 0.16)
         var uniforms = ParticleCoreFrameUniforms(
-            time: elapsed,
+            time: motionElapsed,
             breathing: breathing,
             edgeBreathing: edgeBreathing,
             coreStability: coreStability,
@@ -118,7 +121,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         if !didLogDraw {
             let aspect = max(resolution.x / max(resolution.y, 1), 1)
             let bounds = model.clipBounds(aspect: aspect, breathing: 1 + breathing)
-            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) globalBreathingRef=\(breathing) edgeBreathingRef=\(edgeBreathing) coreStability=\(coreStability) motion=coherent_3d_volumetric_cloud_flow_reduced_rigid_rotation particleColor=(three_stage_back_front_ion_ridge,back=0.30...0.35,front=0.95...0.98,density_front_gated,no_random_brightness) pointSize=cohesive_body_bound_structure ionCluster=cloud_driven_rolling_ridge cloudDensity=internal_eddy_migration structure=body_envelope_spine_density_sections")
+            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) globalBreathingRef=\(breathing) edgeBreathingRef=\(edgeBreathing) coreStability=\(coreStability) motion=coherent_3d_volumetric_cloud_flow_reduced_rigid_rotation speedScale=\(speedScale) speedRange=0.10...0.30 particleColor=(three_stage_back_front_ion_ridge,back=0.30...0.35,front=0.95...0.98,density_front_gated,no_random_brightness) pointSize=cohesive_body_bound_structure ionCluster=cloud_driven_rolling_ridge cloudDensity=internal_eddy_migration structure=body_envelope_spine_density_sections")
         }
 
         encoder.setRenderPipelineState(pipelineState)
