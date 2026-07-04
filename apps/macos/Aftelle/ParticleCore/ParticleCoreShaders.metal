@@ -286,17 +286,17 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float d = distance(pointCoord, float2(0.5, 0.5));
     float core = 1.0 - smoothstep(0.08, 0.28, d);
     float halo = 1.0 - smoothstep(0.14, 0.52, d);
-    float front = smoothstep(-0.46, 0.66, in.depth);
+    float depthLight = smoothstep(-0.44, 0.64, in.depth);
     float ridge = saturate(in.ridge);
     float density = saturate(in.density);
     float densityLight = smoothstep(0.10, 0.92, density);
-    float glow = saturate(front * 0.58 + densityLight * (0.20 + front * 0.22) + ridge * (0.08 + front * 0.14) + in.flow * 0.04);
-    float alpha = halo * (0.045 + densityLight * 0.17) + core * (0.12 + densityLight * 0.55);
-    alpha *= mix(0.28, 1.08, front);
+    float coverage = saturate(0.18 + depthLight * 0.44 + densityLight * 0.24 + depthLight * densityLight * 0.20);
+    float highlight = saturate(depthLight * (0.42 + densityLight * 0.35) + densityLight * 0.18 + ridge * depthLight * 0.12);
+    float alpha = halo * coverage * 0.32 + core * coverage;
     half3 back = half3(0.26, 0.29, 0.32);
-    half3 frontBase = half3(0.70, 0.73, 0.75);
-    half3 dim = mix(back, frontBase, half(front));
+    half3 frontBase = half3(0.80, 0.83, 0.85);
+    half3 dim = mix(back, frontBase, half(depthLight));
     half3 bright = half3(0.96, 0.97, 0.98);
-    half3 color = mix(dim, bright, half(glow * (0.22 + densityLight * 0.50 + front * 0.28)));
+    half3 color = mix(dim, bright, half(highlight));
     return half4(color, half(alpha));
 }
