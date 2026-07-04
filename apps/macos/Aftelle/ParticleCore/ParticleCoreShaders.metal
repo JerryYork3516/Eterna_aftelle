@@ -182,8 +182,8 @@ float3 volumetricCloudFlowField(float3 body,
     float broadRoll = sin(travel * 2.6 + body.z * 4.8 - time * 0.82 + globalWave * 1.1);
     float innerCurl = cos(cross * 3.8 - body.z * 4.4 + time * 0.68 + phase * 0.18);
     float pocketDrift = sin((travel - cross) * 2.2 + body.z * 5.6 - time * 0.52 + phase * 0.12);
-    float cloudWeight = interior * 1.64 + midBand * 1.46 + edge * 0.42;
-    float strength = 0.014 + cloudWeight * 0.034;
+    float cloudWeight = interior * 1.32 + midBand * 1.22 + edge * 0.38;
+    float strength = 0.012 + cloudWeight * 0.028;
     float2 curlXY = axis * innerCurl + side * broadRoll;
     float3 roll = float3(curlXY.x, curlXY.y, pocketDrift * 0.74 - broadRoll * 0.22);
     float3 drift = float3(axis.x, axis.y, 0.24) * sin(cross * 2.1 + body.z * 3.6 - time * 0.44 + globalWave);
@@ -282,7 +282,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     p += turnedSide * dot(p, turnedAxis) * sail * (0.014 + midBand * 0.014 + edge * 0.010);
     float screenCloudRoll = sin(dot(p, turnedAxis) * 3.2 + body.z * 4.4 - fieldTime * 0.86 + globalWave);
     float screenCloudCurl = cos(dot(p, turnedSide) * 3.6 - body.z * 5.0 + fieldTime * 0.72 + phaseB * 0.10);
-    float screenCloudStrength = interior * 0.052 + midBand * 0.044 + edge * 0.012;
+    float screenCloudStrength = interior * 0.034 + midBand * 0.032 + edge * 0.010;
     p += (turnedAxis * screenCloudCurl + turnedSide * screenCloudRoll) * screenCloudStrength;
     p += normalize(p + float2(0.001, 0.001)) * screenCloudRoll * (interior * 0.016 + midBand * 0.014);
     p += turnedAxis * sin(fieldTime * 0.33 + 0.4) * 0.018
@@ -305,33 +305,76 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float cloudDensity = saturate((cloudPatchA * 0.58 + cloudPatchB * 0.42)
         * (0.44 + interior * 0.56 + midBand * 0.46 + edge * 0.12)
         * (0.62 + cloudPocket * 0.38));
+    float frontIonGate = smoothstep(-0.18, 0.56, visibleDepth);
+    float structureAngle = atan2(flowedBody.y, flowedBody.x);
+    float sectionA = 0.5 + 0.5 * sin(structureAngle * 2.4 + flowedBody.z * 3.2 - fieldTime * 0.24 + morph);
+    float sectionB = 0.5 + 0.5 * cos(animatedTravel * 2.1 - animatedCross * 1.7 + flowedBody.z * 3.8 + fieldTime * 0.30);
+    float sectionC = 0.5 + 0.5 * sin(animatedCross * 2.7 + flowedBody.z * 2.8 - fieldTime * 0.40 + phaseB * 0.08);
+    float denseSection = smoothstep(0.46, 0.84, sectionA * 0.36 + sectionB * 0.30 + cloudDensity * 0.50);
+    float sparseCavity = smoothstep(0.62, 0.94, (1.0 - sectionC) * 0.46 + (1.0 - cloudDensity) * 0.38)
+        * (interior * 0.36 + midBand * 0.24);
+    float spineSheetA = smoothstep(0.66, 0.98, 0.5 + 0.5 * sin(animatedTravel * 4.4 - flowedBody.z * 5.0 - fieldTime * 0.74 + globalWave));
+    float spineSheetB = smoothstep(0.62, 0.96, 0.5 + 0.5 * cos(animatedCross * 5.2 + flowedBody.z * 3.7 + fieldTime * 0.52 + morph));
+    float structuralSpine = saturate(spineSheetA * 0.56 + spineSheetB * 0.44)
+        * frontIonGate
+        * (0.28 + denseSection * 0.34 + cloudDensity * 0.30 + midBand * 0.20);
     float ridgeWave = 0.5 + 0.5 * sin(animatedTravel * 6.3 + flowedBody.z * 5.2 - fieldTime * 0.92 + morph * 1.25);
     float ridgeSheet = 0.5 + 0.5 * sin(animatedCross * 4.8 - flowedBody.z * 4.4 + fieldTime * 0.64 + globalWave * 0.85 + phaseB * 0.16);
     float ridgeFlow = smoothstep(0.54, 0.95, ridgeWave) * smoothstep(0.22, 0.88, ridgeSheet);
     float densityFlow = smoothstep(0.42, 0.91, 0.5 + 0.5 * sin(animatedTravel * 7.1 - animatedCross * 2.5 + flowedBody.z * 3.6 - fieldTime * 0.78 + globalWave));
     float densitySheet = 0.5 + 0.5 * cos(animatedCross * 4.2 - animatedTravel * 1.1 + flowedBody.z * 3.2 + fieldTime * 0.48 + globalWave * 0.7);
-    float dynamicDensity = saturate(densityFlow * 0.24 + smoothstep(0.40, 0.92, densitySheet) * 0.24 + cloudDensity * 0.76);
-    float frontIonGate = smoothstep(-0.18, 0.56, visibleDepth);
+    float dynamicDensity = saturate(densityFlow * 0.20
+        + smoothstep(0.40, 0.92, densitySheet) * 0.20
+        + cloudDensity * 0.60
+        + denseSection * 0.24
+        - sparseCavity * 0.14);
     float ionThreadA = smoothstep(0.66, 0.98, 0.5 + 0.5 * sin(animatedTravel * 8.2 + animatedCross * 1.7 + flowedBody.z * 4.4 - fieldTime * 1.06 + morph));
     float ionThreadB = smoothstep(0.70, 0.99, 0.5 + 0.5 * cos(animatedCross * 7.4 - animatedTravel * 2.2 + flowedBody.z * 5.8 + fieldTime * 0.74 + globalWave));
-    float ionCluster = saturate(ionThreadA * 0.38 + ionThreadB * 0.28 + cloudDensity * 0.56) * frontIonGate * (0.36 + midBand * 0.40 + edge * 0.20);
-    float layerDensity = saturate(dynamicDensity * (0.22 + interior * 0.34 + midBand * 0.46 + edge * 0.10) + ridgeFlow * 0.14 + ionCluster * 0.24 + cloudDensity * 0.34);
-    float localRidge = saturate(ridge * 0.24 + ridgeFlow * 0.24 + layerDensity * (0.22 + midBand * 0.14) + edge * ridgeFlow * 0.06 + ionCluster * 0.38 + cloudDensity * 0.16);
+    float ionCluster = saturate(ionThreadA * 0.30 + ionThreadB * 0.22 + cloudDensity * 0.44 + structuralSpine * 0.58)
+        * frontIonGate
+        * (0.34 + midBand * 0.42 + edge * 0.18);
+    float layerDensity = saturate(dynamicDensity * (0.18 + interior * 0.30 + midBand * 0.50 + edge * 0.08)
+        + ridgeFlow * 0.10
+        + ionCluster * 0.22
+        + cloudDensity * 0.22
+        + denseSection * 0.22
+        + structuralSpine * 0.24
+        - sparseCavity * 0.16);
+    float localRidge = saturate(ridge * 0.20
+        + ridgeFlow * 0.20
+        + layerDensity * (0.18 + midBand * 0.14)
+        + edge * ridgeFlow * 0.05
+        + ionCluster * 0.34
+        + cloudDensity * 0.10
+        + structuralSpine * 0.48);
     float screenRadius = length(p);
+    float bodyEnvelope = saturate(0.42
+        + smoothstep(0.88, 0.24, screenRadius) * 0.32
+        + midBand * 0.18
+        + edge * 0.18
+        + cloudDensity * 0.10);
     float frontDepthGate = smoothstep(-0.36, 0.14, visibleDepth);
     float frontSizeLift = smoothstep(-0.34, 0.52, visibleDepth) * 0.52
         + smoothstep(0.72, 0.10, screenRadius) * frontDepthGate * 0.26;
     float sizeJitter = mix(0.82, 1.26, hash11(particleSeed * 137.0 + seedB * 41.0));
     float sizeScatter = mix(-0.16, 0.42, hash11(particleSeed * 311.0 + phaseB * 0.17));
     float backAggregationMute = mix(0.68, 1.0, frontDepthGate);
-    float pointBase = mix(1.92, 5.48, localRidge) + layerDensity * 0.56 * backAggregationMute + ionCluster * 1.18 + edge * 0.08 + frontSizeLift + sizeScatter;
+    float structureScale = mix(0.88, 1.14, saturate(denseSection * 0.50 + layerDensity * 0.50));
+    structureScale *= mix(0.88, 1.0, 1.0 - sparseCavity);
+    float pointBase = (mix(1.70, 5.70, localRidge)
+        + layerDensity * 0.68 * backAggregationMute
+        + ionCluster * 1.08
+        + structuralSpine * 1.26
+        + edge * 0.06
+        + frontSizeLift
+        + sizeScatter) * structureScale;
     float depthSize = mix(0.94, 1.20, smoothstep(-0.65, 0.75, visibleDepth));
-    out.pointSize = clamp(pointBase * sizeJitter * depthSize, 1.86 + frontSizeLift * 0.48, 7.10);
+    out.pointSize = clamp(pointBase * sizeJitter * depthSize, 1.76 + frontSizeLift * 0.42, 7.16);
     out.ridge = localRidge;
     out.depth = visibleDepth;
     out.shimmer = 0.5 + 0.5 * sin(t * (0.14 + particleSeed * 0.05) + phaseB * 0.42 + layerDensity * 1.6);
-    out.flow = saturate(ridgeFlow * 0.28 + layerDensity * 0.56 + ionCluster * 0.72 + cloudDensity * 0.44);
-    out.density = layerDensity;
+    out.flow = saturate(ridgeFlow * 0.20 + layerDensity * 0.48 + ionCluster * 0.58 + cloudDensity * 0.30 + structuralSpine * 0.66);
+    out.density = saturate(layerDensity * 0.76 + denseSection * 0.16 + structuralSpine * 0.28 + bodyEnvelope * 0.24 - sparseCavity * 0.10);
     float centerFront = smoothstep(0.76, 0.08, screenRadius) * frontDepthGate * (0.66 + layerDensity * 0.24);
     out.frontness = saturate(max(smoothstep(-0.50, 0.24, visibleDepth) * 0.86, centerFront));
     return out;

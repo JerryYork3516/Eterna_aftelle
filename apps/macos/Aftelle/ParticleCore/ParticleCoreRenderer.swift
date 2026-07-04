@@ -118,7 +118,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         if !didLogDraw {
             let aspect = max(resolution.x / max(resolution.y, 1), 1)
             let bounds = model.clipBounds(aspect: aspect, breathing: 1 + breathing)
-            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) globalBreathingRef=\(breathing) edgeBreathingRef=\(edgeBreathing) coreStability=\(coreStability) motion=coherent_3d_volumetric_cloud_flow_reduced_rigid_rotation particleColor=(three_stage_back_front_ion_ridge,back=0.30...0.35,front=0.95...0.98,density_front_gated,no_random_brightness) pointSize=front_lifted_seed_scatter ionCluster=cloud_driven_rolling_ridge cloudDensity=internal_eddy_migration")
+            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) globalBreathingRef=\(breathing) edgeBreathingRef=\(edgeBreathing) coreStability=\(coreStability) motion=coherent_3d_volumetric_cloud_flow_reduced_rigid_rotation particleColor=(three_stage_back_front_ion_ridge,back=0.30...0.35,front=0.95...0.98,density_front_gated,no_random_brightness) pointSize=cohesive_body_bound_structure ionCluster=cloud_driven_rolling_ridge cloudDensity=internal_eddy_migration structure=body_envelope_spine_density_sections")
         }
 
         encoder.setRenderPipelineState(pipelineState)
