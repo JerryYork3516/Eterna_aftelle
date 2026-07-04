@@ -107,10 +107,10 @@ float2 coherentDirectionField(float2 p,
     float fold = sin(cross * 5.5 - travel * 1.4 + time * 0.62 + depth * 2.4);
     float membrane = smoothstep(0.34, 0.72, radius);
 
-    float2 field = axis * wave * (0.018 + layer * 0.020);
-    field += side * roll * (0.010 + midBand * 0.014 + edge * 0.010);
-    field += radial * wave * (midBand * 0.012 + edge * 0.020);
-    field += tangent * fold * membrane * (0.012 + edge * 0.026 + midBand * 0.008);
+    float2 field = axis * wave * (0.018 + layer * 0.023);
+    field += side * roll * (0.010 + midBand * 0.020 + edge * 0.014);
+    field += radial * wave * (midBand * 0.018 + edge * 0.032);
+    field += tangent * fold * membrane * (0.012 + edge * 0.034 + midBand * 0.014);
     field += axis * sin(time * 0.42 + 0.6) * 0.012;
     return field;
 }
@@ -133,7 +133,7 @@ float2 localNoiseField(float2 p,
         + depth * 1.8
         + phase);
     float coupled = 0.45 + 0.55 * abs(globalWave);
-    float strength = (0.0035 + midBand * 0.0065 + edge * 0.0075 + interior * 0.0035) * coupled;
+    float strength = (0.0035 + midBand * 0.0090 + edge * 0.0125 + interior * 0.0045) * coupled;
     float2 diagonal = normalize(axis * (0.65 + seedB * 0.35) + side * (particleSeed - 0.5));
     return diagonal * detail * strength;
 }
@@ -178,9 +178,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float globalWave = globalShapeWave(p, depth, fieldTime, globalAxis, globalSide);
     float localMorph = morphField(angle, depth, fieldTime * 0.72, float(uniforms.seed) * 0.0017 + particleSeed * 0.41);
     float morph = globalWave * 0.74 + localMorph * 0.26;
-    float edgeMorph = edge * edge * (0.016 + 0.038 * edge + 0.008 * particleSeed) * morph;
-    float innerMorph = (interior * 0.85 + midBand * 0.70) * (0.0110 + 0.0180 * seedB)
-        * (globalWave * 0.72 + localMorph * 0.28);
+    float edgeMorph = edge * edge * (0.022 + 0.056 * edge + 0.012 * particleSeed) * morph;
+    float innerMorph = (interior * 0.95 + midBand * 1.05) * (0.0140 + 0.0220 * seedB)
+        * (globalWave * 0.78 + localMorph * 0.22);
     float membraneRoll = edge * (0.010 + 0.018 * seedB)
         * sin(dot(p, globalAxis) * 4.2 + dot(p, globalSide) * 1.9 - fieldTime * 0.82 + phaseB + globalWave * 0.8);
     float2 directionWarp = coherentDirectionField(p, lengthP, depth, fieldTime, edge, interior, midBand, globalAxis, globalSide, globalWave);
@@ -193,6 +193,15 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     p += innerFlow * innerMorph;
     p += directionWarp;
     p += localWarp;
+    float rim = smoothstep(0.46, 0.72, lengthP);
+    float rimFeather = rim * rim;
+    float rimWave = sin(dot(p, globalAxis) * 8.2 - dot(p, globalSide) * 3.4 - fieldTime * 1.08 + phaseB);
+    float rimScatter = rimFeather * (0.018 + 0.026 * seedB) * (0.62 + 0.38 * abs(globalWave));
+    p += radial * rimScatter * (0.55 + 0.45 * rimWave);
+    p += tangent * rimFeather * rimWave * (0.010 + 0.018 * particleSeed);
+    float centerFollow = (interior * 0.42 + midBand * 0.78)
+        * sin(dot(p, globalAxis) * 3.8 + dot(p, globalSide) * 2.6 - fieldTime * 0.74 + localPhase);
+    p += (globalAxis * centerFollow + globalSide * centerFollow * 0.45) * (0.010 + midBand * 0.016);
 
     float turnAngle = globalTurnAngle(fieldTime);
     float3 bodyAngles = float3(
@@ -200,7 +209,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         turnAngle + sin(fieldTime * 0.29 + 0.6) * 0.24,
         sin(fieldTime * 0.21 + 0.8) * 0.16
     );
-    float bodyDepth = depth * 0.42 + globalWave * (0.030 + midBand * 0.040 + edge * 0.030);
+    float bodyDepth = depth * 0.46 + globalWave * (0.038 + midBand * 0.062 + edge * 0.050) + centerFollow * 0.030;
     float3 body = float3(p.x, p.y, bodyDepth);
     body = rotateBody(body, bodyAngles);
     float perspective = clamp(1.0 / (1.0 - body.z * 0.26), 0.86, 1.18);
