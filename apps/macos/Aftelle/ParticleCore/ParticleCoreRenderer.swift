@@ -7,6 +7,8 @@ import simd
 struct ParticleCoreFrameUniforms {
     var time: Float
     var breathing: Float
+    var edgeBreathing: Float
+    var coreStability: Float
     var resolution: SIMD2<Float>
     var seed: UInt32
     var particleCount: UInt32
@@ -99,14 +101,24 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
 
         let elapsed = Float(CACurrentMediaTime() - startTime)
         let resolution = SIMD2<Float>(Float(drawableSize.width), Float(drawableSize.height))
-        let breathing = 0.018 * sin(elapsed * 1.35) + 0.01 * sin(elapsed * 0.53)
-        var uniforms = ParticleCoreFrameUniforms(time: elapsed, breathing: breathing, resolution: resolution, seed: 0xA7F13, particleCount: UInt32(model.particles.count))
+        let breathing = 0.009 * sin(elapsed * 0.44) + 0.0045 * sin(elapsed * 0.17 + 0.9)
+        let edgeBreathing = 0.011 * sin(elapsed * 0.31 + 1.4)
+        let coreStability = 1 - min(0.04, abs(breathing) * 0.22)
+        var uniforms = ParticleCoreFrameUniforms(
+            time: elapsed,
+            breathing: breathing,
+            edgeBreathing: edgeBreathing,
+            coreStability: coreStability,
+            resolution: resolution,
+            seed: 0xA7F13,
+            particleCount: UInt32(model.particles.count)
+        )
         memcpy(uniformsBuffer.contents(), &uniforms, MemoryLayout<ParticleCoreFrameUniforms>.stride)
 
         if !didLogDraw {
             let aspect = max(resolution.x / max(resolution.y, 1), 1)
             let bounds = model.clipBounds(aspect: aspect, breathing: 1 + breathing)
-            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) particleColor=(0.72...0.98,alpha=0.35...0.96)")
+            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) breathing=\(breathing) edgeBreathing=\(edgeBreathing) coreStability=\(coreStability) particleColor=(0.72...0.98,alpha=0.35...0.96)")
         }
 
         encoder.setRenderPipelineState(pipelineState)

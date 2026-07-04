@@ -27,6 +27,7 @@ struct ParticleCoreModel {
         var seed: Float
         var ridge: Float
         var depth: Float
+        var edgeWeight: Float
     }
 
     let particles: [Particle]
@@ -56,12 +57,14 @@ struct ParticleCoreModel {
             let seamA = pow(abs(sin(theta * 3.0 + z * 4.4 + depth * 2.6)), 18)
             let seamB = pow(abs(sin(theta * 5.0 - z * 3.1)), 22)
             let ridge = max(silhouette * 0.72, max(seamA, seamB) * 0.95)
+            let edgeWeight = max(0, min(1, 0.18 + abs(depth) * 0.72 + (1 - silhouette) * 0.34))
 
             values.append(Particle(
                 position: SIMD2<Float>(x, y),
                 seed: Float(generator.nextUnit()),
                 ridge: ridge,
-                depth: depth
+                depth: depth,
+                edgeWeight: edgeWeight
             ))
         }
 
