@@ -272,14 +272,19 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float dynamicDensity = saturate(densityFlow * 0.58 + smoothstep(0.40, 0.92, densitySheet) * 0.42);
     float layerDensity = saturate(dynamicDensity * (0.34 + interior * 0.34 + midBand * 0.48 + edge * 0.18) + ridgeFlow * 0.28);
     float localRidge = saturate(ridge * 0.34 + ridgeFlow * 0.42 + layerDensity * (0.34 + midBand * 0.18) + edge * ridgeFlow * 0.10);
-    out.pointSize = (mix(1.88, 5.88, localRidge) + layerDensity * 0.56 + edge * 0.16)
-        * mix(0.88, 1.16, smoothstep(-0.65, 0.75, visibleDepth));
+    float screenRadius = length(p);
+    float frontSizeLift = smoothstep(-0.34, 0.52, visibleDepth) * 0.52
+        + smoothstep(0.72, 0.10, screenRadius) * 0.26;
+    float sizeJitter = mix(0.82, 1.26, hash11(particleSeed * 137.0 + seedB * 41.0));
+    float sizeScatter = mix(-0.16, 0.42, hash11(particleSeed * 311.0 + phaseB * 0.17));
+    float pointBase = mix(2.04, 5.72, localRidge) + layerDensity * 0.68 + edge * 0.12 + frontSizeLift + sizeScatter;
+    float depthSize = mix(0.94, 1.20, smoothstep(-0.65, 0.75, visibleDepth));
+    out.pointSize = clamp(pointBase * sizeJitter * depthSize, 1.86 + frontSizeLift * 0.48, 7.10);
     out.ridge = localRidge;
     out.depth = visibleDepth;
     out.shimmer = 0.5 + 0.5 * sin(t * (0.14 + particleSeed * 0.05) + phaseB * 0.42 + layerDensity * 1.6);
     out.flow = saturate(ridgeFlow * 0.46 + layerDensity * 0.82);
     out.density = layerDensity;
-    float screenRadius = length(p);
     float centerFront = smoothstep(0.76, 0.08, screenRadius) * (0.66 + layerDensity * 0.24);
     out.frontness = saturate(max(smoothstep(-0.50, 0.24, visibleDepth) * 0.86, centerFront));
     return out;
