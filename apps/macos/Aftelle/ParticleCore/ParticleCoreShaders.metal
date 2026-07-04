@@ -30,6 +30,30 @@ float2 rotate2(float2 p, float angle) {
     return float2(p.x * c - p.y * s, p.x * s + p.y * c);
 }
 
+float3 rotateX(float3 p, float angle) {
+    float s = sin(angle);
+    float c = cos(angle);
+    return float3(p.x, p.y * c - p.z * s, p.y * s + p.z * c);
+}
+
+float3 rotateY(float3 p, float angle) {
+    float s = sin(angle);
+    float c = cos(angle);
+    return float3(p.x * c + p.z * s, p.y, -p.x * s + p.z * c);
+}
+
+float3 rotateZ(float3 p, float angle) {
+    float s = sin(angle);
+    float c = cos(angle);
+    return float3(p.x * c - p.y * s, p.x * s + p.y * c, p.z);
+}
+
+float3 rotateBody(float3 p, float3 angles) {
+    p = rotateY(p, angles.y);
+    p = rotateX(p, angles.x);
+    return rotateZ(p, angles.z);
+}
+
 float morphField(float angle, float depth, float slowTime, float seed) {
     float phase = seed * 6.2831853;
     float lobeA = 2.2 + hash11(seed * 11.7) * 1.4;
@@ -171,9 +195,18 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     p += localWarp;
 
     float turnAngle = globalTurnAngle(fieldTime);
-    float layerTurn = turnAngle * (0.82 + midBand * 0.18 + edge * 0.24 + depth * 0.045);
-    p = rotate2(p, layerTurn);
-    float2 turnedAxis = rotate2(globalAxis, turnAngle);
+    float3 bodyAngles = float3(
+        sin(fieldTime * 0.36 + 1.1) * 0.34 + sin(fieldTime * 0.17 + 2.2) * 0.16,
+        turnAngle + sin(fieldTime * 0.29 + 0.6) * 0.24,
+        sin(fieldTime * 0.21 + 0.8) * 0.16
+    );
+    float bodyDepth = depth * 0.42 + globalWave * (0.030 + midBand * 0.040 + edge * 0.030);
+    float3 body = float3(p.x, p.y, bodyDepth);
+    body = rotateBody(body, bodyAngles);
+    float perspective = clamp(1.0 / (1.0 - body.z * 0.26), 0.86, 1.18);
+    p = body.xy * perspective;
+    float3 axis3 = rotateBody(float3(globalAxis.x, globalAxis.y, 0.0), bodyAngles);
+    float2 turnedAxis = normalize(axis3.xy + float2(0.001, 0.001));
     float2 turnedSide = float2(-turnedAxis.y, turnedAxis.x);
     float stretch = sin(fieldTime * 0.58 + globalWave * 0.65);
     float sail = cos(fieldTime * 0.46 + dot(p, turnedSide) * 2.8);
@@ -189,14 +222,16 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     out.position = float4(clip, 0.0, 1.0);
     float animatedTravel = dot(p, turnedAxis);
     float animatedCross = dot(p, turnedSide);
+    float visibleDepth = clamp(body.z * 1.55, -1.0, 1.0);
     float ridgeWave = 0.5 + 0.5 * sin(animatedTravel * 6.0 + animatedCross * 1.8 - fieldTime * 0.96 + depth * 2.2 + localPhase * 0.18 + morph * 1.1);
     float ridgeFlow = smoothstep(0.56, 0.96, ridgeWave) * ridge;
     float densityFlow = smoothstep(0.46, 0.92, 0.5 + 0.5 * sin(animatedTravel * 7.4 - animatedCross * 2.6 - fieldTime * 0.82 + phaseB + globalWave * 0.9));
     float localRidge = saturate(ridge * 0.70 + ridgeFlow * 0.38 + densityFlow * midBand * 0.18 + edge * ridge * 0.10);
     float pointSizePhase = sin(t * (0.21 + seedB * 0.07) + phaseB + shellLayer);
-    out.pointSize = mix(2.04, 6.04, localRidge) + edge * 0.22 + pointSizePhase * (0.055 + 0.075 * localRidge);
+    out.pointSize = (mix(2.04, 6.04, localRidge) + edge * 0.22 + pointSizePhase * (0.055 + 0.075 * localRidge))
+        * mix(0.88, 1.16, smoothstep(-0.65, 0.75, visibleDepth));
     out.ridge = localRidge;
-    out.depth = depth;
+    out.depth = visibleDepth;
     out.shimmer = 0.5 + 0.5 * sin(t * (0.18 + particleSeed * 0.10) + phaseB + angle * 0.45);
     out.flow = saturate(ridgeFlow + densityFlow * (interior * 0.20 + midBand * 0.28));
     return out;
