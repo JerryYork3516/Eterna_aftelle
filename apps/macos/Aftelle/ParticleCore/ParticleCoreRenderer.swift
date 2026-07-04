@@ -101,9 +101,9 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
 
         let elapsed = Float(CACurrentMediaTime() - startTime)
         let resolution = SIMD2<Float>(Float(drawableSize.width), Float(drawableSize.height))
-        let breathing = 0.009 * sin(elapsed * 0.44) + 0.0045 * sin(elapsed * 0.17 + 0.9)
-        let edgeBreathing = 0.011 * sin(elapsed * 0.31 + 1.4)
-        let coreStability = 1 - min(0.04, abs(breathing) * 0.22)
+        let breathing = 0.010 * sin(elapsed * 0.23) + 0.006 * sin(elapsed * 0.13 + 0.9)
+        let edgeBreathing = 0.012 * sin(elapsed * 0.19 + 1.4) + 0.005 * sin(elapsed * 0.37 + 0.3)
+        let coreStability = 1 - min(0.025, abs(breathing) * 0.16)
         var uniforms = ParticleCoreFrameUniforms(
             time: elapsed,
             breathing: breathing,
@@ -118,7 +118,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         if !didLogDraw {
             let aspect = max(resolution.x / max(resolution.y, 1), 1)
             let bounds = model.clipBounds(aspect: aspect, breathing: 1 + breathing)
-            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) breathing=\(breathing) edgeBreathing=\(edgeBreathing) coreStability=\(coreStability) particleColor=(0.72...0.98,alpha=0.35...0.96)")
+            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) globalBreathingRef=\(breathing) edgeBreathingRef=\(edgeBreathing) coreStability=\(coreStability) motion=local_async_microflow particleColor=(0.72...0.98,alpha=0.32...0.88)")
         }
 
         encoder.setRenderPipelineState(pipelineState)
