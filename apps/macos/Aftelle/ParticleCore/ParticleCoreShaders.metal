@@ -19,6 +19,7 @@ struct ParticleVertexOut {
     float shimmer;
     float flow;
     float density;
+    float frontness;
 };
 
 float hash11(float n) {
@@ -278,6 +279,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     out.shimmer = 0.5 + 0.5 * sin(t * (0.14 + particleSeed * 0.05) + phaseB * 0.42 + layerDensity * 1.6);
     out.flow = saturate(ridgeFlow * 0.46 + layerDensity * 0.82);
     out.density = layerDensity;
+    float screenRadius = length(p);
+    float centerFront = smoothstep(0.76, 0.08, screenRadius) * (0.66 + layerDensity * 0.24);
+    out.frontness = saturate(max(smoothstep(-0.50, 0.24, visibleDepth) * 0.86, centerFront));
     return out;
 }
 
@@ -286,15 +290,16 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float d = distance(pointCoord, float2(0.5, 0.5));
     float core = 1.0 - smoothstep(0.08, 0.28, d);
     float halo = 1.0 - smoothstep(0.14, 0.52, d);
-    float depthLight = smoothstep(-0.34, 0.48, in.depth);
+    float depthLight = saturate(in.frontness);
+    float frontLight = smoothstep(0.42, 0.88, in.frontness);
     float ridge = saturate(in.ridge);
     float density = saturate(in.density);
     float densityLight = smoothstep(0.10, 0.92, density);
-    float coverage = saturate(0.18 + depthLight * 0.54 + densityLight * 0.24 + depthLight * densityLight * 0.22);
-    float highlight = saturate(depthLight * (0.56 + densityLight * 0.34) + densityLight * 0.16 + ridge * depthLight * 0.12);
-    float alpha = halo * coverage * 0.32 + core * coverage;
+    float coverage = saturate(0.10 + depthLight * 0.76 + densityLight * 0.10 + frontLight * densityLight * 0.26);
+    float highlight = saturate(frontLight * 0.92 + depthLight * densityLight * 0.18 + ridge * frontLight * 0.06);
+    float alpha = saturate(halo * coverage * 0.44 + core * coverage * 1.08);
     half3 back = half3(0.26, 0.29, 0.32);
-    half3 frontBase = half3(0.88, 0.90, 0.91);
+    half3 frontBase = half3(0.95, 0.96, 0.97);
     half3 dim = mix(back, frontBase, half(depthLight));
     half3 bright = half3(0.96, 0.97, 0.98);
     half3 color = mix(dim, bright, half(highlight));
