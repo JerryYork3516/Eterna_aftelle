@@ -273,11 +273,13 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float layerDensity = saturate(dynamicDensity * (0.34 + interior * 0.34 + midBand * 0.48 + edge * 0.18) + ridgeFlow * 0.28);
     float localRidge = saturate(ridge * 0.34 + ridgeFlow * 0.42 + layerDensity * (0.34 + midBand * 0.18) + edge * ridgeFlow * 0.10);
     float screenRadius = length(p);
+    float frontDepthGate = smoothstep(-0.36, 0.14, visibleDepth);
     float frontSizeLift = smoothstep(-0.34, 0.52, visibleDepth) * 0.52
-        + smoothstep(0.72, 0.10, screenRadius) * 0.26;
+        + smoothstep(0.72, 0.10, screenRadius) * frontDepthGate * 0.26;
     float sizeJitter = mix(0.82, 1.26, hash11(particleSeed * 137.0 + seedB * 41.0));
     float sizeScatter = mix(-0.16, 0.42, hash11(particleSeed * 311.0 + phaseB * 0.17));
-    float pointBase = mix(2.04, 5.72, localRidge) + layerDensity * 0.68 + edge * 0.12 + frontSizeLift + sizeScatter;
+    float backAggregationMute = mix(0.58, 1.0, frontDepthGate);
+    float pointBase = mix(2.04, 5.72, localRidge) + layerDensity * 0.68 * backAggregationMute + edge * 0.12 + frontSizeLift + sizeScatter;
     float depthSize = mix(0.94, 1.20, smoothstep(-0.65, 0.75, visibleDepth));
     out.pointSize = clamp(pointBase * sizeJitter * depthSize, 1.86 + frontSizeLift * 0.48, 7.10);
     out.ridge = localRidge;
@@ -285,7 +287,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     out.shimmer = 0.5 + 0.5 * sin(t * (0.14 + particleSeed * 0.05) + phaseB * 0.42 + layerDensity * 1.6);
     out.flow = saturate(ridgeFlow * 0.46 + layerDensity * 0.82);
     out.density = layerDensity;
-    float centerFront = smoothstep(0.76, 0.08, screenRadius) * (0.66 + layerDensity * 0.24);
+    float centerFront = smoothstep(0.76, 0.08, screenRadius) * frontDepthGate * (0.66 + layerDensity * 0.24);
     out.frontness = saturate(max(smoothstep(-0.50, 0.24, visibleDepth) * 0.86, centerFront));
     return out;
 }
@@ -300,10 +302,12 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float ridge = saturate(in.ridge);
     float density = saturate(in.density);
     float densityLight = smoothstep(0.10, 0.92, density);
-    float coverage = saturate(0.10 + depthLight * 0.76 + densityLight * 0.10 + frontLight * densityLight * 0.26);
-    float highlight = saturate(frontLight * 0.92 + depthLight * densityLight * 0.18 + ridge * frontLight * 0.06);
-    float alpha = saturate(halo * coverage * 0.44 + core * coverage * 1.08);
-    half3 back = half3(0.26, 0.29, 0.32);
+    float backMute = mix(0.42, 1.0, smoothstep(-0.42, 0.08, in.depth));
+    float densityFront = densityLight * (frontLight * 0.28 + depthLight * 0.08);
+    float coverage = saturate(0.055 + depthLight * 0.80 + densityFront);
+    float highlight = saturate(frontLight * 0.92 + densityLight * frontLight * 0.20 + ridge * frontLight * 0.08);
+    float alpha = saturate(halo * coverage * 0.44 + core * coverage * 1.08) * backMute;
+    half3 back = half3(0.16, 0.18, 0.21);
     half3 frontBase = half3(0.95, 0.96, 0.97);
     half3 dim = mix(back, frontBase, half(depthLight));
     half3 bright = half3(0.96, 0.97, 0.98);

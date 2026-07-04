@@ -118,7 +118,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         if !didLogDraw {
             let aspect = max(resolution.x / max(resolution.y, 1), 1)
             let bounds = model.clipBounds(aspect: aspect, breathing: 1 + breathing)
-            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) globalBreathingRef=\(breathing) edgeBreathingRef=\(edgeBreathing) coreStability=\(coreStability) motion=coherent_3d_material_flow_depth_locked_lighting particleColor=(back=0.26...0.32,front=0.95...0.98,density_coverage,no_random_brightness) pointSize=front_lifted_seed_scatter")
+            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) globalBreathingRef=\(breathing) edgeBreathingRef=\(edgeBreathing) coreStability=\(coreStability) motion=coherent_3d_material_flow_depth_locked_lighting particleColor=(back=0.16...0.21 depth_muted,front=0.95...0.98,density_front_gated,no_random_brightness) pointSize=front_lifted_seed_scatter")
         }
 
         encoder.setRenderPipelineState(pipelineState)
