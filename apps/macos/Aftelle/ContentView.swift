@@ -8,6 +8,7 @@ struct ContentView: View {
     @State private var particleColorProfile = ParticleCoreColorProfile.loadSaved() ?? .systemDefault
     #if DEBUG
     @State private var showsParticleDebug = false
+    @State private var debugSubtitleKeyMonitor: Any?
     #endif
 
     var body: some View {
@@ -22,6 +23,9 @@ struct ContentView: View {
             )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .ignoresSafeArea()
+
+            ParticleSubtitleOverlay(state: controller.particleSubtitleState)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             #if DEBUG
             debugButton
@@ -38,6 +42,14 @@ struct ContentView: View {
             guard !ParticleCoreColorProfile.hasSavedProfile() else { return }
             particleColorProfile = newValue
         }
+        #if DEBUG
+        .onAppear {
+            installDebugSubtitleKeyMonitor()
+        }
+        .onDisappear {
+            removeDebugSubtitleKeyMonitor()
+        }
+        #endif
     }
 
     #if DEBUG
@@ -80,7 +92,75 @@ struct ContentView: View {
             particleColorProfile = controller.particleColorProfile
         }
     }
+
+    private func installDebugSubtitleKeyMonitor() {
+        guard debugSubtitleKeyMonitor == nil else { return }
+        debugSubtitleKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            guard event.modifierFlags.intersection([.command, .control, .option]).isEmpty,
+                  (event.window?.firstResponder as? NSTextView) == nil,
+                  let key = event.charactersIgnoringModifiers?.lowercased() else {
+                return event
+            }
+
+            switch key {
+            case "c":
+                controller.showDebugSubtitle()
+                return nil
+            case "v":
+                controller.showNextDebugSubtitle()
+                return nil
+            case "b":
+                controller.hideDebugSubtitle()
+                return nil
+            default:
+                return event
+            }
+        }
+    }
+
+    private func removeDebugSubtitleKeyMonitor() {
+        if let debugSubtitleKeyMonitor {
+            NSEvent.removeMonitor(debugSubtitleKeyMonitor)
+            self.debugSubtitleKeyMonitor = nil
+        }
+    }
     #endif
+}
+
+private struct ParticleSubtitleOverlay: View {
+    let state: ParticleSubtitleState
+
+    var body: some View {
+        GeometryReader { proxy in
+            VStack {
+                Spacer()
+
+                if !state.text.isEmpty {
+                    Text(state.text)
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundStyle(Color.white.opacity(0.78))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.86)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: max(240, proxy.size.width * 0.62))
+                        .shadow(color: .black.opacity(0.36), radius: 8, x: 0, y: 2)
+                        .opacity(state.phase == .fading ? 0 : 1)
+                        .transition(.opacity)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, 28)
+            .padding(.bottom, bottomPadding(for: proxy.size.height))
+        }
+        .animation(.easeInOut(duration: 0.28), value: state)
+        .allowsHitTesting(false)
+        .accessibilityHidden(state.text.isEmpty)
+    }
+
+    private func bottomPadding(for height: CGFloat) -> CGFloat {
+        min(max(height * 0.10, 44), 96)
+    }
 }
 
 #if DEBUG

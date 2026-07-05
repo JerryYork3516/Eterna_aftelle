@@ -105,6 +105,7 @@
 - 2026-07-05 — Stage 7.3 鼠标外部扰动场恢复 — `ParticleCoreMetalView` 只传鼠标归一化位置 / 速度,`ParticleCoreRenderer` 做 low-pass 平滑,`ParticleCoreShaders` 实现 radial push + small tangential swirl;中心几乎不动,中层轻微,边缘最明显。鼠标不作为 UI hover / click / follow / attract 状态,也不改变整体旋转方向。未改 RuntimeCore / Runtime API / DR schema / Provider / 平台 target。
 - 2026-07-05 — Stage 7.3.9 DR 粒子颜色导入检查 PASS — Debug DR 导入入口、沙盒文件读取 entitlement、`lattice_config.color_palette` 读取、ParticleCore color profile 映射与 Metal uniform 传递链路已检查;`docs/Freezev03.digital_resident` 与内置 `Freezev03.calibration_fixture.json` 同为 `schema_canvas` 且颜色板均为 `["#7aa2f7","#5dd39e","#f2a65a"]`,因此导入该 docs DR 不会产生明显切换感。7.3.9 未改 DR schema / Runtime API / RuntimeCore / Provider / TTS / 平台 target,允许进入 Stage 7.3.10。
 - 2026-07-05 — Stage 7.3.10 Avatar State → particle_core visual state 绑定完成 — 在 macOS Aftelle app layer 增加本地 `AppParticleVisualStateMapper`,消费现有 Runtime `visualState.mode`、`AppAvatarState`、`AppResidentState`、启动/运行状态并输出 `ParticleCoreVisualState`;`ContentView` 将最终状态传入 `ParticleCoreMetalView`,renderer 仍只接收最终 visual state,Debug 快捷键仍为本地 renderer override。未改 RuntimeCore / Runtime API / DR schema / Provider / TTS / shader / pipeline / buffer / 平台 target。
+- 2026-07-05 — Stage 7.3.11 particle_core 字幕基础框架完成 — 在 macOS Aftelle App 层新增 `ParticleSubtitleState` 本地字幕状态,`ContentView` 以 SwiftUI overlay 在 particle_core 下方显示 1–2 行电影式灰白字幕;Debug-only C/V/B 用本地测试字幕验证显示 / 切换 / 淡出隐藏。未改 RuntimeCore / Runtime API / DR schema / Provider / TTS / ParticleCore renderer / shader / pipeline / buffer / 平台 target。
 
 ---
 

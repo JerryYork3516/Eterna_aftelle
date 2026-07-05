@@ -38,3 +38,6 @@
 "particleDebug.color.highlightGreen" = "高光 绿";
 "particleDebug.color.highlightBlue" = "高光 蓝";
 "particleDebug.color.alphaScale" = "颜色透明度";
+"particleSubtitle.test.0" = "I am here.";
+"particleSubtitle.test.1" = "Still thinking.";
+"particleSubtitle.test.2" = "The signal is quiet.";

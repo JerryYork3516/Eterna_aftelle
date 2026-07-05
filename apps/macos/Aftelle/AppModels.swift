@@ -14,6 +14,24 @@ public enum AppRuntimeState: Equatable {
     case interrupted
 }
 
+public enum ParticleSubtitlePhase: Equatable {
+    case hidden
+    case showing
+    case fading
+}
+
+public struct ParticleSubtitleState: Equatable {
+    public var text: String
+    public var phase: ParticleSubtitlePhase
+
+    public static let hidden = ParticleSubtitleState(text: "", phase: .hidden)
+
+    public init(text: String = "", phase: ParticleSubtitlePhase = .hidden) {
+        self.text = text
+        self.phase = text.isEmpty ? .hidden : phase
+    }
+}
+
 struct AppParticleVisualStateMapper {
     static func map(
         visualStateMode: String? = nil,

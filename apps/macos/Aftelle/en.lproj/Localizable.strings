@@ -38,3 +38,6 @@
 "particleDebug.color.highlightGreen" = "Highlight Green";
 "particleDebug.color.highlightBlue" = "Highlight Blue";
 "particleDebug.color.alphaScale" = "Color Alpha";
+"particleSubtitle.test.0" = "I am here.";
+"particleSubtitle.test.1" = "Still thinking.";
+"particleSubtitle.test.2" = "The signal is quiet.";

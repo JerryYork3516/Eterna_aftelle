@@ -18,11 +18,20 @@ final class AppController: ObservableObject {
     @Published private(set) var runtimeState: AppRuntimeState = .idle
     @Published private(set) var particleVisualState: ParticleCoreVisualState = .idle
     @Published private(set) var particleColorProfile = ParticleCoreColorProfile.systemDefault
+    @Published private(set) var particleSubtitleState = ParticleSubtitleState.hidden
 
     private let orchestrationKernel: OrchestrationKernel
     private var loadedResidentID = ""
     private var loadedSessionID = ""
     private var dialogueEntries: [AppDialogueEntryState] = []
+    #if DEBUG
+    private let debugSubtitleKeys = [
+        "particleSubtitle.test.0",
+        "particleSubtitle.test.1",
+        "particleSubtitle.test.2"
+    ]
+    private var debugSubtitleIndex = 0
+    #endif
 
     init() {
         self.orchestrationKernel = OrchestrationKernel()
@@ -104,6 +113,30 @@ final class AppController: ObservableObject {
     }
 
     #if DEBUG
+    func showDebugSubtitle() {
+        showDebugSubtitle(at: debugSubtitleIndex)
+    }
+
+    func showNextDebugSubtitle() {
+        debugSubtitleIndex = (debugSubtitleIndex + 1) % debugSubtitleKeys.count
+        showDebugSubtitle(at: debugSubtitleIndex)
+    }
+
+    func hideDebugSubtitle() {
+        guard !particleSubtitleState.text.isEmpty else {
+            particleSubtitleState = .hidden
+            return
+        }
+        let fadingText = particleSubtitleState.text
+        particleSubtitleState = ParticleSubtitleState(text: fadingText, phase: .fading)
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 280_000_000)
+            if particleSubtitleState.phase == .fading, particleSubtitleState.text == fadingText {
+                particleSubtitleState = .hidden
+            }
+        }
+    }
+
     func debugImportResident(from url: URL) {
         startupState = .loading
         refreshParticleVisualState()
@@ -121,6 +154,14 @@ final class AppController: ObservableObject {
 
         let result = orchestrationKernel.loadResident(fixtureData: drData)
         applyLoadResult(result, drData: drData, sourceLabel: "Debug DR")
+    }
+
+    private func showDebugSubtitle(at index: Int) {
+        let key = debugSubtitleKeys[index]
+        particleSubtitleState = ParticleSubtitleState(
+            text: String(localized: String.LocalizationValue(key)),
+            phase: .showing
+        )
     }
     #endif
 
