@@ -1,8 +1,8 @@
-# Aftelle Desktop · 产品设计 · Stage 7 · v5
+# Aftelle Desktop · 产品设计 · Stage 7 · v8
 
-> 产品形态、界面、交互设计。描述"用户看到什么、怎么用"。与03_dev_plan.md v5、02_architecture.md v5 配套。
-> 阶段编号统一以03_dev_plan.md v5(7.1→7.11)为准;Stage 7 MVP = 7.1–7.5 单居民闭环,7.6–7.11 为 Extended Demo。
-> v5 变更:统一 Stage 7 MVP/Extended 范围,保留 `aftelle_runtime_boundary.md` 的 content-agnostic、记忆边界与诚实性边界。
+> 产品形态、界面、交互设计。描述"用户看到什么、怎么用"。与03_dev_plan.md v8、02_architecture.md v8 配套。
+> 阶段编号统一以03_dev_plan.md v8(7.1→7.12)为准;Stage 7 MVP = 7.1–7.5 单居民闭环,7.6–7.12 为 Extended Demo。
+> v8 变更:7.5 增加 Voice Input MVP;7.11 改为 Demo Readiness Polish;新增 7.12 Demo Lock。完整语音交流系统后移,不进入 Stage 7。
 
 ## 一句话定位
 
@@ -26,6 +26,12 @@ Aftelle 是 `.digital_resident` 数字居民文件的桌面运行容器。
 10. 为后续双居民交互预留接口
 
 **重点:** 第七阶段主线仍是单居民运行体验,双居民交互设计保留,但放在后半段(见03_dev_plan.md 7.7/7.8)。
+
+### Voice Input MVP 产品定义
+
+Stage 7.5 的语音输入只是输入方式:用户点击或按住录音,Aftelle 显示麦克风权限与录音状态,录音转写为文字后进入现有文字输入 / Runtime step 链路。用户体验上它像"把一句话说进输入框",不是完整语音交流系统。
+
+失败时必须能回到文字输入;不得因为转写失败阻断主对话链路。完整实时双向语音、唤醒词、后台监听、streaming ASR / TTS、VAD、声纹识别后移到 Stage 8+ 或独立阶段评审。
 
 ---
 
@@ -54,7 +60,7 @@ Aftelle 是 `.digital_resident` 数字居民文件的桌面运行容器。
 用户导入 `.digital_resident` 后:
 ```
 Aftelle Shell 暂停呼吸 → 粒子向中心坍缩 → 校验 DR 文件
-→ 读取身份/颜色/外观/运行策略 → 圆形点阵重组成该居民的圆形/抽象粒子生命体(人形粒子放 Stage7.10 预留或 Stage 8,见03_dev_plan.md 7.3)
+→ 读取身份/颜色/外观/运行策略 → 圆形点阵重组成该居民的圆形/抽象粒子生命体
 → 形成第一个正式数字居民
 ```
 
@@ -64,6 +70,31 @@ Aftelle Shell 暂停呼吸 → 粒子向中心坍缩 → 校验 DR 文件
 - 主居民颜色优先用文件内置颜色;文件无颜色则默认金色/暖白
 
 这里的"主"不是人格等级,而是**当前交互焦点**。
+
+---
+
+## 3.1 抽象半身粒子 Avatar
+
+**抽象半身粒子 Avatar(Abstract Bust Avatar)** 是在粒子生命体基础上增加抽象头部、发型、五官、肩颈和上胸轮廓,用于增强数字居民活人感与人格识别,但不是写实数字人系统。
+
+Stage 7 节奏:
+- 7.3 只做 `particle_core` 默认形态、`avatar_mode: particle_core / abstract_bust` 本地 UI / 渲染层预留、渲染切换接口和字幕基础。
+- 7.4 承接抽象半身人格轮廓设计:抽象头部、发型、五官、肩颈、上胸,以及 masculine / feminine / neutral 视觉气质 preset。
+- 7.5 承接 speaking 时的嘴部粒子脉冲 / 轻量口部同步。
+
+允许范围:
+- 圆形粒子形态与抽象半身形态自由切换。
+- idle / thinking / speaking / sleeping / error 五种状态表现。
+- 情绪驱动眉眼嘴轻微变化,但情绪来源必须是 RuntimeCore 返回的 `visual_state` / `resident_state`。
+- speaking 时嘴部粒子脉冲。
+- Debug Panel 可显示 `avatar_mode` / `visual_state`。
+
+禁止范围:
+- 写实人脸、真实皮肤材质、完整身体。
+- 骨骼系统、Blendshape、精准 lip sync、viseme。
+- 牙齿、舌头、真实口腔、服装系统。
+- Avatar 编辑器、ARKit / RealityKit 正式身体、3D 数字人系统。
+- Aftelle 推理人格或情绪、修改 DR schema、修改 Runtime API、直连 TTS Provider。
 
 ---
 
@@ -82,7 +113,7 @@ Aftelle Shell 暂停呼吸 → 粒子向中心坍缩 → 校验 DR 文件
 
 ## 5. 双居民交互(跟随03_dev_plan.md,放在后半段)
 
-双居民设计保留,但属于 Stage 7 Extended Demo,不作为 7.1–7.5 单居民 MVP 的第一优先级。落地节奏**以03_dev_plan.md v5 为准**:
+双居民设计保留,但属于 Stage 7 Extended Demo,不作为 7.1–7.5 单居民 MVP 的第一优先级。落地节奏**以03_dev_plan.md v8 为准**:
 
 - **7.7 本地双居民导入与主次切换**:支持导入第二个居民、按导入顺序生成主次、主次手动切换、用户指定某居民回答
 - **7.8 编排系统双居民调度**:Speaker Selector、单居民/补充/轮流/合并模式、调度原因写入 Trace
@@ -115,7 +146,7 @@ Aftelle Shell 暂停呼吸 → 粒子向中心坍缩 → 校验 DR 文件
 不要做普通聊天软件。建议:
 - 底部:电影式字幕
 - 底部隐藏:文字输入框
-- 文字输入为主;语音输入 Stage 7 只预留(长按或快捷键),不作为必做
+- 文字输入为主;7.5 做最小录音转文字入口(点击 / 按住),转写后仍进入现有文字输入 / Runtime step 链路
 - 右上角:运行状态
 - 右侧:设置抽屉
 - 隐藏入口:Debug / Trace
@@ -145,7 +176,7 @@ Aftelle Shell 暂停呼吸 → 粒子向中心坍缩 → 校验 DR 文件
 
 ## 8. 设置设计
 
-保留"神经元 / 星图设置"概念,但 **Stage 7 先做传统设置抽屉(Settings UI MVP),星图设置降为 Stage 8 或 7.11 录屏彩蛋**。
+保留"神经元 / 星图设置"概念,但 **Stage 7 先做传统设置抽屉(Settings UI MVP),星图设置降为 Stage 8 或 7.12 录屏彩蛋**。
 
 设置入口:
 - 鼠标滚轮放大粒子核心 → 进入神经元星图设置
@@ -187,17 +218,24 @@ Aftelle Shell 暂停呼吸 → 粒子向中心坍缩 → 校验 DR 文件
 ## 第七阶段最终范围
 
 **单居民闭环必做(对应03_dev_plan.md 7.1–7.5):**
-Aftelle Desktop macOS 壳、启动粒子动画、默认 Aftelle Shell、导入 `.digital_resident`、DR 校验与加载、第一个数字居民圆形/抽象主视觉形态、文字对话、TTS 输出(语音输入仅预留)、传统设置抽屉、Runtime Trace 面板、编排系统薄壳。
+Aftelle Desktop macOS 壳、启动粒子动画、默认 Aftelle Shell、导入 `.digital_resident`、DR 校验与加载、第一个数字居民圆形/抽象主视觉形态、文字对话、TTS 输出、Voice Input MVP(录音转文字)、传统设置抽屉、Runtime Trace 面板、编排系统薄壳。
+其中 Abstract Bust Avatar 只按 7.3/7.4/7.5 拆分推进:7.3 预留模式与切换,7.4 设计抽象半身人格轮廓,7.5 做嘴部粒子脉冲。
 **注:屏幕指导属于 7.9 后段原型,不属于 7.1–7.5 单居民闭环;星图设置非必做。**
 
 **后半段做(对应03_dev_plan.md 7.6–7.8):**
 行业居民基础版、导入第二个居民、主次按导入顺序生成、主次手动调换、双居民同屏、双居民轮流对话、双居民粒子互动、编排系统调度双居民。
 
+**展示版体验打磨(对应03_dev_plan.md 7.11):**
+隐藏 Debug / Trace 默认入口、整理启动与导入体验、打磨粒子状态、统一 TTS / 字幕 / Voice Input MVP 节奏、补 Presentation Mode,让演示路径稳定、安静、可重复。
+
+**Demo Lock(对应03_dev_plan.md 7.12):**
+冻结演示流程、居民、视觉状态、对话脚本与录屏素材。7.12 只锁定已经可展示的能力,不把 Voice Input MVP 扩成完整语音交流系统。
+
 **第七阶段不做:**
-AR 相机、移动端 App、真人形象、无限多居民、社交系统、市场系统、云同步、完全自动控制电脑。
+AR 相机、移动端 App、写实真人形象、完整身体、骨骼 / Blendshape / 精准 lip sync、Avatar 编辑器、3D 数字人、无限多居民、社交系统、市场系统、云同步、完全自动控制电脑、完整语音交流系统、后台监听、唤醒词、实时双向语音、streaming ASR / TTS、声纹识别。
 
 ---
 
 ## 最终版本总结
 
-第七阶段的 Aftelle Desktop 先完成一个可信的数字居民运行容器:启动后以灰白粒子 Shell 出现,导入第一个 `.digital_resident` 后转化为主数字居民,支持对话、基础设置、粒子情绪表达与最小 TTS/字幕。双居民交互、屏幕指导雏形属于 Extended Demo 后半段能力(03_dev_plan.md 7.7/7.8/7.9),不作为 MVP 基线;编排系统从 7.1 开始以薄壳形式开发,先服务单居民闭环。
+第七阶段的 Aftelle Desktop 先完成一个可信的数字居民运行容器:启动后以灰白粒子 Shell 出现,导入第一个 `.digital_resident` 后转化为主数字居民,支持对话、基础设置、粒子情绪表达、最小 TTS/字幕与录音转文字输入。双居民交互、屏幕指导雏形、展示版体验打磨和 Demo Lock 属于 Extended Demo 后半段能力(03_dev_plan.md 7.7/7.8/7.9/7.11/7.12),不作为 MVP 之外的前置条件;编排系统从 7.1 开始以薄壳形式开发,先服务单居民闭环。

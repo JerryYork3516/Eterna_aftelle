@@ -6,6 +6,7 @@
 
 - **状态**: Foundation Lock / FROZEN（G0 已锁定:A Swift RuntimeCore / DR v0.3 / 真实LLM走 RuntimeCore ProviderRouter）
 > v7:G0 由 B(Python sidecar)改为 A(Swift RuntimeCore)。四条 Invariants 不变;仅 runtime clock/state/tick 的归属从 sidecar 改为 Swift RuntimeCore。
+> v8:补充 Voice Input MVP 边界。Aftelle 可采集麦克风输入和显示录音状态,但不拥有 ASR / voice model Provider,不直连语音模型,不做后台监听。
 - **适用阶段**: Stage 7 起,长期有效
 - **修改规则**: 本文档中的 Invariant 一旦锁定,变更等同架构推翻,需显式 ESC 评审,不得在功能开发中顺手改动。
 
@@ -83,8 +84,10 @@ Stage 7 live-state 功能不得让 Aftelle 变成 Runtime owner:
 - Aftelle 可以保存 session/display cache,但不能拥有长期 Memory Kernel 或推进 live state。
 - Aftelle 可以展示 `resident_state`、`visual_state`、trace、diagnostics,但不能编辑这些状态,不能写回 DR。
 - Aftelle 可以播放 RuntimeCore 返回的音频/字幕载荷,但不能直连 TTS Provider。
+- Aftelle 可以采集麦克风输入、显示录音状态,并把转写结果交给现有文字输入 / EnvironmentEvent / Runtime step 链路;Aftelle 不拥有 ASR / voice model Provider,不直连 ASR / TTS / voice model Provider,不做后台监听。
+- Aftelle 可以按本地 `avatar_mode` 渲染 `particle_core` / `abstract_bust`,但 `avatar_mode` 只属于 platform-macos UI / 渲染层,不属于 RuntimeCore 居民逻辑、DR schema 或 Runtime API contract。
 
-**越界信号**: UI 自己跑 scheduler、后台自动发消息、直接写长期记忆、直接调 TTS/LLM Provider、把活态写回 `.digital_resident`。
+**越界信号**: UI 自己跑 scheduler、后台自动发消息、直接写长期记忆、直接调 TTS/LLM/ASR/voice model Provider、把活态写回 `.digital_resident`、为 Avatar 渲染推理人格/情绪或修改 DR / Runtime API、加入唤醒词、always-on mic、streaming voice loop、后台监听或实时双向语音系统。
 
 ### Host 边界补充 · Apple 全生态只做 Runtime Host 预留
 
@@ -194,7 +197,9 @@ Aftelle macOS 是 Stage 7 唯一正在实现的 Runtime Host。未来 iOS / iPad
 - 记忆全写进 prompt
 - UI 直接调用 Provider
 - UI 直接调用 TTS Provider
+- UI 直接调用 ASR / voice model Provider
 - UI 自己跑 scheduler 或后台主动发消息
+- Always-on mic、唤醒词、后台监听或 streaming voice loop 进入 Stage 7
 - Aftelle 直接管理长期 Memory Kernel
 - 把 `resident_state` / `visual_state` 写回 `.digital_resident`
 - 每加功能就改 Runtime 主链路

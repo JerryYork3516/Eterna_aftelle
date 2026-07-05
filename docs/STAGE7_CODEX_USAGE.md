@@ -13,6 +13,43 @@ Use this file to record each Codex task before closing the loop.
 - Token note:
 - Follow-up:
 
+## Apple Official Reference Rule
+
+When a task touches SwiftUI, Metal, FileManager, Keychain, HIG, or Accessibility, read only the current-node minimum Apple official reference listed in `docs/apple_official_reference_stage7.md`. Do not system-learn iOS / visionOS / ARKit / RealityKit, do not add platform targets, and do not treat Apple docs as a new Aftelle architecture source.
+
+## 7.5-voice-input-v8-doc-plan
+
+- Stage: 7.5 / 7.11 / 7.12 documentation plan
+- Date: 2026-07-04
+- Task: Upgrade Stage 7 planning docs to v8: add Voice Input MVP, move Demo Readiness Polish to 7.11, and move Demo Lock + recording freeze to 7.12.
+- Read scope: `AGENTS.md`, `docs/03_dev_plan.md`, `docs/06_product_design.md`, `docs/02_architecture.md`, `docs/aftelle_runtime_boundary.md`, `docs/stage7_forbidden_checklist.md`, `DEVLOG.md`, this usage log.
+- Changed files: `docs/03_dev_plan.md`, `docs/06_product_design.md`, `docs/02_architecture.md`, `docs/aftelle_runtime_boundary.md`, `docs/stage7_forbidden_checklist.md`, `DEVLOG.md`, this usage log.
+- Verification: `git diff --check`; `tools/architecture_guard/check.sh`; `tools/secret_guard/check.sh`.
+- Token note: documentation-only change; do not modify Swift, Xcode, `runtime_api_contract.md`, `dr_contract_v0_3.md`, `provider_profile_contract.md`, `feature_livestate.md`, `07_dr_blueprint.md`, or `09_skills_plugins.md`.
+- Follow-up: implement Voice Input MVP only when Stage 7.5 starts; keep it as record-to-text entering the existing Runtime step path.
+
+## 7.3-apple-official-reference-doc
+
+- Stage: 7.3
+- Date: 2026-07-03
+- Task: Add document-only Stage 7 Apple official reference rule.
+- Read scope: `AGENTS.md`, `CLAUDE.md`, `docs/STAGE7_CODEX_USAGE.md`, targeted search for existing Apple reference mentions.
+- Changed files: `docs/apple_official_reference_stage7.md`, `AGENTS.md`, `CLAUDE.md`, this usage log.
+- Verification: `git diff --check`; `tools/architecture_guard/check.sh`; `tools/secret_guard/check.sh`.
+- Token note: only use Apple docs as minimum implementation references; do not expand Stage 7 or copy Apple documentation text.
+- Follow-up: use this rule when Stage 7 tasks touch SwiftUI / Metal / FileManager / Keychain / HIG / Accessibility.
+
+## 7.3-abstract-bust-doc-plan
+
+- Stage: 7.3
+- Date: 2026-07-03
+- Task: Add document-only Abstract Bust Avatar planning without expanding Stage 7.3 implementation scope.
+- Read scope: `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/*`, `DEVLOG.md`, `docs/stage7_forbidden_checklist.md`, `docs/03_dev_plan.md`, `docs/06_product_design.md`, `docs/08_product_designer.md`, `docs/02_architecture.md`, this usage log, `docs/aftelle_runtime_boundary.md`.
+- Changed files: `docs/03_dev_plan.md`, `docs/06_product_design.md`, `docs/08_product_designer.md`, `docs/02_architecture.md`, `docs/aftelle_runtime_boundary.md`, `docs/stage7_forbidden_checklist.md`, `DEVLOG.md`, this usage log.
+- Verification: `git diff --check`; `tools/architecture_guard/check.sh`; `tools/secret_guard/check.sh`.
+- Token note: keep Abstract Bust as design planning; do not touch Swift, Xcode, DR schema, Runtime API, Provider Profile, or `feature_livestate.md`.
+- Follow-up: Stage 7.3 implementation may only build particle_core, local `avatar_mode` reserve, render switching interface, and subtitle basics.
+
 ## 7.1-livestate-doc-gate
 
 - Stage: 7.1
@@ -159,3 +196,14 @@ Use this file to record each Codex task before closing the loop.
 - Verification: `git diff --check`; architecture guard; secret guard; documentation grep for sensitive terms.
 - Token note: keep this as document / PR checklist only; do not turn it into a script, lint, or code system.
 - Follow-up: use checklist before Stage 7.1 Final Review and later Stage 7 tasks.
+
+## 7.3-final-review
+
+- Stage: 7.3 Final Review
+- Date: 2026-07-05
+- Task: Final code review for Stage 7.3 particle_core visual foundation and branch handoff.
+- Read scope: `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/*`, `DEVLOG.md`, Stage 7 architecture / code / product docs, Runtime / DR contracts, `apps/macos/Aftelle/*`, `apps/macos/Aftelle/ParticleCore/*`, and `apps/macos/RuntimeCore/*` read-only.
+- Changed files during review: `apps/macos/Aftelle/AftelleApp.swift`, `apps/macos/Aftelle/en.lproj/Localizable.strings`, `apps/macos/Aftelle/zh-Hans.lproj/Localizable.strings`, `DEVLOG.md`, this usage log.
+- Verification: `git diff --check` passed; `tools/architecture_guard/check.sh` ok; `tools/secret_guard/check.sh` ok; `xcodebuild -project apps/macos/Aftelle/Aftelle.xcodeproj -scheme Aftelle -configuration Debug build` passed.
+- Token note: final review only; no new visual tuning, no new UI, no RuntimeCore / Runtime API / DR schema changes.
+- Follow-up: merge `7.3` to `main`, then branch `7.4` from updated `main`.

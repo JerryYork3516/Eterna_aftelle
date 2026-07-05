@@ -16,11 +16,31 @@ final class AppController: ObservableObject {
     @Published private(set) var clockState = RuntimeClockViewState()
     @Published private(set) var debugPanelState = DebugPanelViewState()
     @Published private(set) var runtimeState: AppRuntimeState = .idle
+    @Published private(set) var particleVisualState: ParticleCoreVisualState = .idle
+    @Published private(set) var particleAvatarMode: ParticleAvatarMode = .particleCore
+    @Published private(set) var particleRenderKind: ParticleRenderKind = .particleCore
+    @Published private(set) var particleShellMode: ParticleShellMode = .darkShell
+    @Published var isParticleDebugPanelPresented = false
+    @Published private(set) var particleColorProfile = ParticleCoreColorProfile.systemDefault
+    @Published private(set) var particleSubtitleState = ParticleSubtitleState.hidden
+    @Published private(set) var particleDebugSnapshot = ParticleDebugSnapshot.empty
 
     private let orchestrationKernel: OrchestrationKernel
     private var loadedResidentID = ""
     private var loadedSessionID = ""
     private var dialogueEntries: [AppDialogueEntryState] = []
+    private var latestParticleRenderMetrics = ParticleRenderMetrics.empty
+    private var effectiveParticleColorProfile = ParticleCoreColorProfile.systemDefault
+    private var effectiveColorProfileSource = "systemDefault"
+    private var effectiveColorProfileFallbackUsed = true
+    #if DEBUG
+    private let debugSubtitleKeys = [
+        "particleSubtitle.test.0",
+        "particleSubtitle.test.1",
+        "particleSubtitle.test.2"
+    ]
+    private var debugSubtitleIndex = 0
+    #endif
 
     init() {
         self.orchestrationKernel = OrchestrationKernel()
@@ -32,6 +52,8 @@ final class AppController: ObservableObject {
 
     func start() {
         startupState = .loading
+        refreshParticleVisualState()
+        refreshParticleDebugSnapshot()
 
         let restoreResult = orchestrationKernel.restoreMostRecentSession()
         if restoreResult.didRestore {
@@ -82,6 +104,8 @@ final class AppController: ObservableObject {
             traceState = RuntimeTraceViewState(summary: diagnostics, entries: [])
             refreshDebugPanelState(shutdownState: restoreResult.shutdownState.rawValue, recoveryRequired: restoreResult.recoveryRequired, recoveredAt: restoreResult.recoveredAt.map { ISO8601DateFormatter().string(from: $0) } ?? "")
             startupState = .loaded
+            refreshParticleVisualState()
+            refreshParticleDebugSnapshot()
             return
         }
 
@@ -96,10 +120,116 @@ final class AppController: ObservableObject {
         }
 
         let result = orchestrationKernel.loadResident(fixtureData: fixtureData)
+        applyLoadResult(result, drData: fixtureData, sourceLabel: "DR fixture")
+    }
+
+    func updateParticleRenderMetrics(_ metrics: ParticleRenderMetrics) {
+        latestParticleRenderMetrics = metrics
+        refreshParticleDebugSnapshot()
+    }
+
+    func updateEffectiveParticleColorProfile(_ profile: ParticleCoreColorProfile, savedOverride: Bool) {
+        effectiveParticleColorProfile = profile
+        if savedOverride {
+            effectiveColorProfileSource = "debugSavedOverride"
+            effectiveColorProfileFallbackUsed = false
+        } else if profile != particleColorProfile {
+            effectiveColorProfileSource = "debugUnsavedOverride"
+            effectiveColorProfileFallbackUsed = false
+        }
+        refreshParticleDebugSnapshot()
+    }
+
+    #if DEBUG
+    func setParticleAvatarMode(_ mode: ParticleAvatarMode) {
+        particleAvatarMode = mode
+        particleRenderKind = mode == .abstractBustReserved ? .abstractBustReserved : .particleCore
+        refreshParticleDebugSnapshot()
+    }
+
+    func setParticleRenderKind(_ kind: ParticleRenderKind) {
+        particleRenderKind = kind
+        particleAvatarMode = kind.avatarMode
+        refreshParticleDebugSnapshot()
+    }
+
+    func toggleParticleDebugPanel() {
+        isParticleDebugPanelPresented.toggle()
+    }
+
+    func setParticleDebugPanelPresented(_ isPresented: Bool) {
+        isParticleDebugPanelPresented = isPresented
+    }
+
+    func setParticleShellMode(_ mode: ParticleShellMode) {
+        particleShellMode = mode
+        refreshParticleDebugSnapshot()
+    }
+
+    func showDebugSubtitle() {
+        showDebugSubtitle(at: debugSubtitleIndex)
+    }
+
+    func showNextDebugSubtitle() {
+        debugSubtitleIndex = (debugSubtitleIndex + 1) % debugSubtitleKeys.count
+        showDebugSubtitle(at: debugSubtitleIndex)
+    }
+
+    func hideDebugSubtitle() {
+        guard !particleSubtitleState.text.isEmpty else {
+            particleSubtitleState = .hidden
+            return
+        }
+        let fadingText = particleSubtitleState.text
+        particleSubtitleState = ParticleSubtitleState(text: fadingText, phase: .fading)
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 280_000_000)
+            if particleSubtitleState.phase == .fading, particleSubtitleState.text == fadingText {
+                particleSubtitleState = .hidden
+                refreshParticleDebugSnapshot()
+            }
+        }
+        refreshParticleDebugSnapshot()
+    }
+
+    func debugImportResident(from url: URL) {
+        startupState = .loading
+        refreshParticleVisualState()
+        let hasScopedAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if hasScopedAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        guard let drData = try? Data(contentsOf: url) else {
+            applyFailure(runtimeMessage: "Runtime status: DR load failed", diagnosticsMessage: "Debug DR unreadable")
+            return
+        }
+
+        let result = orchestrationKernel.loadResident(fixtureData: drData)
+        applyLoadResult(result, drData: drData, sourceLabel: "Debug DR")
+    }
+
+    private func showDebugSubtitle(at index: Int) {
+        let key = debugSubtitleKeys[index]
+        particleSubtitleState = ParticleSubtitleState(
+            text: String(localized: String.LocalizationValue(key)),
+            phase: .showing
+        )
+        refreshParticleDebugSnapshot()
+    }
+    #endif
+
+    private func applyLoadResult(_ result: RuntimeLoadResult, drData: Data, sourceLabel: String) {
         loadedResidentID = result.isLoaded ? result.residentID : ""
         loadedSessionID = result.sessionID?.rawValue ?? ""
+        particleColorProfile = result.isLoaded ? ParticleCoreColorProfile.make(fromDRData: drData) : .systemDefault
+        effectiveParticleColorProfile = particleColorProfile
+        effectiveColorProfileFallbackUsed = !result.isLoaded || particleColorProfile == .systemDefault
+        effectiveColorProfileSource = effectiveColorProfileFallbackUsed ? "systemDefault" : "\(sourceLabel) lattice_config.color_palette"
         runtimeStatus = "Runtime status: \(result.statusMessage)"
-        fixtureStatus = result.isLoaded ? "DR fixture: loaded" : "DR fixture: not loaded"
+        fixtureStatus = result.isLoaded ? "\(sourceLabel): loaded" : "\(sourceLabel): not loaded"
         residentID = "resident_id: \(result.residentID.isEmpty ? "-" : result.residentID)"
         displayName = "display_name: \(result.displayName.isEmpty ? "-" : result.displayName)"
         sessionState = AppSessionState(
@@ -134,6 +264,8 @@ final class AppController: ObservableObject {
         traceState = RuntimeTraceViewState(summary: result.diagnostics, entries: [])
         refreshDebugPanelState()
         startupState = result.isLoaded ? .loaded : .failed
+        refreshParticleVisualState()
+        refreshParticleDebugSnapshot()
     }
 
     func step(inputText: String) -> RuntimeStepResponse {
@@ -192,17 +324,23 @@ final class AppController: ObservableObject {
             }
         )
         refreshDebugPanelState()
+        refreshParticleVisualState(visualStateMode: response.visualState.mode.rawValue)
+        refreshParticleDebugSnapshot()
         return response
     }
 
     func cancelCurrentStep() {
         orchestrationKernel.cancelCurrentStep()
         runtimeState = .cancelled
+        refreshParticleVisualState()
+        refreshParticleDebugSnapshot()
     }
 
     func interrupt() {
         orchestrationKernel.interrupt()
         runtimeState = .interrupted
+        refreshParticleVisualState()
+        refreshParticleDebugSnapshot()
     }
 
     func runtimeTick() {
@@ -218,6 +356,8 @@ final class AppController: ObservableObject {
             ]
         )
         refreshDebugPanelState()
+        refreshParticleVisualState()
+        refreshParticleDebugSnapshot()
     }
 
     func persistForNormalTerminationIfPossible() {
@@ -281,6 +421,87 @@ final class AppController: ObservableObject {
         )
     }
 
+    private func refreshParticleVisualState(visualStateMode: String? = nil) {
+        particleVisualState = AppParticleVisualStateMapper.map(
+            visualStateMode: visualStateMode,
+            avatarState: avatarState,
+            residentState: residentState,
+            startupState: startupState,
+            runtimeState: runtimeState
+        )
+    }
+
+    private func refreshParticleDebugSnapshot() {
+        let renderState = latestParticleRenderMetrics.currentVisualState
+        let mappedState = String(describing: particleVisualState)
+        let renderResolution = ParticleRenderResolution.resolve(requested: particleRenderKind)
+        let shellResolution = ParticleShellResolution.resolve(current: particleShellMode)
+        particleDebugSnapshot = ParticleDebugSnapshot(
+            fps: latestParticleRenderMetrics.fps,
+            particleCount: latestParticleRenderMetrics.particleCount,
+            drawableSize: latestParticleRenderMetrics.drawableSize,
+            preferredFramesPerSecond: latestParticleRenderMetrics.preferredFramesPerSecond,
+            currentVisualState: renderState,
+            previousVisualState: latestParticleRenderMetrics.previousVisualState,
+            stateElapsedTime: latestParticleRenderMetrics.stateElapsedTime,
+            lastTransitionReason: latestParticleRenderMetrics.lastTransitionReason,
+            sourceAvatarState: avatarStateSummary(),
+            mappedParticleState: mappedState,
+            isDebugOverrideActive: renderState != mappedState || latestParticleRenderMetrics.lastTransitionReason.hasPrefix("debugKey"),
+            avatarMode: particleAvatarMode.rawValue,
+            particleCoreModeStatus: particleAvatarMode.particleCoreStatus,
+            abstractBustModeStatus: particleAvatarMode.abstractBustStatus,
+            renderFallback: renderResolution.fallbackRenderer,
+            renderFallbackReason: renderResolution.reason,
+            requestedRenderKind: renderResolution.requestedMode,
+            activeRenderer: renderResolution.activeRenderer,
+            fallbackRenderer: renderResolution.fallbackRenderer,
+            fallbackReason: renderResolution.reason,
+            supportedRenderers: renderResolution.supportedRenderers,
+            reservedRenderers: renderResolution.reservedRenderers,
+            requestedShellMode: shellResolution.requestedMode,
+            activeShellMode: shellResolution.activeMode,
+            shellFallbackReason: shellResolution.fallbackReason,
+            darkShellStatus: shellResolution.darkShellStatus,
+            immersiveShellStatus: shellResolution.immersiveShellStatus,
+            transparentShellStatus: shellResolution.transparentShellStatus,
+            colorProfileSource: effectiveColorProfileSource,
+            baseColor: colorString(
+                red: effectiveParticleColorProfile.baseRed,
+                green: effectiveParticleColorProfile.baseGreen,
+                blue: effectiveParticleColorProfile.baseBlue
+            ),
+            ridgeColor: colorString(
+                red: effectiveParticleColorProfile.ridgeRed,
+                green: effectiveParticleColorProfile.ridgeGreen,
+                blue: effectiveParticleColorProfile.ridgeBlue
+            ),
+            highlightColor: colorString(
+                red: effectiveParticleColorProfile.highlightRed,
+                green: effectiveParticleColorProfile.highlightGreen,
+                blue: effectiveParticleColorProfile.highlightBlue
+            ),
+            fallbackUsed: effectiveColorProfileFallbackUsed,
+            subtitlePhase: String(describing: particleSubtitleState.phase),
+            hasSubtitleText: !particleSubtitleState.text.isEmpty,
+            mouseInfluenceEnabled: latestParticleRenderMetrics.mouseInfluenceEnabled,
+            mouseInsideParticleArea: latestParticleRenderMetrics.mouseInsideParticleArea,
+            interactionStrength: latestParticleRenderMetrics.interactionStrength,
+            runtimeCoreModified: false,
+            runtimeAPIModified: false,
+            drSchemaModified: false,
+            providerTTSConnected: false
+        )
+    }
+
+    private func avatarStateSummary() -> String {
+        "mode=\(avatarState.mode) presence=\(avatarState.presence) mood=\(avatarState.moodHint) activity=\(avatarState.activityHint) particle=\(avatarState.particleHint)"
+    }
+
+    private func colorString(red: Double, green: Double, blue: Double) -> String {
+        String(format: "%.2f, %.2f, %.2f", red, green, blue)
+    }
+
     private func applyFailure(runtimeMessage: String, diagnosticsMessage: String) {
         runtimeStatus = runtimeMessage
         fixtureStatus = "DR fixture: not loaded"
@@ -291,10 +512,16 @@ final class AppController: ObservableObject {
         sessionState = AppSessionState()
         dialogueEntries = []
         avatarState = AppAvatarState()
+        particleColorProfile = .systemDefault
+        effectiveParticleColorProfile = .systemDefault
+        effectiveColorProfileSource = "systemDefault"
+        effectiveColorProfileFallbackUsed = true
         traceState = RuntimeTraceViewState(summary: diagnosticsMessage, entries: [])
         runtimeState = .idle
         diagnostics = diagnosticsMessage
         refreshDebugPanelState()
         startupState = .failed
+        refreshParticleVisualState()
+        refreshParticleDebugSnapshot()
     }
 }

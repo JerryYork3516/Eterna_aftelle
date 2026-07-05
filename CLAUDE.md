@@ -31,6 +31,8 @@ AGENTS.md 里有你必须遵守的全部核心规则,包括:
 
 Stage 7 只开发 macOS 单机 Runtime Host。看到 Apple ecosystem / iOS / iPadOS / visionOS / watchOS / tvOS / AR / RealityKit 等关键词时,只把它们当作文档级 Host 预留,不得自动扩展成 Stage 8、多平台 target、DR schema、Runtime API 或功能代码开发。未来 Apple 平台只能作为 Host 复用 RuntimeCore,不能在 Host 内复制 Scheduler / Memory Kernel / ProviderRouter / DR compiler。
 
+涉及 SwiftUI / Metal / FileManager / Keychain / Human Interface Guidelines / Accessibility 时,只按 `docs/apple_official_reference_stage7.md` 读取当前节点最小 Apple 官方文档。Apple 官方文档只是实现参考,不是 Aftelle 架构事实源;若它与 Stage 7 项目文档冲突,停止并报告,不要替项目改边界。
+
 Stage 7 开发、审核或 PR 前后都要使用 `docs/stage7_forbidden_checklist.md` 输出 PASS / REWORK / FAIL。遇到 iOS / visionOS / AR / Provider / DR schema / Runtime API / scheduler / memory 等高危关键词时,先按 checklist 判断,再决定是否继续。
 
 ---
@@ -68,6 +70,7 @@ Stage 7 开发、审核或 PR 前后都要使用 `docs/stage7_forbidden_checklis
 - 当前阶段做什么 → 03_dev_plan.md
 - 造/改居民 → 07_dr_blueprint.md
 - 评估 Stage 7 live-state 功能、MVP/Extended 分层、禁止项 → feature_livestate.md
+- 查 SwiftUI / Metal / FileManager / Keychain / HIG / Accessibility 官方参考 → apple_official_reference_stage7.md
 - Runtime/DR 字段 → runtime_api_contract.md / dr_contract_v0_3.md
 - 架构边界判断 → aftelle_runtime_boundary.md(只读不改)
 - 当前进度/历史决策 → DEVLOG 的"当前状态"段

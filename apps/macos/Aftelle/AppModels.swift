@@ -14,6 +14,399 @@ public enum AppRuntimeState: Equatable {
     case interrupted
 }
 
+public enum ParticleAvatarMode: String, CaseIterable, Identifiable {
+    case particleCore = "particle_core"
+    case abstractBustReserved = "abstract_bust_reserved"
+
+    public var id: String {
+        rawValue
+    }
+
+    var localizedKey: String {
+        switch self {
+        case .particleCore:
+            return "particleDebug.avatarMode.particleCore"
+        case .abstractBustReserved:
+            return "particleDebug.avatarMode.abstractBustReserved"
+        }
+    }
+
+    var renderFallback: String {
+        "particle_core"
+    }
+
+    var renderFallbackReason: String {
+        switch self {
+        case .particleCore:
+            return "active_renderer"
+        case .abstractBustReserved:
+            return "reserved_not_implemented"
+        }
+    }
+
+    var particleCoreStatus: String {
+        switch self {
+        case .particleCore:
+            return "current / enabled"
+        case .abstractBustReserved:
+            return "fallback / enabled"
+        }
+    }
+
+    var abstractBustStatus: String {
+        switch self {
+        case .particleCore:
+            return "reserved / disabled"
+        case .abstractBustReserved:
+            return "selected / reserved / disabled"
+        }
+    }
+}
+
+public enum ParticleRenderKind: String, CaseIterable, Identifiable {
+    case particleCore = "particle_core"
+    case abstractBustReserved = "abstract_bust_reserved"
+    case dualResidentReserved = "dual_resident_reserved"
+    case arTransitionReserved = "ar_transition_reserved"
+
+    public var id: String {
+        rawValue
+    }
+
+    var localizedKey: String {
+        switch self {
+        case .particleCore:
+            return "particleDebug.renderKind.particleCore"
+        case .abstractBustReserved:
+            return "particleDebug.renderKind.abstractBustReserved"
+        case .dualResidentReserved:
+            return "particleDebug.renderKind.dualResidentReserved"
+        case .arTransitionReserved:
+            return "particleDebug.renderKind.arTransitionReserved"
+        }
+    }
+
+    var avatarMode: ParticleAvatarMode {
+        switch self {
+        case .abstractBustReserved:
+            return .abstractBustReserved
+        case .particleCore, .dualResidentReserved, .arTransitionReserved:
+            return .particleCore
+        }
+    }
+}
+
+public struct ParticleRenderResolution: Equatable {
+    public var requestedMode: String
+    public var activeRenderer: String
+    public var fallbackRenderer: String
+    public var reason: String
+    public var supportedRenderers: String
+    public var reservedRenderers: String
+
+    public static func resolve(requested: ParticleRenderKind) -> ParticleRenderResolution {
+        let supported = "particle_core"
+        let reserved = "abstract_bust, dual_resident, ar_transition"
+
+        switch requested {
+        case .particleCore:
+            return ParticleRenderResolution(
+                requestedMode: requested.rawValue,
+                activeRenderer: "particle_core",
+                fallbackRenderer: "none",
+                reason: "active",
+                supportedRenderers: supported,
+                reservedRenderers: reserved
+            )
+        case .abstractBustReserved, .dualResidentReserved, .arTransitionReserved:
+            return ParticleRenderResolution(
+                requestedMode: requested.rawValue,
+                activeRenderer: "particle_core",
+                fallbackRenderer: "particle_core",
+                reason: "reserved_not_implemented",
+                supportedRenderers: supported,
+                reservedRenderers: reserved
+            )
+        }
+    }
+}
+
+public enum ParticleShellMode: String, CaseIterable, Identifiable {
+    case darkShell = "dark_shell"
+    case immersiveShell = "immersive_shell"
+    case transparentShell = "transparent_shell"
+
+    public var id: String {
+        rawValue
+    }
+
+    var localizedKey: String {
+        switch self {
+        case .darkShell:
+            return "particleDebug.shellMode.darkShell"
+        case .immersiveShell:
+            return "particleDebug.shellMode.immersiveShell"
+        case .transparentShell:
+            return "particleDebug.shellMode.transparentShell"
+        }
+    }
+}
+
+public struct ParticleShellResolution: Equatable {
+    public var requestedMode: String
+    public var activeMode: String
+    public var fallbackReason: String
+    public var darkShellStatus: String
+    public var immersiveShellStatus: String
+    public var transparentShellStatus: String
+
+    public static func resolve(current: ParticleShellMode) -> ParticleShellResolution {
+        switch current {
+        case .darkShell:
+            return ParticleShellResolution(
+                requestedMode: current.rawValue,
+                activeMode: "dark_shell",
+                fallbackReason: "active",
+                darkShellStatus: "current / enabled",
+                immersiveShellStatus: "enabled / visual-only / debug-only",
+                transparentShellStatus: "enabled / debug-only"
+            )
+        case .immersiveShell:
+            return ParticleShellResolution(
+                requestedMode: current.rawValue,
+                activeMode: "immersive_shell",
+                fallbackReason: "visual_only",
+                darkShellStatus: "enabled",
+                immersiveShellStatus: "current / enabled / visual-only / debug-only",
+                transparentShellStatus: "enabled / debug-only"
+            )
+        case .transparentShell:
+            return ParticleShellResolution(
+                requestedMode: current.rawValue,
+                activeMode: "transparent_shell",
+                fallbackReason: "debug_only",
+                darkShellStatus: "enabled",
+                immersiveShellStatus: "enabled / visual-only / debug-only",
+                transparentShellStatus: "current / enabled / debug-only"
+            )
+        }
+    }
+}
+
+public enum ParticleSubtitlePhase: Equatable {
+    case hidden
+    case showing
+    case fading
+}
+
+public struct ParticleSubtitleState: Equatable {
+    public var text: String
+    public var phase: ParticleSubtitlePhase
+
+    public static let hidden = ParticleSubtitleState(text: "", phase: .hidden)
+
+    public init(text: String = "", phase: ParticleSubtitlePhase = .hidden) {
+        self.text = text
+        self.phase = text.isEmpty ? .hidden : phase
+    }
+}
+
+public struct ParticleRenderMetrics: Equatable {
+    public var fps: Double
+    public var particleCount: Int
+    public var drawableSize: String
+    public var preferredFramesPerSecond: Int
+    public var currentVisualState: String
+    public var previousVisualState: String
+    public var stateElapsedTime: Double
+    public var lastTransitionReason: String
+    public var mouseInfluenceEnabled: Bool
+    public var mouseInsideParticleArea: Bool
+    public var interactionStrength: Double
+
+    public static let empty = ParticleRenderMetrics(
+        fps: 0,
+        particleCount: 0,
+        drawableSize: "-",
+        preferredFramesPerSecond: 0,
+        currentVisualState: "idle",
+        previousVisualState: "idle",
+        stateElapsedTime: 0,
+        lastTransitionReason: "startup",
+        mouseInfluenceEnabled: true,
+        mouseInsideParticleArea: false,
+        interactionStrength: 0
+    )
+}
+
+public struct ParticleDebugSnapshot: Equatable {
+    public var fps: Double
+    public var particleCount: Int
+    public var drawableSize: String
+    public var preferredFramesPerSecond: Int
+    public var currentVisualState: String
+    public var previousVisualState: String
+    public var stateElapsedTime: Double
+    public var lastTransitionReason: String
+    public var sourceAvatarState: String
+    public var mappedParticleState: String
+    public var isDebugOverrideActive: Bool
+    public var avatarMode: String
+    public var particleCoreModeStatus: String
+    public var abstractBustModeStatus: String
+    public var renderFallback: String
+    public var renderFallbackReason: String
+    public var requestedRenderKind: String
+    public var activeRenderer: String
+    public var fallbackRenderer: String
+    public var fallbackReason: String
+    public var supportedRenderers: String
+    public var reservedRenderers: String
+    public var requestedShellMode: String
+    public var activeShellMode: String
+    public var shellFallbackReason: String
+    public var darkShellStatus: String
+    public var immersiveShellStatus: String
+    public var transparentShellStatus: String
+    public var colorProfileSource: String
+    public var baseColor: String
+    public var ridgeColor: String
+    public var highlightColor: String
+    public var fallbackUsed: Bool
+    public var subtitlePhase: String
+    public var hasSubtitleText: Bool
+    public var mouseInfluenceEnabled: Bool
+    public var mouseInsideParticleArea: Bool
+    public var interactionStrength: Double
+    public var runtimeCoreModified: Bool
+    public var runtimeAPIModified: Bool
+    public var drSchemaModified: Bool
+    public var providerTTSConnected: Bool
+
+    public static let empty = ParticleDebugSnapshot(
+        fps: 0,
+        particleCount: 0,
+        drawableSize: "-",
+        preferredFramesPerSecond: 0,
+        currentVisualState: "idle",
+        previousVisualState: "idle",
+        stateElapsedTime: 0,
+        lastTransitionReason: "startup",
+        sourceAvatarState: "mode=idle presence=unknown",
+        mappedParticleState: "idle",
+        isDebugOverrideActive: false,
+        avatarMode: "particle_core",
+        particleCoreModeStatus: "current / enabled",
+        abstractBustModeStatus: "reserved / disabled",
+        renderFallback: "none",
+        renderFallbackReason: "active",
+        requestedRenderKind: "particle_core",
+        activeRenderer: "particle_core",
+        fallbackRenderer: "none",
+        fallbackReason: "active",
+        supportedRenderers: "particle_core",
+        reservedRenderers: "abstract_bust, dual_resident, ar_transition",
+        requestedShellMode: "dark_shell",
+        activeShellMode: "dark_shell",
+        shellFallbackReason: "active",
+        darkShellStatus: "current / enabled",
+        immersiveShellStatus: "enabled / visual-only / debug-only",
+        transparentShellStatus: "enabled / debug-only",
+        colorProfileSource: "systemDefault",
+        baseColor: "0.82, 0.84, 0.88",
+        ridgeColor: "0.95, 0.96, 0.98",
+        highlightColor: "0.98, 0.99, 1.00",
+        fallbackUsed: true,
+        subtitlePhase: "hidden",
+        hasSubtitleText: false,
+        mouseInfluenceEnabled: true,
+        mouseInsideParticleArea: false,
+        interactionStrength: 0,
+        runtimeCoreModified: false,
+        runtimeAPIModified: false,
+        drSchemaModified: false,
+        providerTTSConnected: false
+    )
+}
+
+struct AppParticleVisualStateMapper {
+    static func map(
+        visualStateMode: String? = nil,
+        avatarState: AppAvatarState? = nil,
+        residentState: AppResidentState? = nil,
+        startupState: AppStartupState = .idle,
+        runtimeState: AppRuntimeState = .idle
+    ) -> ParticleCoreVisualState {
+        let tokens = [
+            visualStateMode,
+            avatarState?.mode,
+            avatarState?.presence,
+            avatarState?.moodHint,
+            avatarState?.activityHint,
+            avatarState?.particleHint,
+            residentState?.lifecycleStatus,
+            residentState?.presence,
+            residentState?.avatarMode,
+            startupToken(for: startupState),
+            runtimeToken(for: runtimeState)
+        ]
+
+        if matches(tokens, ["error", "failed", "failure", "unavailable", "degraded"]) {
+            return .error
+        }
+        if matches(tokens, ["exit", "exiting", "closing", "dismissed"]) {
+            return .exit
+        }
+        if runtimeState == .cancelled || runtimeState == .interrupted {
+            return .idle
+        }
+        if matches(tokens, ["speaking", "responding", "outputting", "active"]) {
+            return .speaking
+        }
+        if matches(tokens, ["loading", "connecting", "preparing", "waiting"]) {
+            return .loading
+        }
+        if matches(tokens, ["thinking", "reasoning", "processing", "composing", "focused"]) {
+            return .thinking
+        }
+        return .idle
+    }
+
+    private static func startupToken(for state: AppStartupState) -> String {
+        switch state {
+        case .idle:
+            return "idle"
+        case .loading:
+            return "loading"
+        case .loaded:
+            return "idle"
+        case .failed:
+            return "failed"
+        }
+    }
+
+    private static func runtimeToken(for state: AppRuntimeState) -> String {
+        switch state {
+        case .idle:
+            return "idle"
+        case .running:
+            return "processing"
+        case .cancelled:
+            return "idle"
+        case .interrupted:
+            return "idle"
+        }
+    }
+
+    private static func matches(_ values: [String?], _ candidates: [String]) -> Bool {
+        values.contains { value in
+            guard let value else { return false }
+            let normalized = value.lowercased()
+            return candidates.contains { normalized.contains($0) }
+        }
+    }
+}
+
 public struct AppDialogueEntryState: Equatable, Identifiable {
     public var id: String
     public var role: String
