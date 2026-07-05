@@ -19,6 +19,8 @@ final class AppController: ObservableObject {
     @Published private(set) var particleVisualState: ParticleCoreVisualState = .idle
     @Published private(set) var particleAvatarMode: ParticleAvatarMode = .particleCore
     @Published private(set) var particleRenderKind: ParticleRenderKind = .particleCore
+    @Published private(set) var particleShellMode: ParticleShellMode = .darkShell
+    @Published var isParticleDebugPanelPresented = false
     @Published private(set) var particleColorProfile = ParticleCoreColorProfile.systemDefault
     @Published private(set) var particleSubtitleState = ParticleSubtitleState.hidden
     @Published private(set) var particleDebugSnapshot = ParticleDebugSnapshot.empty
@@ -148,6 +150,19 @@ final class AppController: ObservableObject {
     func setParticleRenderKind(_ kind: ParticleRenderKind) {
         particleRenderKind = kind
         particleAvatarMode = kind.avatarMode
+        refreshParticleDebugSnapshot()
+    }
+
+    func toggleParticleDebugPanel() {
+        isParticleDebugPanelPresented.toggle()
+    }
+
+    func setParticleDebugPanelPresented(_ isPresented: Bool) {
+        isParticleDebugPanelPresented = isPresented
+    }
+
+    func setParticleShellMode(_ mode: ParticleShellMode) {
+        particleShellMode = mode == .transparentShellReserved ? .darkShell : mode
         refreshParticleDebugSnapshot()
     }
 
@@ -420,6 +435,7 @@ final class AppController: ObservableObject {
         let renderState = latestParticleRenderMetrics.currentVisualState
         let mappedState = String(describing: particleVisualState)
         let renderResolution = ParticleRenderResolution.resolve(requested: particleRenderKind)
+        let shellResolution = ParticleShellResolution.resolve(current: particleShellMode)
         particleDebugSnapshot = ParticleDebugSnapshot(
             fps: latestParticleRenderMetrics.fps,
             particleCount: latestParticleRenderMetrics.particleCount,
@@ -443,6 +459,12 @@ final class AppController: ObservableObject {
             fallbackReason: renderResolution.reason,
             supportedRenderers: renderResolution.supportedRenderers,
             reservedRenderers: renderResolution.reservedRenderers,
+            requestedShellMode: shellResolution.requestedMode,
+            activeShellMode: shellResolution.activeMode,
+            shellFallbackReason: shellResolution.fallbackReason,
+            darkShellStatus: shellResolution.darkShellStatus,
+            immersiveShellStatus: shellResolution.immersiveShellStatus,
+            transparentShellStatus: shellResolution.transparentShellStatus,
             colorProfileSource: effectiveColorProfileSource,
             baseColor: colorString(
                 red: effectiveParticleColorProfile.baseRed,

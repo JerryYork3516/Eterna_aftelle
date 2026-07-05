@@ -7,13 +7,12 @@ struct ContentView: View {
     @State private var particleTuning = ParticleCoreTuning.loadSaved()
     @State private var particleColorProfile = ParticleCoreColorProfile.loadSaved() ?? .systemDefault
     #if DEBUG
-    @State private var showsParticleDebug = false
     @State private var debugSubtitleKeyMonitor: Any?
     #endif
 
     var body: some View {
         ZStack {
-            Color(red: 0.045, green: 0.05, blue: 0.06)
+            shellBackground
                 .ignoresSafeArea()
 
             ParticleCoreMetalView(
@@ -29,13 +28,33 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             #if DEBUG
-            debugButton
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            if controller.isParticleDebugPanelPresented {
+                ParticleDebugPanel(
+                    snapshot: controller.particleDebugSnapshot,
+                    shellMode: controller.particleShellMode,
+                    renderKind: controller.particleRenderKind,
+                    tuning: $particleTuning,
+                    colorProfile: $particleColorProfile,
+                    defaultColorProfile: controller.particleColorProfile,
+                    setShellMode: controller.setParticleShellMode,
+                    setRenderKind: controller.setParticleRenderKind,
+                    refreshColorProfileSnapshot: {
+                        controller.updateEffectiveParticleColorProfile(
+                            particleColorProfile,
+                            savedOverride: ParticleCoreColorProfile.hasSavedProfile()
+                        )
+                    },
+                    importDR: openDebugDRImportPanel
+                )
                 .padding(.top, 18)
                 .padding(.trailing, 18)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .transition(.opacity)
+            }
             #endif
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(WindowShellConfigurator(shellMode: controller.particleShellMode))
         .task {
             controller.start()
         }
@@ -64,36 +83,16 @@ struct ContentView: View {
         #endif
     }
 
-    #if DEBUG
-    private var debugButton: some View {
-        Button {
-            showsParticleDebug.toggle()
-        } label: {
-            Label(String(localized: "particleDebug.button"), systemImage: "slider.horizontal.3")
-                .labelStyle(.iconOnly)
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
-        .help(String(localized: "particleDebug.button"))
-        .popover(isPresented: $showsParticleDebug, arrowEdge: .top) {
-            ParticleDebugPanel(
-                snapshot: controller.particleDebugSnapshot,
-                renderKind: controller.particleRenderKind,
-                tuning: $particleTuning,
-                colorProfile: $particleColorProfile,
-                defaultColorProfile: controller.particleColorProfile,
-                setRenderKind: controller.setParticleRenderKind,
-                refreshColorProfileSnapshot: {
-                    controller.updateEffectiveParticleColorProfile(
-                        particleColorProfile,
-                        savedOverride: ParticleCoreColorProfile.hasSavedProfile()
-                    )
-                },
-                importDR: openDebugDRImportPanel
-            )
+    private var shellBackground: Color {
+        switch controller.particleShellMode {
+        case .darkShell, .transparentShellReserved:
+            return Color(red: 0.045, green: 0.05, blue: 0.06)
+        case .immersiveShell:
+            return Color(red: 0.026, green: 0.030, blue: 0.036)
         }
     }
 
+    #if DEBUG
     private func openDebugDRImportPanel() {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = false
@@ -148,6 +147,23 @@ struct ContentView: View {
     #endif
 }
 
+private struct WindowShellConfigurator: NSViewRepresentable {
+    let shellMode: ParticleShellMode
+
+    func makeNSView(context: Context) -> NSView {
+        NSView()
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            guard let window = nsView.window else { return }
+            let immersive = shellMode == .immersiveShell
+            window.titleVisibility = immersive ? .hidden : .visible
+            window.titlebarAppearsTransparent = immersive
+        }
+    }
+}
+
 private struct ParticleSubtitleOverlay: View {
     let state: ParticleSubtitleState
 
@@ -187,6 +203,7 @@ private struct ParticleSubtitleOverlay: View {
 #if DEBUG
 private enum ParticleDebugSection {
     case diagnostics
+    case shell
     case renderAdapter
     case particle
     case color
@@ -194,10 +211,12 @@ private enum ParticleDebugSection {
 
 private struct ParticleDebugPanel: View {
     let snapshot: ParticleDebugSnapshot
+    let shellMode: ParticleShellMode
     let renderKind: ParticleRenderKind
     @Binding var tuning: ParticleCoreTuning
     @Binding var colorProfile: ParticleCoreColorProfile
     let defaultColorProfile: ParticleCoreColorProfile
+    let setShellMode: (ParticleShellMode) -> Void
     let setRenderKind: (ParticleRenderKind) -> Void
     let refreshColorProfileSnapshot: () -> Void
     let importDR: () -> Void
@@ -219,6 +238,8 @@ private struct ParticleDebugPanel: View {
             Picker("", selection: $section) {
                 Text(String(localized: "particleDebug.diagnostics"))
                     .tag(ParticleDebugSection.diagnostics)
+                Text(String(localized: "particleDebug.shellMode"))
+                    .tag(ParticleDebugSection.shell)
                 Text(String(localized: "particleDebug.renderAdapter"))
                     .tag(ParticleDebugSection.renderAdapter)
                 Text(String(localized: "particleDebug.particleAdjustment"))
@@ -244,6 +265,12 @@ private struct ParticleDebugPanel: View {
                     switch section {
                     case .diagnostics:
                         ParticleDiagnosticsView(snapshot: snapshot)
+                    case .shell:
+                        ParticleShellModeView(
+                            snapshot: snapshot,
+                            shellMode: shellMode,
+                            setShellMode: setShellMode
+                        )
                     case .renderAdapter:
                         ParticleRenderAdapterView(
                             snapshot: snapshot,
@@ -292,6 +319,8 @@ private struct ParticleDebugPanel: View {
         switch section {
         case .diagnostics:
             return String(localized: "particleDebug.diagnostics")
+        case .shell:
+            return String(localized: "particleDebug.shellMode")
         case .renderAdapter:
             return String(localized: "particleDebug.renderAdapter")
         case .particle:
@@ -305,6 +334,8 @@ private struct ParticleDebugPanel: View {
         switch section {
         case .diagnostics:
             return String(localized: "particleDebug.diagnosticsCaption")
+        case .shell:
+            return String(localized: "particleDebug.shellModeCaption")
         case .renderAdapter:
             return String(localized: "particleDebug.renderAdapterCaption")
         case .particle:
@@ -317,6 +348,8 @@ private struct ParticleDebugPanel: View {
     private func restoreDefault() {
         switch section {
         case .diagnostics:
+            break
+        case .shell:
             break
         case .renderAdapter:
             break
@@ -333,6 +366,8 @@ private struct ParticleDebugPanel: View {
     private func saveCurrentSection() {
         switch section {
         case .diagnostics:
+            break
+        case .shell:
             break
         case .renderAdapter:
             break
@@ -387,6 +422,15 @@ private struct ParticleDiagnosticsView: View {
                 ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.reservedRenderers", value: snapshot.reservedRenderers)
             }
 
+            ParticleDiagnosticsSection(titleKey: "particleDebug.diagnostics.shellMode") {
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.requestedShellMode", value: snapshot.requestedShellMode)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.activeShellMode", value: snapshot.activeShellMode)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.shellFallbackReason", value: snapshot.shellFallbackReason)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.darkShell", value: snapshot.darkShellStatus)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.immersiveShell", value: snapshot.immersiveShellStatus)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.transparentShell", value: snapshot.transparentShellStatus)
+            }
+
             ParticleDiagnosticsSection(titleKey: "particleDebug.diagnostics.colorProfile") {
                 ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.colorProfileSource", value: snapshot.colorProfileSource)
                 ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.baseColor", value: snapshot.baseColor)
@@ -417,6 +461,41 @@ private struct ParticleDiagnosticsView: View {
 
     private func boolText(_ value: Bool) -> String {
         value ? String(localized: "particleDebug.value.true") : String(localized: "particleDebug.value.false")
+    }
+}
+
+private struct ParticleShellModeView: View {
+    let snapshot: ParticleDebugSnapshot
+    let shellMode: ParticleShellMode
+    let setShellMode: (ParticleShellMode) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Picker(String(localized: "particleDebug.diagnostics.requestedShellMode"), selection: shellBinding) {
+                Text(String(localized: "particleDebug.shellMode.darkShell"))
+                    .tag(ParticleShellMode.darkShell)
+                Text(String(localized: "particleDebug.shellMode.immersiveShell"))
+                    .tag(ParticleShellMode.immersiveShell)
+            }
+            .pickerStyle(.menu)
+
+            ParticleDiagnosticsSection(titleKey: "particleDebug.diagnostics.shellMode") {
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.requestedShellMode", value: snapshot.requestedShellMode)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.activeShellMode", value: snapshot.activeShellMode)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.shellFallbackReason", value: snapshot.shellFallbackReason)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.darkShell", value: snapshot.darkShellStatus)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.immersiveShell", value: snapshot.immersiveShellStatus)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.transparentShell", value: snapshot.transparentShellStatus)
+            }
+        }
+    }
+
+    private var shellBinding: Binding<ParticleShellMode> {
+        Binding {
+            shellMode
+        } set: { newValue in
+            setShellMode(newValue)
+        }
     }
 }
 

@@ -131,6 +131,68 @@ public struct ParticleRenderResolution: Equatable {
     }
 }
 
+public enum ParticleShellMode: String, CaseIterable, Identifiable {
+    case darkShell = "dark_shell"
+    case immersiveShell = "immersive_shell"
+    case transparentShellReserved = "transparent_shell_reserved"
+
+    public var id: String {
+        rawValue
+    }
+
+    var localizedKey: String {
+        switch self {
+        case .darkShell:
+            return "particleDebug.shellMode.darkShell"
+        case .immersiveShell:
+            return "particleDebug.shellMode.immersiveShell"
+        case .transparentShellReserved:
+            return "particleDebug.shellMode.transparentShellReserved"
+        }
+    }
+}
+
+public struct ParticleShellResolution: Equatable {
+    public var requestedMode: String
+    public var activeMode: String
+    public var fallbackReason: String
+    public var darkShellStatus: String
+    public var immersiveShellStatus: String
+    public var transparentShellStatus: String
+
+    public static func resolve(current: ParticleShellMode) -> ParticleShellResolution {
+        switch current {
+        case .darkShell:
+            return ParticleShellResolution(
+                requestedMode: current.rawValue,
+                activeMode: "dark_shell",
+                fallbackReason: "active",
+                darkShellStatus: "current / enabled",
+                immersiveShellStatus: "enabled / debug-only",
+                transparentShellStatus: "reserved / disabled"
+            )
+        case .immersiveShell:
+            return ParticleShellResolution(
+                requestedMode: current.rawValue,
+                activeMode: "immersive_shell",
+                fallbackReason: "active",
+                darkShellStatus: "enabled",
+                immersiveShellStatus: "current / enabled / debug-only",
+                transparentShellStatus: "reserved / disabled"
+            )
+        case .transparentShellReserved:
+            return ParticleShellResolution(
+                requestedMode: current.rawValue,
+                activeMode: "dark_shell",
+                fallbackReason: "reserved_not_implemented",
+                darkShellStatus: "fallback / enabled",
+                immersiveShellStatus: "enabled / debug-only",
+                transparentShellStatus: "selected / reserved / disabled"
+            )
+        }
+    }
+}
+
 public enum ParticleSubtitlePhase: Equatable {
     case hidden
     case showing
@@ -200,6 +262,12 @@ public struct ParticleDebugSnapshot: Equatable {
     public var fallbackReason: String
     public var supportedRenderers: String
     public var reservedRenderers: String
+    public var requestedShellMode: String
+    public var activeShellMode: String
+    public var shellFallbackReason: String
+    public var darkShellStatus: String
+    public var immersiveShellStatus: String
+    public var transparentShellStatus: String
     public var colorProfileSource: String
     public var baseColor: String
     public var ridgeColor: String
@@ -238,6 +306,12 @@ public struct ParticleDebugSnapshot: Equatable {
         fallbackReason: "active",
         supportedRenderers: "particle_core",
         reservedRenderers: "abstract_bust, dual_resident, ar_transition",
+        requestedShellMode: "dark_shell",
+        activeShellMode: "dark_shell",
+        shellFallbackReason: "active",
+        darkShellStatus: "current / enabled",
+        immersiveShellStatus: "enabled / debug-only",
+        transparentShellStatus: "reserved / disabled",
         colorProfileSource: "systemDefault",
         baseColor: "0.82, 0.84, 0.88",
         ridgeColor: "0.95, 0.96, 0.98",
