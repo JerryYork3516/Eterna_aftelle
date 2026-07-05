@@ -26,22 +26,24 @@ struct AftelleApp: App {
 
                 Divider()
 
-                Menu(String(localized: "particleDebug.menu.shellMode")) {
-                    Button(shellMenuTitle(.darkShell)) {
-                        controller.setParticleShellMode(.darkShell)
-                    }
-                    Button(shellMenuTitle(.immersiveShell)) {
-                        controller.setParticleShellMode(.immersiveShell)
-                    }
-                    Button(shellMenuTitle(.transparentShellReserved)) {}
-                        .disabled(true)
+                Button(String(localized: "particleDebug.menu.shellMode")) {}
+                    .disabled(true)
+                Button(shellMenuTitle(.darkShell)) {
+                    controller.setParticleShellMode(.darkShell)
                 }
+                Button(shellMenuTitle(.immersiveShell)) {
+                    controller.setParticleShellMode(.immersiveShell)
+                }
+                Button(shellMenuTitle(.transparentShellReserved)) {}
+                    .disabled(true)
 
-                Menu(String(localized: "particleDebug.menu.renderAdapter")) {
-                    ForEach(ParticleRenderKind.allCases) { kind in
-                        Button(renderMenuTitle(kind)) {
-                            controller.setParticleRenderKind(kind)
-                        }
+                Divider()
+
+                Button(String(localized: "particleDebug.menu.renderAdapter")) {}
+                    .disabled(true)
+                ForEach(ParticleRenderKind.allCases) { kind in
+                    Button(renderMenuTitle(kind)) {
+                        controller.setParticleRenderKind(kind)
                     }
                 }
             }

@@ -168,16 +168,16 @@ public struct ParticleShellResolution: Equatable {
                 activeMode: "dark_shell",
                 fallbackReason: "active",
                 darkShellStatus: "current / enabled",
-                immersiveShellStatus: "enabled / debug-only",
+                immersiveShellStatus: "enabled / visual-only / debug-only",
                 transparentShellStatus: "reserved / disabled"
             )
         case .immersiveShell:
             return ParticleShellResolution(
                 requestedMode: current.rawValue,
                 activeMode: "immersive_shell",
-                fallbackReason: "active",
+                fallbackReason: "visual_only",
                 darkShellStatus: "enabled",
-                immersiveShellStatus: "current / enabled / debug-only",
+                immersiveShellStatus: "current / enabled / visual-only / debug-only",
                 transparentShellStatus: "reserved / disabled"
             )
         case .transparentShellReserved:
@@ -186,7 +186,7 @@ public struct ParticleShellResolution: Equatable {
                 activeMode: "dark_shell",
                 fallbackReason: "reserved_not_implemented",
                 darkShellStatus: "fallback / enabled",
-                immersiveShellStatus: "enabled / debug-only",
+                immersiveShellStatus: "enabled / visual-only / debug-only",
                 transparentShellStatus: "selected / reserved / disabled"
             )
         }
@@ -310,7 +310,7 @@ public struct ParticleDebugSnapshot: Equatable {
         activeShellMode: "dark_shell",
         shellFallbackReason: "active",
         darkShellStatus: "current / enabled",
-        immersiveShellStatus: "enabled / debug-only",
+        immersiveShellStatus: "enabled / visual-only / debug-only",
         transparentShellStatus: "reserved / disabled",
         colorProfileSource: "systemDefault",
         baseColor: "0.82, 0.84, 0.88",

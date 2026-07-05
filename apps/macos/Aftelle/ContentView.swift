@@ -158,8 +158,16 @@ private struct WindowShellConfigurator: NSViewRepresentable {
         DispatchQueue.main.async {
             guard let window = nsView.window else { return }
             let immersive = shellMode == .immersiveShell
+            if immersive {
+                window.styleMask.insert(.fullSizeContentView)
+            } else {
+                window.styleMask.remove(.fullSizeContentView)
+            }
             window.titleVisibility = immersive ? .hidden : .visible
             window.titlebarAppearsTransparent = immersive
+            window.standardWindowButton(.closeButton)?.isHidden = immersive
+            window.standardWindowButton(.miniaturizeButton)?.isHidden = immersive
+            window.standardWindowButton(.zoomButton)?.isHidden = immersive
         }
     }
 }
