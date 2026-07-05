@@ -67,8 +67,6 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private var stateStartTime = CACurrentMediaTime()
     private var metricsStartTime = CACurrentMediaTime()
     private var metricsFrameCount = 0
-    private var didLogDrawableSize = false
-    private var didLogDraw = false
     private var targetMousePosition = SIMD2<Float>(repeating: 0)
     private var targetMouseVelocity = SIMD2<Float>(repeating: 0)
     private var targetMouseInfluence: Float = 0
@@ -105,20 +103,17 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             print("[ParticleCore] commandQueue failed")
             return nil
         }
-        print("[ParticleCore] commandQueue ok")
 
         guard let library = device.makeDefaultLibrary() else {
             print("[ParticleCore] defaultLibrary failed")
             return nil
         }
-        print("[ParticleCore] defaultLibrary ok")
 
         guard let vertexFunction = library.makeFunction(name: "particleVertex"),
               let fragmentFunction = library.makeFunction(name: "particleFragment") else {
             print("[ParticleCore] shader functions missing particleVertex=\(library.makeFunction(name: "particleVertex") != nil) particleFragment=\(library.makeFunction(name: "particleFragment") != nil)")
             return nil
         }
-        print("[ParticleCore] shader functions ok")
 
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
         pipelineDescriptor.vertexFunction = vertexFunction
@@ -134,7 +129,6 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
 
         do {
             self.pipelineState = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
-            print("[ParticleCore] pipeline ok")
         } catch {
             print("[ParticleCore] pipeline failed \(error)")
             return nil
@@ -148,7 +142,6 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             print("[ParticleCore] uniformsBuffer failed")
             return nil
         }
-        print("[ParticleCore] vertexBuffer ok particleCount=\(model.particles.count)")
 
         self.commandQueue = commandQueue
         self.particleBuffer = particleBuffer
@@ -156,16 +149,11 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
 
         super.init()
         uploadParticles()
-        print("[ParticleCore] renderer init ok")
     }
 
     func draw(in view: MTKView) {
         let drawableSize = view.drawableSize
         metricsFrameCount += 1
-        if !didLogDrawableSize, drawableSize.width > 0, drawableSize.height > 0 {
-            print("[ParticleCore] drawable size \(Int(drawableSize.width))x\(Int(drawableSize.height))")
-            didLogDrawableSize = true
-        }
 
         guard let drawable = view.currentDrawable,
               let renderPassDescriptor = view.currentRenderPassDescriptor,
@@ -183,7 +171,6 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         updateSmoothedMouse(elapsedTime: CACurrentMediaTime())
         updateSmoothedVisualState()
         let speedPhaseRate: Float = 0.025
-        let speedScale = 0.42 + 0.08 * sin(elapsed * speedPhaseRate)
         let motionElapsed = 0.42 * elapsed + (0.08 / speedPhaseRate) * (1 - cos(elapsed * speedPhaseRate))
         let resolution = SIMD2<Float>(Float(drawableSize.width), Float(drawableSize.height))
         let tunedBreathTime = motionElapsed * scaleAroundOne(tuning.breathingSpeed, range: 0.90)
@@ -230,20 +217,10 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         )
         memcpy(uniformsBuffer.contents(), &uniforms, MemoryLayout<ParticleCoreFrameUniforms>.stride)
 
-        if !didLogDraw {
-            let aspect = max(resolution.x / max(resolution.y, 1), 1)
-            let bounds = model.clipBounds(aspect: aspect, breathing: 1 + breathing)
-            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) visualState=\(visualState) thinkingStrength=\(smoothThinkingStrength) speakingStrength=\(smoothSpeakingStrength) loadingStrength=\(smoothLoadingStrength) errorStrength=\(smoothErrorStrength) exitStrength=\(smoothExitStrength) stateElapsedTime=\(stateElapsedTime) previewKeys=(I idle,T thinking,S speaking,L loading,E error,X exit) globalBreathingRef=\(breathing) edgeBreathingRef=\(edgeBreathing) coreStability=\(coreStability) motion=video_guided_rotating_surface_field speedScale=\(speedScale) speedRange=0.34...0.50 particleColor=(three_stage_back_front_ion_ridge,back=0.30...0.35,front=0.95...0.98,density_front_gated,no_random_brightness) pointSize=cohesive_body_bound_structure ionCluster=cloud_driven_rolling_ridge cloudDensity=internal_eddy_migration structure=body_envelope_spine_density_sections")
-        }
-
         encoder.setRenderPipelineState(pipelineState)
         encoder.setVertexBuffer(particleBuffer, offset: 0, index: 0)
         encoder.setVertexBuffer(uniformsBuffer, offset: 0, index: 1)
         encoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: model.particles.count)
-        if !didLogDraw {
-            print("[ParticleCore] drawPrimitives executed vertexCount=\(model.particles.count)")
-            didLogDraw = true
-        }
         publishDebugMetricsIfNeeded(view: view, stateElapsedTime: stateAge)
         encoder.endEncoding()
 

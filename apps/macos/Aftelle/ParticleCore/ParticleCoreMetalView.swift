@@ -9,12 +9,10 @@ struct ParticleCoreMetalView: NSViewRepresentable {
     var debugMetricsHandler: ((ParticleRenderMetrics) -> Void)?
 
     func makeNSView(context: Context) -> MTKView {
-        print("[ParticleCore] makeNSView called")
         guard let device = MTLCreateSystemDefaultDevice() else {
             print("[ParticleCore] metal device missing")
             return MTKView(frame: .zero, device: nil)
         }
-        print("[ParticleCore] metal device ok name=\(device.name)")
 
         let view = ParticleCoreInputView(frame: .zero, device: device)
         view.clearColor = MTLClearColor(red: 0.035, green: 0.04, blue: 0.05, alpha: 1)
@@ -25,7 +23,6 @@ struct ParticleCoreMetalView: NSViewRepresentable {
         view.framebufferOnly = true
         view.layer?.backgroundColor = NSColor(calibratedRed: 0.035, green: 0.04, blue: 0.05, alpha: 1).cgColor
 
-        print("[ParticleCore] MTKView created deviceOk=\(view.device != nil)")
         guard let renderer = ParticleCoreRenderer(device: device, visualState: visualState) else {
             print("[ParticleCore] renderer init failed")
             return view
@@ -43,15 +40,10 @@ struct ParticleCoreMetalView: NSViewRepresentable {
             }
         }
         renderer.setColorProfile(colorProfile)
-        print("[ParticleCore] MTKView delegate set \(view.delegate === renderer)")
         return view
     }
 
     func updateNSView(_ nsView: MTKView, context: Context) {
-        if !context.coordinator.didLogUpdate {
-            print("[ParticleCore] updateNSView called drawableSize=\(Int(nsView.drawableSize.width))x\(Int(nsView.drawableSize.height))")
-            context.coordinator.didLogUpdate = true
-        }
         if context.coordinator.swiftUIVisualState != visualState {
             context.coordinator.renderer?.setVisualState(visualState, reason: "appMapping")
             context.coordinator.swiftUIVisualState = visualState
@@ -77,7 +69,6 @@ struct ParticleCoreMetalView: NSViewRepresentable {
         var tuning: ParticleCoreTuning = .systemDefault
         var colorProfile: ParticleCoreColorProfile = .systemDefault
         var debugMetricsHandler: ((ParticleRenderMetrics) -> Void)?
-        var didLogUpdate = false
     }
 }
 
