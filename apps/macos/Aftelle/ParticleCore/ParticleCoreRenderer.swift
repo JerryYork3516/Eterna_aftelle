@@ -21,6 +21,7 @@ struct ParticleCoreFrameUniforms {
     var loadingStrength: Float
     var errorStrength: Float
     var exitStrength: Float
+    var stateElapsedTime: Float
 }
 
 enum ParticleCoreVisualState: UInt32 {
@@ -45,6 +46,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private let particleBuffer: MTLBuffer
     private let uniformsBuffer: MTLBuffer
     private let startTime = CACurrentMediaTime()
+    private var stateStartTime = CACurrentMediaTime()
     private var didLogDrawableSize = false
     private var didLogDraw = false
     private var targetMousePosition = SIMD2<Float>(repeating: 0)
@@ -144,6 +146,12 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
               let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
 
         let elapsed = Float(CACurrentMediaTime() - startTime)
+        let stateElapsedTime: Float
+        if visualState == .exit {
+            stateElapsedTime = Float(CACurrentMediaTime() - stateStartTime)
+        } else {
+            stateElapsedTime = 0
+        }
         updateSmoothedMouse(elapsedTime: CACurrentMediaTime())
         updateSmoothedVisualState()
         let speedPhaseRate: Float = 0.025
@@ -169,14 +177,15 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             speakingStrength: smoothSpeakingStrength,
             loadingStrength: smoothLoadingStrength,
             errorStrength: smoothErrorStrength,
-            exitStrength: smoothExitStrength
+            exitStrength: smoothExitStrength,
+            stateElapsedTime: stateElapsedTime
         )
         memcpy(uniformsBuffer.contents(), &uniforms, MemoryLayout<ParticleCoreFrameUniforms>.stride)
 
         if !didLogDraw {
             let aspect = max(resolution.x / max(resolution.y, 1), 1)
             let bounds = model.clipBounds(aspect: aspect, breathing: 1 + breathing)
-            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) visualState=\(visualState) thinkingStrength=\(smoothThinkingStrength) speakingStrength=\(smoothSpeakingStrength) loadingStrength=\(smoothLoadingStrength) errorStrength=\(smoothErrorStrength) exitStrength=\(smoothExitStrength) previewKeys=(I idle,T thinking,S speaking,L loading,E error,X exit) globalBreathingRef=\(breathing) edgeBreathingRef=\(edgeBreathing) coreStability=\(coreStability) motion=video_guided_rotating_surface_field speedScale=\(speedScale) speedRange=0.34...0.50 particleColor=(three_stage_back_front_ion_ridge,back=0.30...0.35,front=0.95...0.98,density_front_gated,no_random_brightness) pointSize=cohesive_body_bound_structure ionCluster=cloud_driven_rolling_ridge cloudDensity=internal_eddy_migration structure=body_envelope_spine_density_sections")
+            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) visualState=\(visualState) thinkingStrength=\(smoothThinkingStrength) speakingStrength=\(smoothSpeakingStrength) loadingStrength=\(smoothLoadingStrength) errorStrength=\(smoothErrorStrength) exitStrength=\(smoothExitStrength) stateElapsedTime=\(stateElapsedTime) previewKeys=(I idle,T thinking,S speaking,L loading,E error,X exit) globalBreathingRef=\(breathing) edgeBreathingRef=\(edgeBreathing) coreStability=\(coreStability) motion=video_guided_rotating_surface_field speedScale=\(speedScale) speedRange=0.34...0.50 particleColor=(three_stage_back_front_ion_ridge,back=0.30...0.35,front=0.95...0.98,density_front_gated,no_random_brightness) pointSize=cohesive_body_bound_structure ionCluster=cloud_driven_rolling_ridge cloudDensity=internal_eddy_migration structure=body_envelope_spine_density_sections")
         }
 
         encoder.setRenderPipelineState(pipelineState)
@@ -203,8 +212,18 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     }
 
     func setVisualState(_ visualState: ParticleCoreVisualState) {
-        guard self.visualState != visualState else { return }
+        let now = CACurrentMediaTime()
+        if self.visualState == visualState {
+            if visualState == .exit {
+                stateStartTime = now
+            }
+            return
+        }
         self.visualState = visualState
+        stateStartTime = now
+        if visualState == .idle {
+            smoothExitStrength = 0
+        }
         print("[ParticleCore] visualState changed \(visualState)")
     }
 
@@ -236,6 +255,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         smoothSpeakingStrength += (visualState.targetStrength(for: .speaking) - smoothSpeakingStrength) * alpha
         smoothLoadingStrength += (visualState.targetStrength(for: .loading) - smoothLoadingStrength) * alpha
         smoothErrorStrength += (visualState.targetStrength(for: .error) - smoothErrorStrength) * alpha
-        smoothExitStrength += (visualState.targetStrength(for: .exit) - smoothExitStrength) * alpha
+        let exitAlpha: Float = visualState == .exit ? 0.080 : 0.050
+        smoothExitStrength += (visualState.targetStrength(for: .exit) - smoothExitStrength) * exitAlpha
     }
 }

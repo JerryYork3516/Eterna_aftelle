@@ -18,6 +18,7 @@ struct ParticleCoreFrameUniforms {
     float loadingStrength;
     float errorStrength;
     float exitStrength;
+    float stateElapsedTime;
 };
 
 struct ParticleVertexOut {
@@ -41,6 +42,11 @@ struct ParticleVertexOut {
     float errorInterrupt;
     float errorFracture;
     float edgePresence;
+    float exitState;
+    float exitFade;
+    float exitLocalFade;
+    float exitBreak;
+    float exitDust;
     float previewPlaceholder;
 };
 
@@ -246,6 +252,12 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float errorRaw = saturate(uniforms.errorStrength);
     float error = smoothstep(0.0, 1.0, errorRaw);
     float exitState = saturate(uniforms.exitStrength);
+    float exitElapsed = max(uniforms.stateElapsedTime, 0.0);
+    float exitWarmup = smoothstep(0.00, 0.12, exitElapsed);
+    float exitContract = exitWarmup * (1.0 - smoothstep(0.28, 0.44, exitElapsed));
+    float exitDisconnect = smoothstep(0.24, 0.82, exitElapsed);
+    float exitDisperse = smoothstep(0.64, 2.05, exitElapsed);
+    float exitFade = smoothstep(1.55, 2.85, exitElapsed);
     float previewPlaceholder = saturate(max(error, exitState));
     float speakPulseA = 0.5 + 0.5 * sin(t * 1.08 + localPhase * 0.34 + angle * 1.65 + depth * 1.10);
     float speakPulseB = 0.5 + 0.5 * sin(t * 0.76 + phaseB * 0.22 - angle * 2.20 + seedB * 3.10);
@@ -467,6 +479,35 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float loadingHold = loading * (0.016 + midBand * 0.007 - loadingCycle * 0.003);
     float placeholderScale = 1.0 - error * 0.004 - exitState * 0.008;
     p *= (1.0 - thinking * 0.058 + speakingExpansion - loadingHold) * placeholderScale;
+    float centerExitZone = 1.0 - smoothstep(0.16, 0.38, lengthP);
+    float midExitZone = smoothstep(0.18, 0.42, lengthP) * (1.0 - smoothstep(0.58, 0.82, lengthP));
+    float edgeExitZone = smoothstep(0.48, 0.76, lengthP);
+    float outerDustZone = edgeExitZone * smoothstep(0.56, 0.94, seedB);
+    float exitRadius = saturate(lengthP / 0.78);
+    float exitRingRelease = smoothstep(0.22 + exitRadius * 0.42, 1.10 + exitRadius * 0.56, exitElapsed);
+    float exitLocalFade = exitState * smoothstep(1.02 + exitRadius * 0.88, 1.78 + exitRadius * 1.08, exitElapsed);
+    float2 exitOutward = normalize(p + float2(0.001, 0.001));
+    float2 exitRandom = normalize(float2(
+        cos(particleSeed * 6.2831853 + seedB * 2.7),
+        sin(seedB * 6.2831853 - particleSeed * 2.1)
+    ) + float2(0.001, 0.001));
+    float flowSignature = sin(sheetTravel * 3.4 - sheetCross * 2.1 + body.z * 2.6 + phaseB * 0.16);
+    float2 exitFlowDirection = normalize(surfaceFlowAxis * (0.72 + flowSignature * 0.18)
+        + surfaceFlowSide * (0.18 * sin(angle * 2.4 + depth * 1.8 + seedB * 2.0))
+        + turnedAxis * 0.14);
+    float2 exitDirection = normalize(exitOutward * 0.68 + exitFlowDirection * 0.24 + exitRandom * 0.08);
+    float exitBreakPattern = smoothstep(0.48, 0.88, 0.5 + 0.5 * sin(sheetTravel * 5.6 - sheetCross * 2.4 + body.z * 3.2 + phaseB * 0.24));
+    float exitBreakAmount = exitState * exitDisconnect * exitBreakPattern * (0.10 + midExitZone * 0.50 + edgeExitZone * 0.24);
+    float centerRelease = centerExitZone * exitRingRelease;
+    float midSlide = midExitZone * (exitRingRelease * 0.36 + exitDisperse * 0.64);
+    float edgeRelease = edgeExitZone * (exitRingRelease * 0.30 + exitDisperse * 0.58 + exitFade * 0.12);
+    float dustRelease = outerDustZone * (exitRingRelease * 0.18 + exitDisperse * 0.22 + exitFade * 0.60);
+    p -= exitOutward * exitState * exitContract * (0.046 * centerExitZone + 0.030 * midExitZone + 0.012 * edgeExitZone);
+    p += exitDirection * exitState * (centerRelease * 0.150 + midSlide * (0.315 + 0.080 * exitBreakPattern) + edgeRelease * 0.470);
+    p += exitOutward * exitState * (centerRelease * 0.065 + midSlide * 0.135 + edgeRelease * 0.385 + dustRelease * 0.200);
+    p += tangent * exitState * exitRingRelease * (0.030 + 0.030 * seedB) * sin(angle * 2.0 + phaseB + exitElapsed * 0.36);
+    p += exitRandom * exitState * dustRelease * 0.135;
+    p += surfaceFlowSide * exitState * exitBreakAmount * sin(phaseB + exitElapsed * 0.42) * 0.022;
     float2 mouseDelta = p - uniforms.mousePosition;
     float mouseDistance = length(mouseDelta);
     float2 mouseRadial = mouseDelta / max(mouseDistance, 0.001);
@@ -493,7 +534,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     edgeDustField *= (1.0 - turnWakeEnergy * 0.42) * edgeSettle * speakingEdgeLift;
     p += screenNormal * edgeDustField * (0.006 + 0.016 * seedB);
     p += turnedSide * edgeDustField * sin(angle * 3.4 + phaseB + fieldTime * 0.28) * (0.002 + 0.005 * particleSeed);
-    edgeFrayField = saturate(edgeFrayField * 0.26 + edgeDustField * 0.20);
+    edgeFrayField = saturate(edgeFrayField * 0.26 + edgeDustField * 0.20 + exitBreakAmount * 0.42 + exitState * dustRelease * 0.24);
 
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);
     float2 clip = float2(p.x / aspect, p.y);
@@ -600,6 +641,14 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     visibleLocalRidge = saturate(visibleLocalRidge * mix(1.0, 0.54, errorDarkGap * errorBreakGate) + visibleRidgeFlow * 0.10 * errorBreakGate);
     visibleStructuralSpine *= mix(1.0, 0.60, errorDarkGap * error);
     visibleIonCluster *= mix(1.0, 0.76, errorInterrupt * error);
+    float exitDim = exitLocalFade;
+    float exitStructureLoss = saturate(exitBreakAmount + exitState * exitDisperse * (midExitZone * 0.38 + edgeExitZone * 0.30));
+    visibleLayerDensity = saturate(visibleLayerDensity * mix(1.0, 0.54, exitStructureLoss) + visibleDenseSection * 0.026 * exitBreakAmount);
+    visibleLocalRidge = saturate(visibleLocalRidge * mix(1.0, 0.40, exitStructureLoss));
+    visibleStructuralSpine *= mix(1.0, 0.34, exitStructureLoss);
+    visibleIonCluster *= mix(1.0, 0.48, exitStructureLoss);
+    visibleCloudDensity *= mix(1.0, 0.68, exitDim);
+    visibleDenseSection *= mix(1.0, 0.64, exitDim);
     float3 surfaceNormal = normalize(float3(flowedBody.xy * 0.92, flowedBody.z * 1.12 + visibleDepth * 0.22));
     float3 keyDirection = normalize(float3(turnedSide * 0.74 + turnedAxis * 0.22, 0.54));
     float3 fillDirection = normalize(float3(-turnedSide * 0.42 + turnedAxis * 0.34, 0.50));
@@ -628,6 +677,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     );
     surfaceLight = saturate(surfaceLight * mix(1.0, 0.82, error * (0.30 + errorInterrupt * 0.52))
         - errorDarkGap * (0.08 + frontDepthGate * 0.11));
+    surfaceLight = saturate(surfaceLight * mix(1.0, 0.42, exitDim)
+        + exitState * exitContract * frontDepthGate * 0.040
+        - exitBreakAmount * 0.040);
     float ionPresence = saturate(visibleIonCluster * 0.82 + visibleStructuralSpine * 0.86 + visibleLayerDensity * 0.24);
     float baseDepthGate = smoothstep(-0.48, 0.46, depth);
     float frontSizeLift = baseDepthGate * 0.34
@@ -660,7 +712,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float depthVisibilitySize = mix(0.42, 1.34, frontParticleLift) * mix(1.0, 0.58, backParticleMute);
     float layeredPointSize = pointBase * sizeJitter * depthSize * depthVisibilitySize
         + ridgeSizeLift * (0.84 + frontParticleLift * 0.78);
-    out.pointSize = clamp(layeredPointSize, 1.70 + frontSizeLift * 0.24, pointCeiling + ridgeSizeLift * 1.12) * 1.24;
+    float exitPointScale = mix(1.0, 0.56 + dustRelease * 0.16, exitDim);
+    exitPointScale *= mix(1.0, 0.84, exitState * exitBreakAmount);
+    out.pointSize = clamp(layeredPointSize, 1.70 + frontSizeLift * 0.24, pointCeiling + ridgeSizeLift * 1.12) * 1.24 * exitPointScale;
     out.ridge = visibleLocalRidge;
     out.depth = visibleDepth;
     out.shimmer = ionPresence;
@@ -680,6 +734,11 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     out.errorInterrupt = errorInterrupt;
     out.errorFracture = errorFracture;
     out.edgePresence = smoothstep(0.48, 0.78, stableScreenRadius);
+    out.exitState = exitState;
+    out.exitFade = exitFade;
+    out.exitLocalFade = exitLocalFade;
+    out.exitBreak = exitBreakAmount;
+    out.exitDust = dustRelease;
     out.previewPlaceholder = previewPlaceholder;
     return out;
 }
@@ -705,6 +764,10 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float error = saturate(in.error);
     float errorInterrupt = saturate(in.errorInterrupt);
     float errorFracture = saturate(in.errorFracture);
+    float exitState = saturate(in.exitState);
+    float exitLocalFade = saturate(in.exitLocalFade);
+    float exitBreak = saturate(in.exitBreak);
+    float exitDust = saturate(in.exitDust);
     float ionPresence = saturate(in.shimmer);
     float previewPlaceholder = saturate(in.previewPlaceholder);
     float litSurface = smoothstep(0.34, 0.86, surfaceLight);
@@ -747,6 +810,8 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     coverage *= mix(1.0, 0.68, errorRidgeShadow);
     coverage *= mix(1.0, 0.82, error * outerDim * (1.0 - ridge * 0.44));
     coverage = saturate(coverage + error * errorFracture * ridge * frontLight * 0.030);
+    coverage *= mix(1.0, 0.66, exitBreak);
+    coverage *= mix(1.0, 0.24 + exitDust * 0.16, exitLocalFade);
     coverage = saturate(coverage * mix(0.72, 1.54, ionPresence) * mix(1.0, 0.70, sparseDim));
     coverage *= mix(1.0, 0.96, previewPlaceholder);
     float highlight = saturate(litFront * 0.38 + ionRidge * 2.08 + ridgeGlow * 3.18 + surfaceWake * 0.24);
@@ -756,7 +821,10 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     highlight *= mix(1.0, 0.58, errorRidgeShadow);
     highlight = saturate(highlight + error * errorFracture * frontLight * ridge * 0.060);
     highlight = saturate(highlight + ionPresence * frontLight * (0.16 + ridge * 0.26));
+    highlight *= mix(1.0, 0.24, exitLocalFade);
+    highlight *= mix(1.0, 0.74, exitBreak);
     float alpha = saturate(halo * coverage * 0.74 + core * coverage * 2.18) * backMute;
+    alpha *= mix(1.0, 0.18 + exitDust * 0.14, exitLocalFade);
     half3 back = half3(0.40, 0.42, 0.46);
     half3 frontBase = half3(0.82, 0.84, 0.88);
     half3 wakeTint = half3(0.82, 0.84, 0.88);
@@ -765,9 +833,11 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     half3 dim = mix(back, frontBase, half(compressedDepthLight * surfaceTone));
     dim *= half(mix(1.0, 0.86, thinking * outerDim));
     dim *= half(mix(1.0, 0.78, error * (0.34 + outerDim * 0.76)));
+    dim *= half(mix(1.0, 0.34 + exitDust * 0.10, exitLocalFade));
     half3 bright = half3(1.0, 1.0, 1.0);
     half3 color = mix(dim, bright, half(highlight));
     color = mix(color, half3(0.64, 0.66, 0.70), half(error * errorInterrupt * 0.14));
     color = mix(color, wakeTint, half(surfaceWake * (0.20 + frontLight * 0.80) * 0.12));
+    color = mix(color, half3(0.52, 0.54, 0.58), half(exitState * exitBreak * 0.08));
     return half4(color, half(alpha));
 }
