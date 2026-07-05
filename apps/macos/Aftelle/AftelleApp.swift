@@ -12,7 +12,7 @@ struct AftelleApp: App {
         .windowResizability(.contentSize)
         .commands {
             CommandGroup(replacing: .appTermination) {
-                Button(String(localized: "Quit Aftelle")) {
+                Button(String(localized: "app.menu.quit")) {
                     controller.persistForNormalTerminationIfPossible()
                     NSApplication.shared.terminate(nil)
                 }

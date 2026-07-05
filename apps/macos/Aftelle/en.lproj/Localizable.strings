@@ -3,6 +3,7 @@
 "particleDebug.diagnostics" = "Diagnostics";
 "particleDebug.diagnosticsCaption" = "Read-only state snapshot";
 "particleDebug.menu.title" = "Debug";
+"app.menu.quit" = "Quit Aftelle";
 "particleDebug.menu.togglePanel" = "Toggle Debug Panel";
 "particleDebug.menu.shellMode" = "Shell Mode";
 "particleDebug.menu.renderAdapter" = "Render Adapter";
