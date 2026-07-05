@@ -12,6 +12,9 @@ struct ParticleCoreFrameUniforms {
     var resolution: SIMD2<Float>
     var seed: UInt32
     var particleCount: UInt32
+    var mousePosition: SIMD2<Float>
+    var mouseVelocity: SIMD2<Float>
+    var mouseInfluence: Float
 }
 
 final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
@@ -24,6 +27,13 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private let startTime = CACurrentMediaTime()
     private var didLogDrawableSize = false
     private var didLogDraw = false
+    private var targetMousePosition = SIMD2<Float>(repeating: 0)
+    private var targetMouseVelocity = SIMD2<Float>(repeating: 0)
+    private var targetMouseInfluence: Float = 0
+    private var smoothMousePosition = SIMD2<Float>(repeating: 0)
+    private var smoothMouseVelocity = SIMD2<Float>(repeating: 0)
+    private var smoothMouseInfluence: Float = 0
+    private var lastMouseEventTime = CACurrentMediaTime()
 
     init?(device: MTLDevice) {
         self.device = device
@@ -100,6 +110,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
               let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
 
         let elapsed = Float(CACurrentMediaTime() - startTime)
+        updateSmoothedMouse(elapsedTime: CACurrentMediaTime())
         let speedPhaseRate: Float = 0.025
         let speedScale = 0.42 + 0.08 * sin(elapsed * speedPhaseRate)
         let motionElapsed = 0.42 * elapsed + (0.08 / speedPhaseRate) * (1 - cos(elapsed * speedPhaseRate))
@@ -114,7 +125,10 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             coreStability: coreStability,
             resolution: resolution,
             seed: 0xA7F13,
-            particleCount: UInt32(model.particles.count)
+            particleCount: UInt32(model.particles.count),
+            mousePosition: smoothMousePosition,
+            mouseVelocity: smoothMouseVelocity,
+            mouseInfluence: smoothMouseInfluence
         )
         memcpy(uniformsBuffer.contents(), &uniforms, MemoryLayout<ParticleCoreFrameUniforms>.stride)
 
@@ -140,11 +154,32 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
 
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 
+    func updateMouse(position: SIMD2<Float>, velocity: SIMD2<Float>, active: Bool) {
+        targetMousePosition = position
+        targetMouseVelocity = velocity
+        targetMouseInfluence = active ? 1 : 0
+        lastMouseEventTime = CACurrentMediaTime()
+    }
+
     private func uploadParticles() {
         let payloads = model.vertexPayloads
         let pointer = particleBuffer.contents().bindMemory(to: SIMD4<Float>.self, capacity: payloads.count)
         for (index, payload) in payloads.enumerated() {
             pointer[index] = payload
         }
+    }
+
+    private func updateSmoothedMouse(elapsedTime: CFTimeInterval) {
+        if elapsedTime - lastMouseEventTime > 0.35 {
+            targetMouseInfluence = 0
+            targetMouseVelocity = .zero
+        }
+
+        let positionAlpha: Float = 0.16
+        let velocityAlpha: Float = 0.12
+        let influenceAlpha: Float = targetMouseInfluence > smoothMouseInfluence ? 0.18 : 0.06
+        smoothMousePosition += (targetMousePosition - smoothMousePosition) * positionAlpha
+        smoothMouseVelocity += (targetMouseVelocity - smoothMouseVelocity) * velocityAlpha
+        smoothMouseInfluence += (targetMouseInfluence - smoothMouseInfluence) * influenceAlpha
     }
 }

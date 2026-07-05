@@ -9,6 +9,9 @@ struct ParticleCoreFrameUniforms {
     float2 resolution;
     uint seed;
     uint particleCount;
+    float2 mousePosition;
+    float2 mouseVelocity;
+    float mouseInfluence;
 };
 
 struct ParticleVertexOut {
@@ -366,6 +369,16 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     p += (surfaceFlowAxis * turnWake + surfaceFlowSide * turnWakeB * 0.72)
         * (0.004 + interior * 0.010 + midBand * 0.014 + frontSheetGate * 0.014 + frontSpreadGate * 0.022 + edge * 0.001)
         * visibleWakeGate;
+    float2 mouseDelta = p - uniforms.mousePosition;
+    float mouseDistance = length(mouseDelta);
+    float2 mouseRadial = mouseDelta / max(mouseDistance, 0.001);
+    float2 mouseTangent = float2(-mouseRadial.y, mouseRadial.x);
+    float mouseShellResponse = smoothstep(0.18, 0.58, stableRadius) * (0.24 + edge * 0.76);
+    float radialMouseField = (1.0 - smoothstep(0.08, 0.96, mouseDistance)) * uniforms.mouseInfluence * mouseShellResponse;
+    float swirlMouseField = (1.0 - smoothstep(0.03, 0.36, mouseDistance)) * uniforms.mouseInfluence * mouseShellResponse;
+    float mouseSwirl = clamp(dot(uniforms.mouseVelocity, mouseTangent) * 0.18, -1.0, 1.0);
+    p += mouseRadial * radialMouseField * 0.035;
+    p += mouseTangent * swirlMouseField * mouseSwirl * 0.018;
     float screenEdge = smoothstep(0.34, 0.66, length(p));
     float edgeDustA = 0.5 + 0.5 * sin(angle * 17.0 + depth * 6.4 + particleSeed * 9.7 - fieldTime * 0.20);
     float edgeDustB = 0.5 + 0.5 * cos(angle * 23.0 - depth * 5.1 + seedB * 8.3 + fieldTime * 0.18);
