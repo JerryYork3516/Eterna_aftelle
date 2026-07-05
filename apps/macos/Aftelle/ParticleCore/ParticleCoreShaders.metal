@@ -337,18 +337,15 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     body = rotateBody(body, bodyAngles);
     float perspective = clamp(1.0 / (1.0 - body.z * 0.30), 0.84, 1.20);
     p = body.xy * perspective;
+    float wholeTurn = globalTurnAngle(fieldTime * 0.36 + 6.4) * 0.22
+        + sin(fieldTime * 0.19 + 1.7) * 0.08;
+    p = rotate2(p, wholeTurn);
     float2 stableScreenPosition = p;
     float stableRadius = length(stableScreenPosition);
     float3 axis3 = rotateBody(float3(globalAxis.x, globalAxis.y, 0.0), bodyAngles);
     float2 turnedAxis = normalize(axis3.xy + float2(0.001, 0.001));
     float2 turnedSide = float2(-turnedAxis.y, turnedAxis.x);
-    float sparklePick = smoothstep(0.78, 0.96, hash11(particleSeed * 91.7 + seedB * 13.1));
-    float sparklePhase = 0.5 + 0.5 * sin(fieldTime * (1.16 + seedB * 0.34) + particleSeed * 18.0 + phaseB * 0.18);
-    float particleSparkle = sparklePick
-        * smoothstep(0.74, 0.98, sparklePhase)
-        * smoothstep(-0.48, 0.46, body.z)
-        * (0.28 + smoothstep(0.16, 0.78, stableRadius) * 0.72);
-    float2 surfaceFlowAxis = globalDirection(fieldTime * 0.63 + 5.8);
+    float2 surfaceFlowAxis = globalDirection(fieldTime * 0.91 + 5.8);
     float2 surfaceFlowSide = float2(-surfaceFlowAxis.y, surfaceFlowAxis.x);
     float stretch = sin(fieldTime * 0.58 + globalWave * 0.65);
     float sail = cos(fieldTime * 0.46 + dot(p, turnedSide) * 2.8);
@@ -559,7 +556,6 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + cloudDensity * 0.12
         + turnWakeEnergy * 0.14
         + structuralSpine * 0.58);
-    float screenRadius = length(p);
     float stableScreenRadius = stableRadius;
     float frontDepthGate = smoothstep(-0.36, 0.14, visibleDepth);
     float baseDetailGate = smoothstep(0.34, 0.64, lengthP);
@@ -632,39 +628,42 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     );
     surfaceLight = saturate(surfaceLight * mix(1.0, 0.82, error * (0.30 + errorInterrupt * 0.52))
         - errorDarkGap * (0.08 + frontDepthGate * 0.11));
-    float frontSizeLift = smoothstep(-0.34, 0.52, visibleDepth) * 0.42
-        + smoothstep(0.72, 0.10, screenRadius) * frontDepthGate * 0.18 * wakeDetailGate;
-    float rawSizeJitter = mix(0.86, 1.16, hash11(particleSeed * 137.0 + seedB * 41.0));
-    float sizeJitter = mix(0.99, rawSizeJitter, 0.22 + wakeDetailGate * 0.48);
+    float ionPresence = saturate(visibleIonCluster * 0.82 + visibleStructuralSpine * 0.86 + visibleLayerDensity * 0.24);
+    float baseDepthGate = smoothstep(-0.48, 0.46, depth);
+    float frontSizeLift = baseDepthGate * 0.34
+        + smoothstep(0.72, 0.10, stableScreenRadius) * 0.08;
+    float stableSizeRidge = saturate(ridge * 0.58
+        + smoothstep(0.30, 0.78, stableScreenRadius) * 0.16
+        + baseDepthGate * 0.14
+        + hash11(particleSeed * 73.0 + seedB * 19.0) * 0.10);
+    float stableSparsePresence = saturate((1.0 - stableSizeRidge) * 0.18
+        + smoothstep(0.78, 1.02, stableScreenRadius) * 0.14);
+    float sizeJitter = mix(0.92, 1.10, hash11(particleSeed * 137.0 + seedB * 41.0));
     float sizeScatter = mix(-0.12, 0.24, hash11(particleSeed * 311.0 + phaseB * 0.17))
-        * (0.24 + wakeDetailGate * 0.46);
-    float backAggregationMute = mix(0.68, 1.0, frontDepthGate);
-    float structureScale = mix(0.88, 1.14, saturate(visibleDenseSection * 0.50 + visibleLayerDensity * 0.50));
-    structureScale *= mix(0.92, 1.0, 1.0 - visibleSparseCavity);
-    float pointBase = (mix(2.18, 4.26, visibleLocalRidge)
-        + visibleLayerDensity * 0.96 * backAggregationMute
-        + visibleIonCluster * 0.68
-        + visibleStructuralSpine * 2.20
+        * 0.42;
+    float backAggregationMute = mix(0.68, 1.0, baseDepthGate);
+    float structureScale = mix(0.88, 1.12, stableSizeRidge);
+    structureScale *= mix(1.0, 0.88, stableSparsePresence);
+    float pointBase = (mix(1.82, 4.82, stableSizeRidge)
+        + ridge * 0.84 * backAggregationMute
+        + stableSizeRidge * 1.18
         + edge * 0.14 * edgeSettle
-        + edgeFrayField * 0.26 * edgeSettle
-        + turnWakeEnergy * 0.20
+        + hash11(seedB * 67.0 + particleSeed * 23.0) * 0.18
         + frontSizeLift
-        + loadingRidgeGate * (0.72 + loadingLane * 0.42)
-        + errorBreakGate * (errorFracture * 0.58 - 0.24)
-        + sizeScatter) * structureScale * mix(1.0, 0.84, thinking * edge) * mix(1.0, 0.94, loading * edge) * mix(1.0, 1.06 + speakingPulse * 0.03, speaking * edge) * mix(1.0, 0.96, previewPlaceholder * edge);
-    float depthSize = mix(0.94, 1.20, smoothstep(-0.65, 0.75, visibleDepth));
-    float frontParticleLift = smoothstep(-0.26, 0.42, visibleDepth);
-    float backParticleMute = 1.0 - smoothstep(-0.72, -0.02, visibleDepth);
-    float ridgeSizeLift = saturate(visibleLocalRidge * 0.34 + visibleStructuralSpine * 0.72 + visibleIonCluster * 0.24);
-    float visualSizeGate = saturate(max(wakeDetailGate, max(frontParticleLift * 0.82, ridgeSizeLift * 0.96)));
-    float pointCeiling = mix(3.20, 10.80, visualSizeGate) + visibleStructuralSpine * 3.60 + loadingRidgeGate * 1.35;
+        + sizeScatter) * structureScale * mix(1.0, 0.74, stableSparsePresence) * mix(1.0, 0.84, thinking * edge) * mix(1.0, 0.94, loading * edge) * mix(1.0, 1.06, speaking * edge) * mix(1.0, 0.96, previewPlaceholder * edge);
+    float depthSize = mix(0.94, 1.20, smoothstep(-0.65, 0.75, depth));
+    float frontParticleLift = smoothstep(-0.26, 0.42, depth);
+    float backParticleMute = 1.0 - smoothstep(-0.72, -0.02, depth);
+    float ridgeSizeLift = saturate(stableSizeRidge * 0.86 + ridge * 0.18);
+    float visualSizeGate = saturate(max(frontParticleLift * 0.82, ridgeSizeLift * 0.96));
+    float pointCeiling = mix(3.20, 10.80, visualSizeGate) + stableSizeRidge * 1.45;
     float depthVisibilitySize = mix(0.42, 1.34, frontParticleLift) * mix(1.0, 0.58, backParticleMute);
     float layeredPointSize = pointBase * sizeJitter * depthSize * depthVisibilitySize
         + ridgeSizeLift * (0.84 + frontParticleLift * 0.78);
     out.pointSize = clamp(layeredPointSize, 1.70 + frontSizeLift * 0.24, pointCeiling + ridgeSizeLift * 1.12) * 1.24;
     out.ridge = visibleLocalRidge;
     out.depth = visibleDepth;
-    out.shimmer = particleSparkle * (0.26 + visibleStructuralSpine * 0.74);
+    out.shimmer = ionPresence;
     float dynamicFlow = saturate(visibleRidgeFlow * 0.20 + visibleLayerDensity * 0.48 + visibleIonCluster * 0.58 + visibleCloudDensity * 0.30 + visibleStructuralSpine * 0.66 + edgeFrayField * 0.12 + turnWakeEnergy * 0.48);
     out.flow = dynamicFlow;
     out.density = saturate(visibleLayerDensity * 0.76 + visibleDenseSection * 0.16 + visibleStructuralSpine * 0.28 + bodyEnvelope * 0.24 + turnWakeEnergy * 0.18 - visibleSparseCavity * 0.055);
@@ -706,14 +705,15 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float error = saturate(in.error);
     float errorInterrupt = saturate(in.errorInterrupt);
     float errorFracture = saturate(in.errorFracture);
-    float jumpSparkle = saturate(in.shimmer);
+    float ionPresence = saturate(in.shimmer);
     float previewPlaceholder = saturate(in.previewPlaceholder);
     float litSurface = smoothstep(0.34, 0.86, surfaceLight);
     float frontSurfaceContrast = mix(0.42, 1.18, litSurface);
     float backPresence = 1.0 - smoothstep(-0.54, 0.06, in.depth);
     float frontPresence = smoothstep(-0.22, 0.46, in.depth);
     float backMute = mix(0.34, 1.0, frontPresence);
-    float particleFill = saturate(0.15 + densityLight * 0.19 + ridge * 0.075 + in.flow * 0.052);
+    float sparseDim = 1.0 - smoothstep(0.18, 0.58, density);
+    float particleFill = saturate(0.12 + densityLight * 0.18 + ridge * 0.075 + ionPresence * 0.10 + in.flow * 0.044);
     float litFront = frontLight * litSurface;
     float densityFront = densityLight * (litFront * 0.80 + depthLight * 0.035);
     float densityMist = densityLight * (backPresence * 0.075 + 0.032);
@@ -727,8 +727,8 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
         + interiorBase * 0.68
         + densityFront * 1.28
         + densityMist * 0.42
-        + ionRidge * 1.08
-        + ridgeGlow * 1.42
+        + ionRidge * (0.96 + ionPresence * 0.42)
+        + ridgeGlow * (1.22 + ionPresence * 0.44)
         + surfaceWake * 0.14);
     coverage *= mix(0.76, frontSurfaceContrast, frontLight);
     float outerDim = saturate(max(
@@ -747,7 +747,7 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     coverage *= mix(1.0, 0.68, errorRidgeShadow);
     coverage *= mix(1.0, 0.82, error * outerDim * (1.0 - ridge * 0.44));
     coverage = saturate(coverage + error * errorFracture * ridge * frontLight * 0.030);
-    coverage = saturate(coverage * 1.38 + jumpSparkle * frontLight * (0.034 + ridge * 0.085));
+    coverage = saturate(coverage * mix(0.72, 1.54, ionPresence) * mix(1.0, 0.70, sparseDim));
     coverage *= mix(1.0, 0.96, previewPlaceholder);
     float highlight = saturate(litFront * 0.38 + ionRidge * 2.08 + ridgeGlow * 3.18 + surfaceWake * 0.24);
     highlight = saturate(highlight + thinking * (ridge * 0.13 + in.flow * 0.070) * frontLight);
@@ -755,7 +755,7 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     highlight = saturate(highlight + speakingRidgeLight * (0.16 + ridge * 0.18));
     highlight *= mix(1.0, 0.58, errorRidgeShadow);
     highlight = saturate(highlight + error * errorFracture * frontLight * ridge * 0.060);
-    highlight = saturate(highlight + jumpSparkle * frontLight * (0.060 + ridge * 0.18));
+    highlight = saturate(highlight + ionPresence * frontLight * (0.16 + ridge * 0.26));
     float alpha = saturate(halo * coverage * 0.74 + core * coverage * 2.18) * backMute;
     half3 back = half3(0.40, 0.42, 0.46);
     half3 frontBase = half3(0.82, 0.84, 0.88);
