@@ -97,11 +97,35 @@ final class AppController: ObservableObject {
         }
 
         let result = orchestrationKernel.loadResident(fixtureData: fixtureData)
+        applyLoadResult(result, drData: fixtureData, sourceLabel: "DR fixture")
+    }
+
+    #if DEBUG
+    func debugImportResident(from url: URL) {
+        startupState = .loading
+        let hasScopedAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if hasScopedAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        guard let drData = try? Data(contentsOf: url) else {
+            applyFailure(runtimeMessage: "Runtime status: DR load failed", diagnosticsMessage: "Debug DR unreadable")
+            return
+        }
+
+        let result = orchestrationKernel.loadResident(fixtureData: drData)
+        applyLoadResult(result, drData: drData, sourceLabel: "Debug DR")
+    }
+    #endif
+
+    private func applyLoadResult(_ result: RuntimeLoadResult, drData: Data, sourceLabel: String) {
         loadedResidentID = result.isLoaded ? result.residentID : ""
         loadedSessionID = result.sessionID?.rawValue ?? ""
-        particleColorProfile = result.isLoaded ? ParticleCoreColorProfile.make(fromDRData: fixtureData) : .systemDefault
+        particleColorProfile = result.isLoaded ? ParticleCoreColorProfile.make(fromDRData: drData) : .systemDefault
         runtimeStatus = "Runtime status: \(result.statusMessage)"
-        fixtureStatus = result.isLoaded ? "DR fixture: loaded" : "DR fixture: not loaded"
+        fixtureStatus = result.isLoaded ? "\(sourceLabel): loaded" : "\(sourceLabel): not loaded"
         residentID = "resident_id: \(result.residentID.isEmpty ? "-" : result.residentID)"
         displayName = "display_name: \(result.displayName.isEmpty ? "-" : result.displayName)"
         sessionState = AppSessionState(

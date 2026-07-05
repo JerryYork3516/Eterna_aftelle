@@ -1,4 +1,6 @@
+import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     @ObservedObject var controller: AppController
@@ -49,8 +51,28 @@ struct ContentView: View {
             ParticleDebugPanel(
                 tuning: $particleTuning,
                 colorProfile: $particleColorProfile,
-                defaultColorProfile: controller.particleColorProfile
+                defaultColorProfile: controller.particleColorProfile,
+                importDR: openDebugDRImportPanel
             )
+        }
+    }
+
+    private func openDebugDRImportPanel() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowsMultipleSelection = false
+        var contentTypes: [UTType] = [.json]
+        if let digitalResidentType = UTType(filenameExtension: "digital_resident") {
+            contentTypes.append(digitalResidentType)
+        }
+        if let drType = UTType(filenameExtension: "dr") {
+            contentTypes.append(drType)
+        }
+        panel.allowedContentTypes = contentTypes
+
+        if panel.runModal() == .OK, let url = panel.url {
+            controller.debugImportResident(from: url)
         }
     }
     #endif
@@ -66,6 +88,7 @@ private struct ParticleDebugPanel: View {
     @Binding var tuning: ParticleCoreTuning
     @Binding var colorProfile: ParticleCoreColorProfile
     let defaultColorProfile: ParticleCoreColorProfile
+    let importDR: () -> Void
     @State private var section: ParticleDebugSection = .particle
 
     var body: some View {
@@ -88,6 +111,13 @@ private struct ParticleDebugPanel: View {
                     .tag(ParticleDebugSection.color)
             }
             .pickerStyle(.segmented)
+
+            Button {
+                importDR()
+            } label: {
+                Label(String(localized: "particleDebug.importDR"), systemImage: "doc.badge.plus")
+            }
+            .controlSize(.small)
 
             Divider()
 

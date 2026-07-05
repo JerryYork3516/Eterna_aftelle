@@ -4,6 +4,7 @@
 "particleDebug.colorAdjustment" = "颜色调整";
 "particleDebug.parameters" = "参数";
 "particleDebug.colorParameters" = "颜色参数";
+"particleDebug.importDR" = "导入 DR";
 "particleDebug.save" = "保存";
 "particleDebug.restoreDefault" = "恢复默认";
 "particleDebug.parameter.globalScale" = "整体尺寸";

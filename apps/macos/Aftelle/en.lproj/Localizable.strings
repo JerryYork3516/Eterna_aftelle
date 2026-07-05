@@ -4,6 +4,7 @@
 "particleDebug.colorAdjustment" = "Color Adjustment";
 "particleDebug.parameters" = "Parameters";
 "particleDebug.colorParameters" = "Color Parameters";
+"particleDebug.importDR" = "Import DR";
 "particleDebug.save" = "Save";
 "particleDebug.restoreDefault" = "Restore Default";
 "particleDebug.parameter.globalScale" = "Global Scale";
