@@ -19,7 +19,8 @@ struct ContentView: View {
             ParticleCoreMetalView(
                 visualState: controller.particleVisualState,
                 tuning: particleTuning,
-                colorProfile: particleColorProfile
+                colorProfile: particleColorProfile,
+                debugMetricsHandler: controller.updateParticleRenderMetrics
             )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .ignoresSafeArea()
@@ -41,9 +42,20 @@ struct ContentView: View {
         .onChange(of: controller.particleColorProfile) { _, newValue in
             guard !ParticleCoreColorProfile.hasSavedProfile() else { return }
             particleColorProfile = newValue
+            controller.updateEffectiveParticleColorProfile(newValue, savedOverride: false)
+        }
+        .onChange(of: particleColorProfile) { _, newValue in
+            controller.updateEffectiveParticleColorProfile(
+                newValue,
+                savedOverride: ParticleCoreColorProfile.hasSavedProfile()
+            )
         }
         #if DEBUG
         .onAppear {
+            controller.updateEffectiveParticleColorProfile(
+                particleColorProfile,
+                savedOverride: ParticleCoreColorProfile.hasSavedProfile()
+            )
             installDebugSubtitleKeyMonitor()
         }
         .onDisappear {
@@ -65,9 +77,16 @@ struct ContentView: View {
         .help(String(localized: "particleDebug.button"))
         .popover(isPresented: $showsParticleDebug, arrowEdge: .top) {
             ParticleDebugPanel(
+                snapshot: controller.particleDebugSnapshot,
                 tuning: $particleTuning,
                 colorProfile: $particleColorProfile,
                 defaultColorProfile: controller.particleColorProfile,
+                refreshColorProfileSnapshot: {
+                    controller.updateEffectiveParticleColorProfile(
+                        particleColorProfile,
+                        savedOverride: ParticleCoreColorProfile.hasSavedProfile()
+                    )
+                },
                 importDR: openDebugDRImportPanel
             )
         }
@@ -165,19 +184,22 @@ private struct ParticleSubtitleOverlay: View {
 
 #if DEBUG
 private enum ParticleDebugSection {
+    case diagnostics
     case particle
     case color
 }
 
 private struct ParticleDebugPanel: View {
+    let snapshot: ParticleDebugSnapshot
     @Binding var tuning: ParticleCoreTuning
     @Binding var colorProfile: ParticleCoreColorProfile
     let defaultColorProfile: ParticleCoreColorProfile
+    let refreshColorProfileSnapshot: () -> Void
     let importDR: () -> Void
-    @State private var section: ParticleDebugSection = .particle
+    @State private var section: ParticleDebugSection = .diagnostics
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(localized: "particleDebug.title"))
                     .font(.headline)
@@ -190,6 +212,8 @@ private struct ParticleDebugPanel: View {
             }
 
             Picker("", selection: $section) {
+                Text(String(localized: "particleDebug.diagnostics"))
+                    .tag(ParticleDebugSection.diagnostics)
                 Text(String(localized: "particleDebug.particleAdjustment"))
                     .tag(ParticleDebugSection.particle)
                 Text(String(localized: "particleDebug.colorAdjustment"))
@@ -197,18 +221,22 @@ private struct ParticleDebugPanel: View {
             }
             .pickerStyle(.segmented)
 
-            Button {
-                importDR()
-            } label: {
-                Label(String(localized: "particleDebug.importDR"), systemImage: "doc.badge.plus")
+            if section == .color {
+                Button {
+                    importDR()
+                } label: {
+                    Label(String(localized: "particleDebug.importDR"), systemImage: "doc.badge.plus")
+                }
+                .controlSize(.small)
             }
-            .controlSize(.small)
 
             Divider()
 
             ScrollView {
                 VStack(spacing: 8) {
                     switch section {
+                    case .diagnostics:
+                        ParticleDiagnosticsView(snapshot: snapshot)
                     case .particle:
                         ForEach(ParticleCoreTuningParameter.allCases) { parameter in
                             if parameter == .rotationDirection {
@@ -224,29 +252,33 @@ private struct ParticleDebugPanel: View {
                     }
                 }
             }
-            .frame(maxHeight: 380)
+            .frame(maxHeight: section == .diagnostics ? 460 : 360)
 
-            Divider()
+            if section != .diagnostics {
+                Divider()
 
-            HStack {
-                Button(String(localized: "particleDebug.restoreDefault")) {
-                    restoreDefault()
+                HStack {
+                    Button(String(localized: "particleDebug.restoreDefault")) {
+                        restoreDefault()
+                    }
+
+                    Spacer()
+
+                    Button(String(localized: "particleDebug.save")) {
+                        saveCurrentSection()
+                    }
+                    .keyboardShortcut("s", modifiers: [.command])
                 }
-
-                Spacer()
-
-                Button(String(localized: "particleDebug.save")) {
-                    saveCurrentSection()
-                }
-                .keyboardShortcut("s", modifiers: [.command])
             }
         }
         .padding(14)
-        .frame(width: 420)
+        .frame(width: 430)
     }
 
     private var sectionSubtitle: String {
         switch section {
+        case .diagnostics:
+            return String(localized: "particleDebug.diagnostics")
         case .particle:
             return String(localized: "particleDebug.particleAdjustment")
         case .color:
@@ -256,6 +288,8 @@ private struct ParticleDebugPanel: View {
 
     private var sectionCaption: String {
         switch section {
+        case .diagnostics:
+            return String(localized: "particleDebug.diagnosticsCaption")
         case .particle:
             return String(localized: "particleDebug.parameters")
         case .color:
@@ -265,21 +299,126 @@ private struct ParticleDebugPanel: View {
 
     private func restoreDefault() {
         switch section {
+        case .diagnostics:
+            break
         case .particle:
             tuning = .systemDefault
             ParticleCoreTuning.clearSaved()
         case .color:
             colorProfile = defaultColorProfile
             ParticleCoreColorProfile.clearSaved()
+            refreshColorProfileSnapshot()
         }
     }
 
     private func saveCurrentSection() {
         switch section {
+        case .diagnostics:
+            break
         case .particle:
             tuning.save()
         case .color:
             colorProfile.save()
+            refreshColorProfileSnapshot()
+        }
+    }
+}
+
+private struct ParticleDiagnosticsView: View {
+    let snapshot: ParticleDebugSnapshot
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ParticleDiagnosticsSection(titleKey: "particleDebug.diagnostics.render") {
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.fps", value: String(format: "%.1f", snapshot.fps))
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.particleCount", value: "\(snapshot.particleCount)")
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.drawableSize", value: snapshot.drawableSize)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.preferredFPS", value: "\(snapshot.preferredFramesPerSecond)")
+            }
+
+            ParticleDiagnosticsSection(titleKey: "particleDebug.diagnostics.visualState") {
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.currentVisualState", value: snapshot.currentVisualState)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.previousVisualState", value: snapshot.previousVisualState)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.stateElapsedTime", value: String(format: "%.2fs", snapshot.stateElapsedTime))
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.lastTransitionReason", value: snapshot.lastTransitionReason)
+            }
+
+            ParticleDiagnosticsSection(titleKey: "particleDebug.diagnostics.avatarMapping") {
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.sourceAvatarState", value: snapshot.sourceAvatarState)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.mappedParticleState", value: snapshot.mappedParticleState)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.isDebugOverrideActive", value: boolText(snapshot.isDebugOverrideActive))
+            }
+
+            ParticleDiagnosticsSection(titleKey: "particleDebug.diagnostics.colorProfile") {
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.colorProfileSource", value: snapshot.colorProfileSource)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.baseColor", value: snapshot.baseColor)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.ridgeColor", value: snapshot.ridgeColor)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.highlightColor", value: snapshot.highlightColor)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.fallbackUsed", value: boolText(snapshot.fallbackUsed))
+            }
+
+            ParticleDiagnosticsSection(titleKey: "particleDebug.diagnostics.subtitleState") {
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.subtitlePhase", value: snapshot.subtitlePhase)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.hasSubtitleText", value: boolText(snapshot.hasSubtitleText))
+            }
+
+            ParticleDiagnosticsSection(titleKey: "particleDebug.diagnostics.interaction") {
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.mouseInfluenceEnabled", value: boolText(snapshot.mouseInfluenceEnabled))
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.mouseInsideParticleArea", value: boolText(snapshot.mouseInsideParticleArea))
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.interactionStrength", value: String(format: "%.2f", snapshot.interactionStrength))
+            }
+
+            ParticleDiagnosticsSection(titleKey: "particleDebug.diagnostics.boundaryStatus") {
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.runtimeCoreModified", value: boolText(snapshot.runtimeCoreModified))
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.runtimeAPIModified", value: boolText(snapshot.runtimeAPIModified))
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.drSchemaModified", value: boolText(snapshot.drSchemaModified))
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.providerTTSConnected", value: boolText(snapshot.providerTTSConnected))
+            }
+        }
+    }
+
+    private func boolText(_ value: Bool) -> String {
+        value ? String(localized: "particleDebug.value.true") : String(localized: "particleDebug.value.false")
+    }
+}
+
+private struct ParticleDiagnosticsSection<Content: View>: View {
+    let titleKey: String
+    let content: () -> Content
+
+    init(titleKey: String, @ViewBuilder content: @escaping () -> Content) {
+        self.titleKey = titleKey
+        self.content = content
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(String(localized: String.LocalizationValue(titleKey)))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+            content()
+        }
+    }
+}
+
+private struct ParticleDiagnosticsRow: View {
+    let labelKey: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(String(localized: String.LocalizationValue(labelKey)))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .frame(width: 156, alignment: .leading)
+
+            Text(value)
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(.primary.opacity(0.86))
+                .lineLimit(2)
+                .truncationMode(.middle)
+
+            Spacer(minLength: 0)
         }
     }
 }

@@ -32,6 +32,90 @@ public struct ParticleSubtitleState: Equatable {
     }
 }
 
+public struct ParticleRenderMetrics: Equatable {
+    public var fps: Double
+    public var particleCount: Int
+    public var drawableSize: String
+    public var preferredFramesPerSecond: Int
+    public var currentVisualState: String
+    public var previousVisualState: String
+    public var stateElapsedTime: Double
+    public var lastTransitionReason: String
+    public var mouseInfluenceEnabled: Bool
+    public var mouseInsideParticleArea: Bool
+    public var interactionStrength: Double
+
+    public static let empty = ParticleRenderMetrics(
+        fps: 0,
+        particleCount: 0,
+        drawableSize: "-",
+        preferredFramesPerSecond: 0,
+        currentVisualState: "idle",
+        previousVisualState: "idle",
+        stateElapsedTime: 0,
+        lastTransitionReason: "startup",
+        mouseInfluenceEnabled: true,
+        mouseInsideParticleArea: false,
+        interactionStrength: 0
+    )
+}
+
+public struct ParticleDebugSnapshot: Equatable {
+    public var fps: Double
+    public var particleCount: Int
+    public var drawableSize: String
+    public var preferredFramesPerSecond: Int
+    public var currentVisualState: String
+    public var previousVisualState: String
+    public var stateElapsedTime: Double
+    public var lastTransitionReason: String
+    public var sourceAvatarState: String
+    public var mappedParticleState: String
+    public var isDebugOverrideActive: Bool
+    public var colorProfileSource: String
+    public var baseColor: String
+    public var ridgeColor: String
+    public var highlightColor: String
+    public var fallbackUsed: Bool
+    public var subtitlePhase: String
+    public var hasSubtitleText: Bool
+    public var mouseInfluenceEnabled: Bool
+    public var mouseInsideParticleArea: Bool
+    public var interactionStrength: Double
+    public var runtimeCoreModified: Bool
+    public var runtimeAPIModified: Bool
+    public var drSchemaModified: Bool
+    public var providerTTSConnected: Bool
+
+    public static let empty = ParticleDebugSnapshot(
+        fps: 0,
+        particleCount: 0,
+        drawableSize: "-",
+        preferredFramesPerSecond: 0,
+        currentVisualState: "idle",
+        previousVisualState: "idle",
+        stateElapsedTime: 0,
+        lastTransitionReason: "startup",
+        sourceAvatarState: "mode=idle presence=unknown",
+        mappedParticleState: "idle",
+        isDebugOverrideActive: false,
+        colorProfileSource: "systemDefault",
+        baseColor: "0.82, 0.84, 0.88",
+        ridgeColor: "0.95, 0.96, 0.98",
+        highlightColor: "0.98, 0.99, 1.00",
+        fallbackUsed: true,
+        subtitlePhase: "hidden",
+        hasSubtitleText: false,
+        mouseInfluenceEnabled: true,
+        mouseInsideParticleArea: false,
+        interactionStrength: 0,
+        runtimeCoreModified: false,
+        runtimeAPIModified: false,
+        drSchemaModified: false,
+        providerTTSConnected: false
+    )
+}
+
 struct AppParticleVisualStateMapper {
     static func map(
         visualStateMode: String? = nil,

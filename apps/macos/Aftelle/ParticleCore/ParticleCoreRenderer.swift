@@ -65,6 +65,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private let uniformsBuffer: MTLBuffer
     private let startTime = CACurrentMediaTime()
     private var stateStartTime = CACurrentMediaTime()
+    private var metricsStartTime = CACurrentMediaTime()
+    private var metricsFrameCount = 0
     private var didLogDrawableSize = false
     private var didLogDraw = false
     private var targetMousePosition = SIMD2<Float>(repeating: 0)
@@ -75,6 +77,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private var smoothMouseInfluence: Float = 0
     private var lastMouseEventTime = CACurrentMediaTime()
     private var visualState: ParticleCoreVisualState
+    private var previousVisualState: ParticleCoreVisualState
+    private var lastTransitionReason = "startup"
     private var smoothThinkingStrength: Float
     private var smoothSpeakingStrength: Float
     private var smoothLoadingStrength: Float
@@ -82,6 +86,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private var smoothExitStrength: Float
     private var tuning = ParticleCoreTuning.systemDefault
     private var colorProfile = ParticleCoreColorProfile.systemDefault
+    var debugMetricsHandler: ((ParticleRenderMetrics) -> Void)?
 
     init?(device: MTLDevice, visualState: ParticleCoreVisualState = .idle) {
         let launchSeed = UInt64.random(in: 1...UInt64.max)
@@ -89,6 +94,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         self.model = ParticleCoreModel(seed: launchSeed)
         self.frameSeed = UInt32(truncatingIfNeeded: launchSeed ^ (launchSeed >> 32))
         self.visualState = visualState
+        self.previousVisualState = visualState
         self.smoothThinkingStrength = visualState.targetStrength(for: .thinking)
         self.smoothSpeakingStrength = visualState.targetStrength(for: .speaking)
         self.smoothLoadingStrength = visualState.targetStrength(for: .loading)
@@ -155,6 +161,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
 
     func draw(in view: MTKView) {
         let drawableSize = view.drawableSize
+        metricsFrameCount += 1
         if !didLogDrawableSize, drawableSize.width > 0, drawableSize.height > 0 {
             print("[ParticleCore] drawable size \(Int(drawableSize.width))x\(Int(drawableSize.height))")
             didLogDrawableSize = true
@@ -166,9 +173,10 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
               let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
 
         let elapsed = Float(CACurrentMediaTime() - startTime)
+        let stateAge = Float(CACurrentMediaTime() - stateStartTime)
         let stateElapsedTime: Float
         if visualState == .exit {
-            stateElapsedTime = Float(CACurrentMediaTime() - stateStartTime)
+            stateElapsedTime = stateAge
         } else {
             stateElapsedTime = 0
         }
@@ -236,6 +244,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             print("[ParticleCore] drawPrimitives executed vertexCount=\(model.particles.count)")
             didLogDraw = true
         }
+        publishDebugMetricsIfNeeded(view: view, stateElapsedTime: stateAge)
         encoder.endEncoding()
 
         commandBuffer.present(drawable)
@@ -251,20 +260,23 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         lastMouseEventTime = CACurrentMediaTime()
     }
 
-    func setVisualState(_ visualState: ParticleCoreVisualState) {
+    func setVisualState(_ visualState: ParticleCoreVisualState, reason: String = "appMapping") {
         let now = CACurrentMediaTime()
         if self.visualState == visualState {
             if visualState == .exit {
                 stateStartTime = now
             }
+            lastTransitionReason = reason
             return
         }
+        previousVisualState = self.visualState
         self.visualState = visualState
         stateStartTime = now
+        lastTransitionReason = reason
         if visualState == .idle {
             smoothExitStrength = 0
         }
-        print("[ParticleCore] visualState changed \(visualState)")
+        print("[ParticleCore] visualState changed \(visualState) previous=\(previousVisualState) reason=\(reason)")
     }
 
     func setTuning(_ tuning: ParticleCoreTuning) {
@@ -305,6 +317,33 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         smoothErrorStrength += (visualState.targetStrength(for: .error) - smoothErrorStrength) * alpha
         let exitAlpha: Float = visualState == .exit ? 0.080 : 0.050
         smoothExitStrength += (visualState.targetStrength(for: .exit) - smoothExitStrength) * exitAlpha
+    }
+
+    private func publishDebugMetricsIfNeeded(view: MTKView, stateElapsedTime: Float) {
+        let now = CACurrentMediaTime()
+        let interval = now - metricsStartTime
+        guard interval >= 1 else { return }
+
+        let fps = Double(metricsFrameCount) / max(interval, 0.001)
+        metricsFrameCount = 0
+        metricsStartTime = now
+        let drawableSize = "\(Int(view.drawableSize.width))x\(Int(view.drawableSize.height))"
+        let mouseActive = smoothMouseInfluence > 0.01 || targetMouseInfluence > 0.01
+        let metrics = ParticleRenderMetrics(
+            fps: fps,
+            particleCount: model.particles.count,
+            drawableSize: drawableSize,
+            preferredFramesPerSecond: view.preferredFramesPerSecond,
+            currentVisualState: String(describing: visualState),
+            previousVisualState: String(describing: previousVisualState),
+            stateElapsedTime: Double(stateElapsedTime),
+            lastTransitionReason: lastTransitionReason,
+            mouseInfluenceEnabled: true,
+            mouseInsideParticleArea: mouseActive,
+            interactionStrength: Double(smoothMouseInfluence)
+        )
+        debugMetricsHandler?(metrics)
+        print("[ParticleCore] snapshot fps=\(String(format: "%.1f", fps)) particleCount=\(model.particles.count) drawableSize=\(drawableSize) preferredFPS=\(view.preferredFramesPerSecond) visualState=\(visualState) previousVisualState=\(previousVisualState) stateElapsedTime=\(String(format: "%.2f", stateElapsedTime)) reason=\(lastTransitionReason) mouseInside=\(mouseActive) interactionStrength=\(String(format: "%.2f", smoothMouseInfluence))")
     }
 
     private func scaleAroundOne(_ value: Double, range: Float) -> Float {

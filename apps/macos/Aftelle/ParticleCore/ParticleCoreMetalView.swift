@@ -6,6 +6,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
     var visualState: ParticleCoreVisualState = .idle
     var tuning: ParticleCoreTuning = .systemDefault
     var colorProfile: ParticleCoreColorProfile = .systemDefault
+    var debugMetricsHandler: ((ParticleRenderMetrics) -> Void)?
 
     func makeNSView(context: Context) -> MTKView {
         print("[ParticleCore] makeNSView called")
@@ -35,6 +36,12 @@ struct ParticleCoreMetalView: NSViewRepresentable {
         context.coordinator.swiftUIVisualState = visualState
         context.coordinator.tuning = tuning
         context.coordinator.colorProfile = colorProfile
+        context.coordinator.debugMetricsHandler = debugMetricsHandler
+        renderer.debugMetricsHandler = { metrics in
+            DispatchQueue.main.async {
+                context.coordinator.debugMetricsHandler?(metrics)
+            }
+        }
         renderer.setColorProfile(colorProfile)
         print("[ParticleCore] MTKView delegate set \(view.delegate === renderer)")
         return view
@@ -46,9 +53,10 @@ struct ParticleCoreMetalView: NSViewRepresentable {
             context.coordinator.didLogUpdate = true
         }
         if context.coordinator.swiftUIVisualState != visualState {
-            context.coordinator.renderer?.setVisualState(visualState)
+            context.coordinator.renderer?.setVisualState(visualState, reason: "appMapping")
             context.coordinator.swiftUIVisualState = visualState
         }
+        context.coordinator.debugMetricsHandler = debugMetricsHandler
         if context.coordinator.tuning != tuning {
             context.coordinator.renderer?.setTuning(tuning)
             context.coordinator.tuning = tuning
@@ -68,6 +76,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
         var swiftUIVisualState: ParticleCoreVisualState = .idle
         var tuning: ParticleCoreTuning = .systemDefault
         var colorProfile: ParticleCoreColorProfile = .systemDefault
+        var debugMetricsHandler: ((ParticleRenderMetrics) -> Void)?
         var didLogUpdate = false
     }
 }
@@ -136,17 +145,17 @@ private final class ParticleCoreInputView: MTKView {
 
         switch key {
         case "i":
-            inputRenderer?.setVisualState(.idle)
+            inputRenderer?.setVisualState(.idle, reason: "debugKey.I")
         case "t":
-            inputRenderer?.setVisualState(.thinking)
+            inputRenderer?.setVisualState(.thinking, reason: "debugKey.T")
         case "s":
-            inputRenderer?.setVisualState(.speaking)
+            inputRenderer?.setVisualState(.speaking, reason: "debugKey.S")
         case "l":
-            inputRenderer?.setVisualState(.loading)
+            inputRenderer?.setVisualState(.loading, reason: "debugKey.L")
         case "e":
-            inputRenderer?.setVisualState(.error)
+            inputRenderer?.setVisualState(.error, reason: "debugKey.E")
         case "x":
-            inputRenderer?.setVisualState(.exit)
+            inputRenderer?.setVisualState(.exit, reason: "debugKey.X")
         default:
             super.keyDown(with: event)
         }
