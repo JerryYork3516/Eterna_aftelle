@@ -223,19 +223,24 @@ struct ParticleCoreColorProfile: Codable, Equatable {
             return systemDefault
         }
 
+        let base = subtleColor(from: color, target: 0.82, chroma: 0.34)
+        let ridge = subtleColor(from: color, target: 0.92, chroma: 0.28)
+        let dim = subtleColor(from: color, target: 0.39, chroma: 0.30)
+        let highlight = subtleColor(from: color, target: 0.965, chroma: 0.14)
+
         return ParticleCoreColorProfile(
-            baseRed: Double(subtleColor(from: color, target: 0.84, chroma: 0.115).x),
-            baseGreen: Double(subtleColor(from: color, target: 0.84, chroma: 0.115).y),
-            baseBlue: Double(subtleColor(from: color, target: 0.84, chroma: 0.115).z),
-            ridgeRed: Double(subtleColor(from: color, target: 0.93, chroma: 0.095).x),
-            ridgeGreen: Double(subtleColor(from: color, target: 0.93, chroma: 0.095).y),
-            ridgeBlue: Double(subtleColor(from: color, target: 0.93, chroma: 0.095).z),
-            dimRed: Double(subtleColor(from: color, target: 0.43, chroma: 0.075).x),
-            dimGreen: Double(subtleColor(from: color, target: 0.43, chroma: 0.075).y),
-            dimBlue: Double(subtleColor(from: color, target: 0.43, chroma: 0.075).z),
-            highlightRed: Double(subtleColor(from: color, target: 0.965, chroma: 0.055).x),
-            highlightGreen: Double(subtleColor(from: color, target: 0.965, chroma: 0.055).y),
-            highlightBlue: Double(subtleColor(from: color, target: 0.965, chroma: 0.055).z),
+            baseRed: Double(base.x),
+            baseGreen: Double(base.y),
+            baseBlue: Double(base.z),
+            ridgeRed: Double(ridge.x),
+            ridgeGreen: Double(ridge.y),
+            ridgeBlue: Double(ridge.z),
+            dimRed: Double(dim.x),
+            dimGreen: Double(dim.y),
+            dimBlue: Double(dim.z),
+            highlightRed: Double(highlight.x),
+            highlightGreen: Double(highlight.y),
+            highlightBlue: Double(highlight.z),
             alphaScale: 1.0
         ).clamped()
     }
@@ -274,8 +279,9 @@ struct ParticleCoreColorProfile: Codable, Equatable {
 
         var weighted = SIMD3<Float>(repeating: 0)
         var totalWeight: Float = 0
+        let weights: [Float] = [1.0, 0.24, 0.12, 0.10]
         for (index, color) in colors.prefix(4).enumerated() {
-            let weight = max(0.16, 1.0 - Float(index) * 0.24)
+            let weight = weights[index]
             weighted += color * weight
             totalWeight += weight
         }

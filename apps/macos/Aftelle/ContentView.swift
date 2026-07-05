@@ -73,6 +73,7 @@ struct ContentView: View {
 
         if panel.runModal() == .OK, let url = panel.url {
             controller.debugImportResident(from: url)
+            particleColorProfile = controller.particleColorProfile
         }
     }
     #endif
