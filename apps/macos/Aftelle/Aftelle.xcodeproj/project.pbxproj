@@ -33,6 +33,7 @@
 /* Begin PBXFileReference section */
 		A070C0000000000000000002 /* AftelleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AftelleApp.swift; sourceTree = "<group>"; };
 		A070C0000000000000000005 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A070C0000000000000000116 /* Aftelle.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Aftelle.entitlements; sourceTree = "<group>"; };
 		A070C0000000000000000102 /* ParticleCoreModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleCoreModel.swift; sourceTree = "<group>"; };
 		A070C0000000000000000104 /* ParticleCoreRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleCoreRenderer.swift; sourceTree = "<group>"; };
 		A070C0000000000000000106 /* ParticleCoreMetalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleCoreMetalView.swift; sourceTree = "<group>"; };
@@ -72,6 +73,7 @@
 			children = (
 				A070C0000000000000000002 /* AftelleApp.swift */,
 				A070C0000000000000000005 /* ContentView.swift */,
+				A070C0000000000000000116 /* Aftelle.entitlements */,
 				A070C0000000000000000107 /* ParticleCore */,
 				A070C0000000000000000113 /* Localizable.strings */,
 				A070C0000000000000000022 /* Fixtures */,
@@ -325,6 +327,7 @@
 		A070C0000000000000000011 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Aftelle.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -351,6 +354,7 @@
 		A070C0000000000000000012 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Aftelle.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
