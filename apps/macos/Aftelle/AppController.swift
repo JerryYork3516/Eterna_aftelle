@@ -18,6 +18,7 @@ final class AppController: ObservableObject {
     @Published private(set) var runtimeState: AppRuntimeState = .idle
     @Published private(set) var particleVisualState: ParticleCoreVisualState = .idle
     @Published private(set) var particleAvatarMode: ParticleAvatarMode = .particleCore
+    @Published private(set) var particleRenderKind: ParticleRenderKind = .particleCore
     @Published private(set) var particleColorProfile = ParticleCoreColorProfile.systemDefault
     @Published private(set) var particleSubtitleState = ParticleSubtitleState.hidden
     @Published private(set) var particleDebugSnapshot = ParticleDebugSnapshot.empty
@@ -140,6 +141,13 @@ final class AppController: ObservableObject {
     #if DEBUG
     func setParticleAvatarMode(_ mode: ParticleAvatarMode) {
         particleAvatarMode = mode
+        particleRenderKind = mode == .abstractBustReserved ? .abstractBustReserved : .particleCore
+        refreshParticleDebugSnapshot()
+    }
+
+    func setParticleRenderKind(_ kind: ParticleRenderKind) {
+        particleRenderKind = kind
+        particleAvatarMode = kind.avatarMode
         refreshParticleDebugSnapshot()
     }
 
@@ -411,6 +419,7 @@ final class AppController: ObservableObject {
     private func refreshParticleDebugSnapshot() {
         let renderState = latestParticleRenderMetrics.currentVisualState
         let mappedState = String(describing: particleVisualState)
+        let renderResolution = ParticleRenderResolution.resolve(requested: particleRenderKind)
         particleDebugSnapshot = ParticleDebugSnapshot(
             fps: latestParticleRenderMetrics.fps,
             particleCount: latestParticleRenderMetrics.particleCount,
@@ -426,8 +435,14 @@ final class AppController: ObservableObject {
             avatarMode: particleAvatarMode.rawValue,
             particleCoreModeStatus: particleAvatarMode.particleCoreStatus,
             abstractBustModeStatus: particleAvatarMode.abstractBustStatus,
-            renderFallback: particleAvatarMode.renderFallback,
-            renderFallbackReason: particleAvatarMode.renderFallbackReason,
+            renderFallback: renderResolution.fallbackRenderer,
+            renderFallbackReason: renderResolution.reason,
+            requestedRenderKind: renderResolution.requestedMode,
+            activeRenderer: renderResolution.activeRenderer,
+            fallbackRenderer: renderResolution.fallbackRenderer,
+            fallbackReason: renderResolution.reason,
+            supportedRenderers: renderResolution.supportedRenderers,
+            reservedRenderers: renderResolution.reservedRenderers,
             colorProfileSource: effectiveColorProfileSource,
             baseColor: colorString(
                 red: effectiveParticleColorProfile.baseRed,

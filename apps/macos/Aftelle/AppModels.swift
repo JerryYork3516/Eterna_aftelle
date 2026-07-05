@@ -63,6 +63,74 @@ public enum ParticleAvatarMode: String, CaseIterable, Identifiable {
     }
 }
 
+public enum ParticleRenderKind: String, CaseIterable, Identifiable {
+    case particleCore = "particle_core"
+    case abstractBustReserved = "abstract_bust_reserved"
+    case dualResidentReserved = "dual_resident_reserved"
+    case arTransitionReserved = "ar_transition_reserved"
+
+    public var id: String {
+        rawValue
+    }
+
+    var localizedKey: String {
+        switch self {
+        case .particleCore:
+            return "particleDebug.renderKind.particleCore"
+        case .abstractBustReserved:
+            return "particleDebug.renderKind.abstractBustReserved"
+        case .dualResidentReserved:
+            return "particleDebug.renderKind.dualResidentReserved"
+        case .arTransitionReserved:
+            return "particleDebug.renderKind.arTransitionReserved"
+        }
+    }
+
+    var avatarMode: ParticleAvatarMode {
+        switch self {
+        case .abstractBustReserved:
+            return .abstractBustReserved
+        case .particleCore, .dualResidentReserved, .arTransitionReserved:
+            return .particleCore
+        }
+    }
+}
+
+public struct ParticleRenderResolution: Equatable {
+    public var requestedMode: String
+    public var activeRenderer: String
+    public var fallbackRenderer: String
+    public var reason: String
+    public var supportedRenderers: String
+    public var reservedRenderers: String
+
+    public static func resolve(requested: ParticleRenderKind) -> ParticleRenderResolution {
+        let supported = "particle_core"
+        let reserved = "abstract_bust, dual_resident, ar_transition"
+
+        switch requested {
+        case .particleCore:
+            return ParticleRenderResolution(
+                requestedMode: requested.rawValue,
+                activeRenderer: "particle_core",
+                fallbackRenderer: "none",
+                reason: "active",
+                supportedRenderers: supported,
+                reservedRenderers: reserved
+            )
+        case .abstractBustReserved, .dualResidentReserved, .arTransitionReserved:
+            return ParticleRenderResolution(
+                requestedMode: requested.rawValue,
+                activeRenderer: "particle_core",
+                fallbackRenderer: "particle_core",
+                reason: "reserved_not_implemented",
+                supportedRenderers: supported,
+                reservedRenderers: reserved
+            )
+        }
+    }
+}
+
 public enum ParticleSubtitlePhase: Equatable {
     case hidden
     case showing
@@ -126,6 +194,12 @@ public struct ParticleDebugSnapshot: Equatable {
     public var abstractBustModeStatus: String
     public var renderFallback: String
     public var renderFallbackReason: String
+    public var requestedRenderKind: String
+    public var activeRenderer: String
+    public var fallbackRenderer: String
+    public var fallbackReason: String
+    public var supportedRenderers: String
+    public var reservedRenderers: String
     public var colorProfileSource: String
     public var baseColor: String
     public var ridgeColor: String
@@ -156,8 +230,14 @@ public struct ParticleDebugSnapshot: Equatable {
         avatarMode: "particle_core",
         particleCoreModeStatus: "current / enabled",
         abstractBustModeStatus: "reserved / disabled",
-        renderFallback: "particle_core",
-        renderFallbackReason: "active_renderer",
+        renderFallback: "none",
+        renderFallbackReason: "active",
+        requestedRenderKind: "particle_core",
+        activeRenderer: "particle_core",
+        fallbackRenderer: "none",
+        fallbackReason: "active",
+        supportedRenderers: "particle_core",
+        reservedRenderers: "abstract_bust, dual_resident, ar_transition",
         colorProfileSource: "systemDefault",
         baseColor: "0.82, 0.84, 0.88",
         ridgeColor: "0.95, 0.96, 0.98",

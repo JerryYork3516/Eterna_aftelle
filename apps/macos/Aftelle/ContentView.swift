@@ -78,11 +78,11 @@ struct ContentView: View {
         .popover(isPresented: $showsParticleDebug, arrowEdge: .top) {
             ParticleDebugPanel(
                 snapshot: controller.particleDebugSnapshot,
-                avatarMode: controller.particleAvatarMode,
+                renderKind: controller.particleRenderKind,
                 tuning: $particleTuning,
                 colorProfile: $particleColorProfile,
                 defaultColorProfile: controller.particleColorProfile,
-                setAvatarMode: controller.setParticleAvatarMode,
+                setRenderKind: controller.setParticleRenderKind,
                 refreshColorProfileSnapshot: {
                     controller.updateEffectiveParticleColorProfile(
                         particleColorProfile,
@@ -187,18 +187,18 @@ private struct ParticleSubtitleOverlay: View {
 #if DEBUG
 private enum ParticleDebugSection {
     case diagnostics
-    case avatar
+    case renderAdapter
     case particle
     case color
 }
 
 private struct ParticleDebugPanel: View {
     let snapshot: ParticleDebugSnapshot
-    let avatarMode: ParticleAvatarMode
+    let renderKind: ParticleRenderKind
     @Binding var tuning: ParticleCoreTuning
     @Binding var colorProfile: ParticleCoreColorProfile
     let defaultColorProfile: ParticleCoreColorProfile
-    let setAvatarMode: (ParticleAvatarMode) -> Void
+    let setRenderKind: (ParticleRenderKind) -> Void
     let refreshColorProfileSnapshot: () -> Void
     let importDR: () -> Void
     @State private var section: ParticleDebugSection = .diagnostics
@@ -219,8 +219,8 @@ private struct ParticleDebugPanel: View {
             Picker("", selection: $section) {
                 Text(String(localized: "particleDebug.diagnostics"))
                     .tag(ParticleDebugSection.diagnostics)
-                Text(String(localized: "particleDebug.avatarMode"))
-                    .tag(ParticleDebugSection.avatar)
+                Text(String(localized: "particleDebug.renderAdapter"))
+                    .tag(ParticleDebugSection.renderAdapter)
                 Text(String(localized: "particleDebug.particleAdjustment"))
                     .tag(ParticleDebugSection.particle)
                 Text(String(localized: "particleDebug.colorAdjustment"))
@@ -244,11 +244,11 @@ private struct ParticleDebugPanel: View {
                     switch section {
                     case .diagnostics:
                         ParticleDiagnosticsView(snapshot: snapshot)
-                    case .avatar:
-                        ParticleAvatarModeView(
+                    case .renderAdapter:
+                        ParticleRenderAdapterView(
                             snapshot: snapshot,
-                            avatarMode: avatarMode,
-                            setAvatarMode: setAvatarMode
+                            renderKind: renderKind,
+                            setRenderKind: setRenderKind
                         )
                     case .particle:
                         ForEach(ParticleCoreTuningParameter.allCases) { parameter in
@@ -292,8 +292,8 @@ private struct ParticleDebugPanel: View {
         switch section {
         case .diagnostics:
             return String(localized: "particleDebug.diagnostics")
-        case .avatar:
-            return String(localized: "particleDebug.avatarMode")
+        case .renderAdapter:
+            return String(localized: "particleDebug.renderAdapter")
         case .particle:
             return String(localized: "particleDebug.particleAdjustment")
         case .color:
@@ -305,8 +305,8 @@ private struct ParticleDebugPanel: View {
         switch section {
         case .diagnostics:
             return String(localized: "particleDebug.diagnosticsCaption")
-        case .avatar:
-            return String(localized: "particleDebug.avatarModeCaption")
+        case .renderAdapter:
+            return String(localized: "particleDebug.renderAdapterCaption")
         case .particle:
             return String(localized: "particleDebug.parameters")
         case .color:
@@ -318,7 +318,7 @@ private struct ParticleDebugPanel: View {
         switch section {
         case .diagnostics:
             break
-        case .avatar:
+        case .renderAdapter:
             break
         case .particle:
             tuning = .systemDefault
@@ -334,7 +334,7 @@ private struct ParticleDebugPanel: View {
         switch section {
         case .diagnostics:
             break
-        case .avatar:
+        case .renderAdapter:
             break
         case .particle:
             tuning.save()
@@ -378,6 +378,15 @@ private struct ParticleDiagnosticsView: View {
                 ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.renderFallbackReason", value: snapshot.renderFallbackReason)
             }
 
+            ParticleDiagnosticsSection(titleKey: "particleDebug.diagnostics.renderAdapter") {
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.requestedRenderKind", value: snapshot.requestedRenderKind)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.activeRenderer", value: snapshot.activeRenderer)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.fallbackRenderer", value: snapshot.fallbackRenderer)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.fallbackReason", value: snapshot.fallbackReason)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.supportedRenderers", value: snapshot.supportedRenderers)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.reservedRenderers", value: snapshot.reservedRenderers)
+            }
+
             ParticleDiagnosticsSection(titleKey: "particleDebug.diagnostics.colorProfile") {
                 ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.colorProfileSource", value: snapshot.colorProfileSource)
                 ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.baseColor", value: snapshot.baseColor)
@@ -411,36 +420,43 @@ private struct ParticleDiagnosticsView: View {
     }
 }
 
-private struct ParticleAvatarModeView: View {
+private struct ParticleRenderAdapterView: View {
     let snapshot: ParticleDebugSnapshot
-    let avatarMode: ParticleAvatarMode
-    let setAvatarMode: (ParticleAvatarMode) -> Void
+    let renderKind: ParticleRenderKind
+    let setRenderKind: (ParticleRenderKind) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Picker("", selection: modeBinding) {
-                ForEach(ParticleAvatarMode.allCases) { mode in
-                    Text(String(localized: String.LocalizationValue(mode.localizedKey)))
-                        .tag(mode)
+            Picker(String(localized: "particleDebug.diagnostics.requestedRenderKind"), selection: kindBinding) {
+                ForEach(ParticleRenderKind.allCases) { kind in
+                    Text(String(localized: String.LocalizationValue(kind.localizedKey)))
+                        .tag(kind)
                 }
             }
-            .pickerStyle(.segmented)
+            .pickerStyle(.menu)
+
+            ParticleDiagnosticsSection(titleKey: "particleDebug.diagnostics.renderAdapter") {
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.requestedRenderKind", value: snapshot.requestedRenderKind)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.activeRenderer", value: snapshot.activeRenderer)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.fallbackRenderer", value: snapshot.fallbackRenderer)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.fallbackReason", value: snapshot.fallbackReason)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.supportedRenderers", value: snapshot.supportedRenderers)
+                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.reservedRenderers", value: snapshot.reservedRenderers)
+            }
 
             ParticleDiagnosticsSection(titleKey: "particleDebug.diagnostics.avatarMode") {
                 ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.currentAvatarMode", value: snapshot.avatarMode)
                 ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.particleCoreMode", value: snapshot.particleCoreModeStatus)
                 ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.abstractBustMode", value: snapshot.abstractBustModeStatus)
-                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.renderFallback", value: snapshot.renderFallback)
-                ParticleDiagnosticsRow(labelKey: "particleDebug.diagnostics.renderFallbackReason", value: snapshot.renderFallbackReason)
             }
         }
     }
 
-    private var modeBinding: Binding<ParticleAvatarMode> {
+    private var kindBinding: Binding<ParticleRenderKind> {
         Binding {
-            avatarMode
+            renderKind
         } set: { newValue in
-            setAvatarMode(newValue)
+            setRenderKind(newValue)
         }
     }
 }

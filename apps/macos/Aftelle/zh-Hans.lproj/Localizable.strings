@@ -8,6 +8,12 @@
 "particleDebug.avatarModeCaption" = "本地渲染模式预留";
 "particleDebug.avatarMode.particleCore" = "particle_core";
 "particleDebug.avatarMode.abstractBustReserved" = "abstract_bust_reserved";
+"particleDebug.renderAdapter" = "渲染切换";
+"particleDebug.renderAdapterCaption" = "本地渲染边界与 fallback";
+"particleDebug.renderKind.particleCore" = "particle_core";
+"particleDebug.renderKind.abstractBustReserved" = "abstract_bust_reserved";
+"particleDebug.renderKind.dualResidentReserved" = "dual_resident_reserved";
+"particleDebug.renderKind.arTransitionReserved" = "ar_transition_reserved";
 "particleDebug.parameters" = "参数";
 "particleDebug.colorParameters" = "颜色参数";
 "particleDebug.importDR" = "导入 DR";
@@ -64,6 +70,13 @@
 "particleDebug.diagnostics.abstractBustMode" = "abstract_bust";
 "particleDebug.diagnostics.renderFallback" = "渲染 fallback";
 "particleDebug.diagnostics.renderFallbackReason" = "fallback 原因";
+"particleDebug.diagnostics.renderAdapter" = "渲染切换";
+"particleDebug.diagnostics.requestedRenderKind" = "请求渲染";
+"particleDebug.diagnostics.activeRenderer" = "实际渲染";
+"particleDebug.diagnostics.fallbackRenderer" = "fallback 渲染";
+"particleDebug.diagnostics.fallbackReason" = "fallback 原因";
+"particleDebug.diagnostics.supportedRenderers" = "已支持";
+"particleDebug.diagnostics.reservedRenderers" = "已预留";
 "particleDebug.diagnostics.colorProfile" = "DR 颜色";
 "particleDebug.diagnostics.colorProfileSource" = "颜色来源";
 "particleDebug.diagnostics.baseColor" = "基色";

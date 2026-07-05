@@ -8,6 +8,12 @@
 "particleDebug.avatarModeCaption" = "Local render mode reserve";
 "particleDebug.avatarMode.particleCore" = "particle_core";
 "particleDebug.avatarMode.abstractBustReserved" = "abstract_bust_reserved";
+"particleDebug.renderAdapter" = "Render Adapter";
+"particleDebug.renderAdapterCaption" = "Local render boundary and fallback";
+"particleDebug.renderKind.particleCore" = "particle_core";
+"particleDebug.renderKind.abstractBustReserved" = "abstract_bust_reserved";
+"particleDebug.renderKind.dualResidentReserved" = "dual_resident_reserved";
+"particleDebug.renderKind.arTransitionReserved" = "ar_transition_reserved";
 "particleDebug.parameters" = "Parameters";
 "particleDebug.colorParameters" = "Color Parameters";
 "particleDebug.importDR" = "Import DR";
@@ -64,6 +70,13 @@
 "particleDebug.diagnostics.abstractBustMode" = "abstract_bust";
 "particleDebug.diagnostics.renderFallback" = "Render Fallback";
 "particleDebug.diagnostics.renderFallbackReason" = "Fallback Reason";
+"particleDebug.diagnostics.renderAdapter" = "Render Adapter";
+"particleDebug.diagnostics.requestedRenderKind" = "Requested Renderer";
+"particleDebug.diagnostics.activeRenderer" = "Active Renderer";
+"particleDebug.diagnostics.fallbackRenderer" = "Fallback Renderer";
+"particleDebug.diagnostics.fallbackReason" = "Fallback Reason";
+"particleDebug.diagnostics.supportedRenderers" = "Supported";
+"particleDebug.diagnostics.reservedRenderers" = "Reserved";
 "particleDebug.diagnostics.colorProfile" = "DR Color";
 "particleDebug.diagnostics.colorProfileSource" = "Color Source";
 "particleDebug.diagnostics.baseColor" = "Base Color";
