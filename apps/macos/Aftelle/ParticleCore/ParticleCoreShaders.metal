@@ -38,6 +38,9 @@ struct ParticleVertexOut {
     float loading;
     float loadingCycle;
     float loadingLane;
+    float error;
+    float errorInterrupt;
+    float errorFracture;
     float edgePresence;
     float previewPlaceholder;
 };
@@ -249,19 +252,29 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float speaking = smoothstep(0.0, 1.0, speakingRaw);
     float loadingRaw = saturate(uniforms.loadingStrength);
     float loading = smoothstep(0.0, 1.0, loadingRaw);
-    float errorState = saturate(uniforms.errorStrength);
+    float errorRaw = saturate(uniforms.errorStrength);
+    float error = smoothstep(0.0, 1.0, errorRaw);
     float exitState = saturate(uniforms.exitStrength);
-    float previewPlaceholder = saturate(max(errorState, exitState));
+    float previewPlaceholder = saturate(max(error, exitState));
     float speakPulseA = 0.5 + 0.5 * sin(t * 1.08 + localPhase * 0.34 + angle * 1.65 + depth * 1.10);
     float speakPulseB = 0.5 + 0.5 * sin(t * 0.76 + phaseB * 0.22 - angle * 2.20 + seedB * 3.10);
     float speakingPulse = smoothstep(0.36, 0.86, speakPulseA * 0.60 + speakPulseB * 0.40);
     float loadingCycleA = 0.5 + 0.5 * sin(t * 0.68 + localPhase * 0.12 + angle * 1.10 + depth * 1.60);
     float loadingCycleB = 0.5 + 0.5 * cos(t * 0.52 + phaseB * 0.10 - angle * 0.72 + seedB * 1.80);
     float loadingCycle = smoothstep(0.30, 0.88, loadingCycleA * 0.54 + loadingCycleB * 0.46);
+    float errorInterruptA = 0.5 + 0.5 * sin(t * 0.86 + localPhase * 0.22 + angle * 2.90 + depth * 1.90);
+    float errorInterruptB = 0.5 + 0.5 * cos(t * 0.64 + phaseB * 0.20 - angle * 5.20 + seedB * 2.80);
+    float errorInterrupt = smoothstep(0.42, 0.84, errorInterruptA * 0.55 + errorInterruptB * 0.45);
+    float errorFracture = smoothstep(0.48, 0.90, 0.5 + 0.5 * sin(t * 0.72 + angle * 9.40 - depth * 3.80 + particleSeed * 3.60));
+    float errorEdgePulse = smoothstep(0.50, 0.91, 0.5 + 0.5 * cos(t * 0.78 + angle * 11.40 + phaseB * 0.22));
+    float errorJitterA = sin(t * 2.25 + localPhase * 0.42 + angle * 6.80 + depth * 2.20);
+    float errorJitterB = cos(t * 1.74 + phaseB * 0.38 - angle * 4.10 + seedB * 5.60);
+    float errorJitter = errorJitterA * 0.64 + errorJitterB * 0.36;
+    float errorJitterPulse = smoothstep(0.30, 0.82, 0.5 + 0.5 * sin(t * 1.18 + angle * 3.80 + particleSeed * 4.10));
     float speakingEdgeLift = mix(1.0, 1.24 + speakingPulse * 0.24, speaking * edge);
     float loadingEdgeSettle = mix(1.0, 0.68, loading * edge);
     float fieldSpeed = mix(1.0, 0.60, thinking) * mix(1.0, 1.16, speaking) * mix(1.0, 0.96, previewPlaceholder);
-    float edgeSettle = mix(1.0, 0.25, thinking) * loadingEdgeSettle * mix(1.0, 0.92, saturate(errorState + exitState));
+    float edgeSettle = mix(1.0, 0.25, thinking) * loadingEdgeSettle * mix(1.0, 0.92, saturate(error + exitState));
     float stateFocus = mix(1.0, 1.28, thinking);
     float localBreath = 0.0065 * sin(t * (0.29 + particleSeed * 0.11) + localPhase)
         + 0.0035 * sin(t * (0.17 + seedB * 0.07) + phaseB);
@@ -431,6 +444,39 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * (loadingCycle - 0.5)
         * (0.003 + midBand * 0.009 + interior * 0.007)
         * loadingLoopGate;
+    float errorDisruptionGate = error
+        * frontSurfaceGate
+        * (0.24 + interior * 0.36 + midBand * 0.86 + frontSheetGate * 0.36)
+        * (1.0 - smoothstep(0.88, 1.06, stableRadius));
+    float errorStall = errorInterrupt * (0.52 + errorFracture * 0.48);
+    float errorShear = sin(sheetTravel * 5.2 - sheetCross * 2.1 + body.z * 2.8 - fieldTime * 0.36 + phaseB * 0.10);
+    float errorJitterGate = errorDisruptionGate * errorJitterPulse * (0.36 + midBand * 0.56 + edge * 0.28);
+    p += surfaceFlowSide
+        * errorShear
+        * (0.009 + interior * 0.014 + midBand * 0.038 + frontSheetGate * 0.019)
+        * errorDisruptionGate;
+    p -= surfaceFlowAxis
+        * errorStall
+        * (0.007 + interior * 0.010 + midBand * 0.026)
+        * errorDisruptionGate;
+    p += normalize(p + float2(0.001, 0.001))
+        * (errorFracture - 0.5)
+        * (0.007 + interior * 0.008 + midBand * 0.022)
+        * errorDisruptionGate;
+    p += (surfaceFlowSide * errorJitter + surfaceFlowAxis * errorJitterB * 0.54)
+        * (0.006 + interior * 0.008 + midBand * 0.024 + frontSheetGate * 0.012)
+        * errorJitterGate;
+    float errorEdgeGate = error
+        * edge
+        * smoothstep(0.48, 0.78, stableRadius)
+        * (1.0 - smoothstep(0.86, 1.08, stableRadius))
+        * errorEdgePulse;
+    p += normalize(p + float2(0.001, 0.001)) * errorEdgeGate * (0.014 + 0.026 * seedB);
+    p += surfaceFlowSide
+        * errorEdgeGate
+        * sin(fieldTime * 0.34 + angle * 2.7 + phaseB)
+        * (0.010 + 0.014 * particleSeed);
+    edgeFrayField = saturate(edgeFrayField + errorEdgeGate * 0.34);
     float speakingSurfaceGate = mix(0.48, 1.0, frontSurfaceGate);
     float speakingFlowGate = speaking
         * speakingSurfaceGate
@@ -447,7 +493,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * speakingFlowGate;
     float speakingExpansion = speaking * (0.026 + speakingPulse * 0.018 + midBand * 0.010 + edge * 0.010);
     float loadingHold = loading * (0.016 + midBand * 0.007 - loadingCycle * 0.003);
-    float placeholderScale = 1.0 - errorState * 0.004 - exitState * 0.008;
+    float placeholderScale = 1.0 - error * 0.004 - exitState * 0.008;
     p *= (1.0 - thinking * 0.058 + speakingExpansion - loadingHold) * placeholderScale;
     float2 mouseDelta = p - uniforms.mousePosition;
     float mouseDistance = length(mouseDelta);
@@ -579,6 +625,16 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * (0.42 + speakingPulse * 0.58);
     visibleLayerDensity = saturate(visibleLayerDensity + visibleDenseSection * 0.065 * speakingRidgeGate);
     visibleLocalRidge = saturate(visibleLocalRidge + (visibleStructuralSpine * 0.24 + visibleRidgeFlow * 0.22 + ridgeFlow * 0.07) * speakingRidgeGate);
+    float errorBreakGate = error
+        * frontDepthGate
+        * (0.30 + midBand * 0.82 + interior * 0.24 + edge * 0.30)
+        * (0.40 + errorFracture * 0.46 + errorInterrupt * 0.30);
+    float errorDarkGap = error
+        * smoothstep(0.42, 0.90, 0.5 + 0.5 * sin(animatedTravel * 6.8 - animatedCross * 3.6 + flowedBody.z * 4.2 - fieldTime * 0.80 + phaseB * 0.18));
+    visibleLayerDensity = saturate(visibleLayerDensity * mix(1.0, 0.76, errorBreakGate) + visibleDenseSection * 0.052 * errorBreakGate);
+    visibleLocalRidge = saturate(visibleLocalRidge * mix(1.0, 0.54, errorDarkGap * errorBreakGate) + visibleRidgeFlow * 0.10 * errorBreakGate);
+    visibleStructuralSpine *= mix(1.0, 0.60, errorDarkGap * error);
+    visibleIonCluster *= mix(1.0, 0.76, errorInterrupt * error);
     float3 surfaceNormal = normalize(float3(flowedBody.xy * 0.92, flowedBody.z * 1.12 + visibleDepth * 0.22));
     float3 keyDirection = normalize(float3(turnedSide * 0.74 + turnedAxis * 0.22, 0.54));
     float3 fillDirection = normalize(float3(-turnedSide * 0.42 + turnedAxis * 0.34, 0.50));
@@ -605,6 +661,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         surfaceLight,
         0.46 + wakeDetailGate * 0.54
     );
+    surfaceLight = saturate(surfaceLight * mix(1.0, 0.82, error * (0.30 + errorInterrupt * 0.52))
+        - errorDarkGap * (0.08 + frontDepthGate * 0.11));
     float frontSizeLift = smoothstep(-0.34, 0.52, visibleDepth) * 0.52
         + smoothstep(0.72, 0.10, screenRadius) * frontDepthGate * 0.26 * wakeDetailGate;
     float rawSizeJitter = mix(0.82, 1.26, hash11(particleSeed * 137.0 + seedB * 41.0));
@@ -623,6 +681,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + turnWakeEnergy * 0.18
         + frontSizeLift
         + loadingRidgeGate * (0.72 + loadingLane * 0.42)
+        + errorBreakGate * (errorFracture * 0.58 - 0.24)
         + sizeScatter) * structureScale * mix(1.0, 0.84, thinking * edge) * mix(1.0, 0.94, loading * edge) * mix(1.0, 1.06 + speakingPulse * 0.03, speaking * edge) * mix(1.0, 0.96, previewPlaceholder * edge);
     float depthSize = mix(0.94, 1.20, smoothstep(-0.65, 0.75, visibleDepth));
     float frontParticleLift = smoothstep(-0.26, 0.42, visibleDepth);
@@ -652,6 +711,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     out.loading = loading;
     out.loadingCycle = loadingCycle;
     out.loadingLane = loadingLane;
+    out.error = error;
+    out.errorInterrupt = errorInterrupt;
+    out.errorFracture = errorFracture;
     out.edgePresence = smoothstep(0.48, 0.78, stableScreenRadius);
     out.previewPlaceholder = previewPlaceholder;
     return out;
@@ -675,6 +737,9 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float loading = saturate(in.loading);
     float loadingCycle = saturate(in.loadingCycle);
     float loadingLane = saturate(in.loadingLane);
+    float error = saturate(in.error);
+    float errorInterrupt = saturate(in.errorInterrupt);
+    float errorFracture = saturate(in.errorFracture);
     float previewPlaceholder = saturate(in.previewPlaceholder);
     float litSurface = smoothstep(0.34, 0.86, surfaceLight);
     float frontSurfaceContrast = mix(0.42, 1.18, litSurface);
@@ -712,6 +777,10 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float speakingRidgeLight = speaking * speakingPulse * frontLight * saturate(ridge * 0.68 + in.flow * 0.40 + surfaceLight * 0.22);
     coverage *= mix(1.0, 1.080, speakingRidgeLight);
     coverage *= mix(1.0, 0.98, speaking * outerDim * (1.0 - ridge * 0.46));
+    float errorRidgeShadow = error * frontLight * saturate((errorInterrupt * 0.52 + errorFracture * 0.58) * (ridge * 0.78 + in.flow * 0.36 + surfaceLight * 0.30));
+    coverage *= mix(1.0, 0.68, errorRidgeShadow);
+    coverage *= mix(1.0, 0.82, error * outerDim * (1.0 - ridge * 0.44));
+    coverage = saturate(coverage + error * errorFracture * ridge * frontLight * 0.030);
     coverage *= mix(1.0, 0.96, previewPlaceholder);
     float centerCoverage = saturate(0.15 + depthLight * (0.050 + litSurface * 0.24) + centerQuiet * 0.050);
     coverage = mix(coverage, max(coverage, centerCoverage), centerQuiet * 0.16);
@@ -719,6 +788,8 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     highlight = saturate(highlight + thinking * (ridge * 0.13 + in.flow * 0.070) * frontLight);
     highlight = saturate(highlight + loadingRidgeLight * (0.24 + ridge * 0.22));
     highlight = saturate(highlight + speakingRidgeLight * (0.16 + ridge * 0.18));
+    highlight *= mix(1.0, 0.58, errorRidgeShadow);
+    highlight = saturate(highlight + error * errorFracture * frontLight * ridge * 0.060);
     float centerHighlight = saturate(0.06 + litFront * 0.18);
     highlight = mix(highlight, centerHighlight, centerQuiet * 0.14);
     float alpha = saturate(halo * coverage * 0.50 + core * coverage * 1.38) * backMute;
@@ -729,8 +800,10 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float surfaceTone = 0.38 + litSurface * 0.62;
     half3 dim = mix(back, frontBase, half(compressedDepthLight * surfaceTone));
     dim *= half(mix(1.0, 0.86, thinking * outerDim));
+    dim *= half(mix(1.0, 0.78, error * (0.34 + outerDim * 0.76)));
     half3 bright = half3(1.0, 1.0, 1.0);
     half3 color = mix(dim, bright, half(highlight));
+    color = mix(color, half3(0.64, 0.66, 0.70), half(error * errorInterrupt * 0.14));
     color = mix(color, wakeTint, half(surfaceWake * (0.20 + frontLight * 0.80) * 0.22));
     return half4(color, half(alpha));
 }
