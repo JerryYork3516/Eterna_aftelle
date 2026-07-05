@@ -76,9 +76,9 @@ float2 globalDirection(float time) {
 }
 
 float globalTurnAngle(float time) {
-    return time * 0.24
-        + sin(time * 0.43 + 0.7) * 0.13
-        + sin(time * 0.19 + 2.1) * 0.08;
+    return time * 0.48
+        + sin(time * 0.37 + 0.7) * 0.18
+        + sin(time * 0.16 + 2.1) * 0.10;
 }
 
 float globalShapeWave(float2 p, float depth, float time, float2 axis, float2 side) {
@@ -195,6 +195,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
                                    uint vid [[vertex_id]]) {
     float4 particle = particles[vid];
     float2 p = particle.xy;
+    float2 basePosition = p;
     float ridge = saturate(particle.z);
     float depth = particle.w;
     float id = float(vid);
@@ -202,6 +203,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float lengthP = length(p);
     float edge = smoothstep(0.28, 0.64, lengthP);
     float interior = 1.0 - smoothstep(0.18, 0.58, lengthP);
+    float centerCalm = 1.0 - smoothstep(0.18, 0.46, lengthP);
+    float centerMotionGate = 1.0 - centerCalm * 0.86;
     float shellLayer = saturate(abs(depth) * 1.35 + edge * 0.35);
     float particleSeed = hash11(id * 12.9898 + float(uniforms.seed) * 0.017);
     float seedB = hash11(id * 4.1414 + particleSeed * 19.17);
@@ -219,10 +222,12 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         sin(t * (0.18 + seedB * 0.05) + localPhase + p.y * 5.2 + depth * 1.6),
         cos(t * (0.16 + particleSeed * 0.06) + phaseB - p.x * 4.6)
     );
-    float innerFlowStrength = interior * (0.0016 + 0.0025 * seedB) * uniforms.coreStability;
+    float innerFlowStrength = interior * centerMotionGate * (0.0012 + 0.0018 * seedB) * uniforms.coreStability;
     float tangentialDrift = edge * (0.0038 + 0.0028 * seedB)
         * sin(t * (0.20 + particleSeed * 0.08) + localPhase * 0.7 + depth * 2.8);
-    float radialDrift = localBreath * (0.42 + edge * 0.72) + globalReference + edgeMembrane;
+    float radialDrift = localBreath * centerMotionGate * (0.42 + edge * 0.72)
+        + globalReference * (0.62 + centerMotionGate * 0.38)
+        + edgeMembrane;
     float fieldTime = t * 0.92;
     float midBand = smoothstep(0.14, 0.40, lengthP) * (1.0 - smoothstep(0.54, 0.72, lengthP));
     float2 globalAxis = globalDirection(fieldTime);
@@ -231,7 +236,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float localMorph = morphField(angle, depth, fieldTime * 0.72, float(uniforms.seed) * 0.0017 + particleSeed * 0.41);
     float morph = globalWave * 0.74 + localMorph * 0.26;
     float edgeMorph = edge * edge * (0.022 + 0.056 * edge + 0.012 * particleSeed) * morph;
-    float innerMorph = (interior * 0.95 + midBand * 1.05) * (0.0140 + 0.0220 * seedB)
+    float surfaceMotion = smoothstep(0.24, 0.58, lengthP);
+    float innerMorph = (interior * 0.20 * centerMotionGate + midBand * 0.88) * (0.0100 + 0.0170 * seedB)
         * (globalWave * 0.78 + localMorph * 0.22);
     float membraneRoll = edge * (0.010 + 0.018 * seedB)
         * sin(dot(p, globalAxis) * 4.2 + dot(p, globalSide) * 1.9 - fieldTime * 0.82 + phaseB + globalWave * 0.8);
@@ -243,50 +249,58 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     p += tangent * membraneRoll;
     p += innerFlow * innerFlowStrength;
     p += innerFlow * innerMorph;
-    p += directionWarp;
-    p += localWarp;
+    p += directionWarp * (0.34 + surfaceMotion * 0.66);
+    p += localWarp * (0.20 + surfaceMotion * 0.80);
     float rim = smoothstep(0.46, 0.72, lengthP);
     float rimFeather = rim * rim;
     float rimWave = sin(dot(p, globalAxis) * 8.2 - dot(p, globalSide) * 3.4 - fieldTime * 1.08 + phaseB);
     float rimScatter = rimFeather * (0.018 + 0.026 * seedB) * (0.62 + 0.38 * abs(globalWave));
     p += radial * rimScatter * (0.55 + 0.45 * rimWave);
     p += tangent * rimFeather * rimWave * (0.010 + 0.018 * particleSeed);
-    float centerFollow = (interior * 0.42 + midBand * 0.78)
+    float centerFollow = (midBand * 0.62 + edge * 0.10)
         * sin(dot(p, globalAxis) * 3.8 + dot(p, globalSide) * 2.6 - fieldTime * 0.74 + localPhase);
-    p += (globalAxis * centerFollow + globalSide * centerFollow * 0.45) * (0.010 + midBand * 0.016);
+    p += (globalAxis * centerFollow + globalSide * centerFollow * 0.45) * (0.006 + midBand * 0.014);
 
     float turnAngle = globalTurnAngle(fieldTime);
     float3 bodyAngles = float3(
-        sin(fieldTime * 0.36 + 1.1) * 0.24 + sin(fieldTime * 0.17 + 2.2) * 0.10,
-        turnAngle * 0.36 + sin(fieldTime * 0.29 + 0.6) * 0.18,
-        sin(fieldTime * 0.21 + 0.8) * 0.10
+        sin(fieldTime * 0.31 + 1.1) * 0.30 + sin(fieldTime * 0.14 + 2.2) * 0.12,
+        turnAngle * 0.72 + sin(fieldTime * 0.24 + 0.6) * 0.22,
+        sin(fieldTime * 0.19 + 0.8) * 0.16 + sin(fieldTime * 0.11 + 2.4) * 0.08
     );
-    float bodyDepth = depth * 0.46 + globalWave * (0.038 + midBand * 0.062 + edge * 0.050) + centerFollow * 0.030;
+    float3 restBody = float3(basePosition.x, basePosition.y, depth * 0.58);
+    float3 anchorBody = rotateBody(restBody, bodyAngles);
+    float anchorPerspective = clamp(1.0 / (1.0 - anchorBody.z * 0.30), 0.84, 1.20);
+    float2 sphereAnchor = anchorBody.xy * anchorPerspective;
+    float bodyDepth = depth * 0.46 + globalWave * (0.018 + midBand * 0.052 + edge * 0.050) + centerFollow * 0.012;
     float3 body = float3(p.x, p.y, bodyDepth);
-    float3 materialFlow = materialFlowField(body, fieldTime, particleSeed, seedB, edge, interior, midBand, globalWave, globalAxis, globalSide);
-    float3 cloudFlow = volumetricCloudFlowField(body + materialFlow * 0.35, fieldTime, particleSeed, seedB, edge, interior, midBand, globalWave, globalAxis, globalSide);
+    float activeInterior = interior * centerMotionGate;
+    float3 materialFlow = materialFlowField(body, fieldTime, particleSeed, seedB, edge, activeInterior, midBand, globalWave, globalAxis, globalSide);
+    float3 cloudFlow = volumetricCloudFlowField(body + materialFlow * 0.35, fieldTime, particleSeed, seedB, edge, activeInterior, midBand, globalWave, globalAxis, globalSide);
     float3 materialBody = body
-        + materialFlow * (0.92 + interior * 0.34 + midBand * 0.42)
-        + cloudFlow * (1.68 + interior * 0.56 + midBand * 0.48);
-    body += materialFlow * (0.62 + interior * 0.22 + midBand * 0.28)
-        + cloudFlow * (1.22 + interior * 0.58 + midBand * 0.50);
+        + materialFlow * (0.92 + activeInterior * 0.18 + midBand * 0.42)
+        + cloudFlow * (1.68 + activeInterior * 0.20 + midBand * 0.48);
+    body += materialFlow * (0.62 + activeInterior * 0.08 + midBand * 0.28)
+        + cloudFlow * (1.22 + activeInterior * 0.14 + midBand * 0.50);
     body = rotateBody(body, bodyAngles);
-    float perspective = clamp(1.0 / (1.0 - body.z * 0.26), 0.86, 1.18);
+    float perspective = clamp(1.0 / (1.0 - body.z * 0.30), 0.84, 1.20);
     p = body.xy * perspective;
+    float anchorBlend = saturate(0.42 + centerCalm * 0.42 + edge * 0.34 + midBand * 0.18 + abs(depth) * 0.16);
+    p = mix(p, sphereAnchor, anchorBlend);
     float3 axis3 = rotateBody(float3(globalAxis.x, globalAxis.y, 0.0), bodyAngles);
     float2 turnedAxis = normalize(axis3.xy + float2(0.001, 0.001));
     float2 turnedSide = float2(-turnedAxis.y, turnedAxis.x);
     float stretch = sin(fieldTime * 0.58 + globalWave * 0.65);
     float sail = cos(fieldTime * 0.46 + dot(p, turnedSide) * 2.8);
-    p += turnedAxis * dot(p, turnedSide) * stretch * (0.030 + midBand * 0.020 + edge * 0.016);
-    p += turnedSide * dot(p, turnedAxis) * sail * (0.014 + midBand * 0.014 + edge * 0.010);
+    float postSurfaceMotion = smoothstep(0.24, 0.58, length(p));
+    p += turnedAxis * dot(p, turnedSide) * stretch * (0.030 + midBand * 0.020 + edge * 0.016) * postSurfaceMotion;
+    p += turnedSide * dot(p, turnedAxis) * sail * (0.014 + midBand * 0.014 + edge * 0.010) * postSurfaceMotion;
     float screenCloudRoll = sin(dot(p, turnedAxis) * 3.2 + body.z * 4.4 - fieldTime * 0.86 + globalWave);
     float screenCloudCurl = cos(dot(p, turnedSide) * 3.6 - body.z * 5.0 + fieldTime * 0.72 + phaseB * 0.10);
-    float screenCloudStrength = interior * 0.034 + midBand * 0.032 + edge * 0.010;
+    float screenCloudStrength = activeInterior * 0.004 + midBand * 0.026 + edge * 0.010;
     p += (turnedAxis * screenCloudCurl + turnedSide * screenCloudRoll) * screenCloudStrength;
-    p += normalize(p + float2(0.001, 0.001)) * screenCloudRoll * (interior * 0.016 + midBand * 0.014);
-    p += turnedAxis * sin(fieldTime * 0.33 + 0.4) * 0.018
-        + turnedSide * cos(fieldTime * 0.29 + 1.2) * 0.012;
+    p += normalize(p + float2(0.001, 0.001)) * screenCloudRoll * (activeInterior * 0.003 + midBand * 0.012);
+    p += (turnedAxis * sin(fieldTime * 0.33 + 0.4) * 0.018
+        + turnedSide * cos(fieldTime * 0.29 + 1.2) * 0.012) * (0.34 + postSurfaceMotion * 0.66);
 
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);
     float2 clip = float2(p.x / aspect, p.y);
