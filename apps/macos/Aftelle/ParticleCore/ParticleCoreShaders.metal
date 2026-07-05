@@ -12,7 +12,12 @@ struct ParticleCoreFrameUniforms {
     float2 mousePosition;
     float2 mouseVelocity;
     float mouseInfluence;
+    uint visualState;
     float thinkingStrength;
+    float speakingStrength;
+    float loadingStrength;
+    float errorStrength;
+    float exitStrength;
 };
 
 struct ParticleVertexOut {
@@ -29,6 +34,7 @@ struct ParticleVertexOut {
     float surfaceWake;
     float thinking;
     float edgePresence;
+    float previewPlaceholder;
 };
 
 float hash11(float n) {
@@ -232,10 +238,16 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float phaseB = seedB * 6.2831853 - angle * 0.55 + depth * 2.1;
     float2 radial = normalize(p + float2(0.001, 0.001));
     float2 tangent = float2(-radial.y, radial.x);
-    float thinking = saturate(uniforms.thinkingStrength);
-    float fieldSpeed = mix(1.0, 0.68, thinking);
-    float edgeSettle = mix(1.0, 0.36, thinking);
-    float stateFocus = mix(1.0, 1.16, thinking);
+    float thinkingRaw = saturate(uniforms.thinkingStrength);
+    float thinking = smoothstep(0.0, 1.0, thinkingRaw);
+    float speaking = saturate(uniforms.speakingStrength);
+    float loading = saturate(uniforms.loadingStrength);
+    float errorState = saturate(uniforms.errorStrength);
+    float exitState = saturate(uniforms.exitStrength);
+    float previewPlaceholder = saturate(max(max(speaking, loading), max(errorState, exitState)));
+    float fieldSpeed = mix(1.0, 0.60, thinking) * mix(1.0, 0.96, previewPlaceholder);
+    float edgeSettle = mix(1.0, 0.25, thinking) * mix(1.0, 0.92, saturate(errorState + exitState));
+    float stateFocus = mix(1.0, 1.28, thinking);
     float localBreath = 0.0065 * sin(t * (0.29 + particleSeed * 0.11) + localPhase)
         + 0.0035 * sin(t * (0.17 + seedB * 0.07) + phaseB);
     float globalReference = uniforms.breathing * (0.18 + 0.24 * particleSeed + 0.16 * shellLayer);
@@ -379,18 +391,19 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * visibleWakeGate;
     float focusGate = thinking
         * frontSurfaceGate
-        * (0.24 + interior * 0.26 + midBand * 0.58)
-        * (1.0 - smoothstep(0.64, 0.88, stableRadius));
+        * (0.28 + interior * 0.34 + midBand * 0.74)
+        * (1.0 - smoothstep(0.68, 0.90, stableRadius));
     float focusWave = sin(sheetTravel * 3.8 - sheetCross * 0.85 + body.z * 2.2 - fieldTime * 0.42 + globalWave);
-    p += surfaceFlowAxis * focusWave * (0.005 + midBand * 0.013 + interior * 0.007) * focusGate;
-    p -= normalize(p + float2(0.001, 0.001)) * (0.006 + midBand * 0.009 + interior * 0.004) * focusGate;
-    p *= 1.0 - thinking * 0.045;
+    p += surfaceFlowAxis * focusWave * (0.006 + midBand * 0.018 + interior * 0.010) * focusGate;
+    p -= normalize(p + float2(0.001, 0.001)) * (0.008 + midBand * 0.013 + interior * 0.006) * focusGate;
+    float placeholderScale = 1.0 + speaking * 0.004 + loading * 0.002 - errorState * 0.004 - exitState * 0.008;
+    p *= (1.0 - thinking * 0.058) * placeholderScale;
     float2 mouseDelta = p - uniforms.mousePosition;
     float mouseDistance = length(mouseDelta);
     float2 mouseRadial = mouseDelta / max(mouseDistance, 0.001);
     float2 mouseTangent = float2(-mouseRadial.y, mouseRadial.x);
     float mouseShellResponse = smoothstep(0.18, 0.58, stableRadius) * (0.24 + edge * 0.76);
-    float interactionScale = mix(1.0, 0.44, thinking);
+    float interactionScale = mix(1.0, 0.44, thinking) * mix(1.0, 0.86, previewPlaceholder);
     float radialMouseField = (1.0 - smoothstep(0.08, 0.96, mouseDistance)) * uniforms.mouseInfluence * mouseShellResponse * interactionScale;
     float swirlMouseField = (1.0 - smoothstep(0.03, 0.36, mouseDistance)) * uniforms.mouseInfluence * mouseShellResponse * interactionScale;
     float mouseSwirl = clamp(dot(uniforms.mouseVelocity, mouseTangent) * 0.18, -1.0, 1.0);
@@ -500,9 +513,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float visibleIonCluster = ionCluster * wakeDetailGate;
     float visibleStructuralSpine = structuralSpine * wakeDetailGate;
     float visibleRidgeFlow = ridgeFlow * wakeDetailGate;
-    float thinkingRidgeGate = thinking * frontDepthGate * (0.26 + midBand * 0.56 + interior * 0.18);
-    visibleLayerDensity = saturate(visibleLayerDensity * mix(1.0, 0.94, thinking) + visibleDenseSection * 0.05 * thinkingRidgeGate);
-    visibleLocalRidge = saturate(visibleLocalRidge + (visibleStructuralSpine * 0.15 + visibleRidgeFlow * 0.10) * thinkingRidgeGate);
+    float thinkingRidgeGate = thinking * frontDepthGate * (0.30 + midBand * 0.70 + interior * 0.22);
+    visibleLayerDensity = saturate(visibleLayerDensity * mix(1.0, 0.92, thinking) + visibleDenseSection * 0.07 * thinkingRidgeGate);
+    visibleLocalRidge = saturate(visibleLocalRidge + (visibleStructuralSpine * 0.24 + visibleRidgeFlow * 0.16) * thinkingRidgeGate);
     float3 surfaceNormal = normalize(float3(flowedBody.xy * 0.92, flowedBody.z * 1.12 + visibleDepth * 0.22));
     float3 keyDirection = normalize(float3(turnedSide * 0.74 + turnedAxis * 0.22, 0.54));
     float3 fillDirection = normalize(float3(-turnedSide * 0.42 + turnedAxis * 0.34, 0.50));
@@ -546,7 +559,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + edgeFrayField * 0.22 * edgeSettle
         + turnWakeEnergy * 0.18
         + frontSizeLift
-        + sizeScatter) * structureScale * mix(1.0, 0.90, thinking * edge);
+        + sizeScatter) * structureScale * mix(1.0, 0.84, thinking * edge) * mix(1.0, 0.96, previewPlaceholder * edge);
     float depthSize = mix(0.94, 1.20, smoothstep(-0.65, 0.75, visibleDepth));
     float frontParticleLift = smoothstep(-0.26, 0.42, visibleDepth);
     float backParticleMute = 1.0 - smoothstep(-0.72, -0.02, visibleDepth);
@@ -571,6 +584,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     out.surfaceWake = turnWakeEnergy;
     out.thinking = thinking;
     out.edgePresence = smoothstep(0.48, 0.78, stableScreenRadius);
+    out.previewPlaceholder = previewPlaceholder;
     return out;
 }
 
@@ -587,6 +601,7 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float surfaceLight = saturate(in.surfaceLight);
     float surfaceWake = saturate(in.surfaceWake);
     float thinking = saturate(in.thinking);
+    float previewPlaceholder = saturate(in.previewPlaceholder);
     float litSurface = smoothstep(0.34, 0.86, surfaceLight);
     float frontSurfaceContrast = mix(0.42, 1.18, litSurface);
     float backPresence = 1.0 - smoothstep(-0.54, 0.06, in.depth);
@@ -615,11 +630,12 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
         smoothstep(0.42, 0.10, in.frontness) * (1.0 - ridge * 0.48),
         in.edgePresence * (0.64 + backPresence * 0.18) * (1.0 - ridge * 0.22)
     ));
-    coverage *= mix(1.0, 0.80, thinking * outerDim);
+    coverage *= mix(1.0, 0.72, thinking * outerDim);
+    coverage *= mix(1.0, 0.96, previewPlaceholder);
     float centerCoverage = saturate(0.15 + depthLight * (0.050 + litSurface * 0.24) + centerQuiet * 0.050);
     coverage = mix(coverage, max(coverage, centerCoverage), centerQuiet * 0.16);
     float highlight = saturate(litFront * 0.34 + ionRidge * 1.42 + ridgeGlow * 2.12 + surfaceWake * 0.28);
-    highlight = saturate(highlight + thinking * (ridge * 0.08 + in.flow * 0.045) * frontLight);
+    highlight = saturate(highlight + thinking * (ridge * 0.13 + in.flow * 0.070) * frontLight);
     float centerHighlight = saturate(0.06 + litFront * 0.18);
     highlight = mix(highlight, centerHighlight, centerQuiet * 0.14);
     float alpha = saturate(halo * coverage * 0.50 + core * coverage * 1.38) * backMute;
@@ -629,7 +645,7 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float compressedDepthLight = 0.16 + depthLight * 0.84;
     float surfaceTone = 0.38 + litSurface * 0.62;
     half3 dim = mix(back, frontBase, half(compressedDepthLight * surfaceTone));
-    dim *= half(mix(1.0, 0.90, thinking * outerDim));
+    dim *= half(mix(1.0, 0.86, thinking * outerDim));
     half3 bright = half3(1.0, 1.0, 1.0);
     half3 color = mix(dim, bright, half(highlight));
     color = mix(color, wakeTint, half(surfaceWake * (0.20 + frontLight * 0.80) * 0.22));

@@ -3,7 +3,7 @@ import MetalKit
 import SwiftUI
 
 struct ParticleCoreMetalView: NSViewRepresentable {
-    var visualState: ParticleCoreVisualState = .thinking
+    var visualState: ParticleCoreVisualState = .idle
 
     func makeNSView(context: Context) -> MTKView {
         print("[ParticleCore] makeNSView called")
@@ -30,6 +30,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
         view.inputRenderer = renderer
         view.delegate = renderer
         context.coordinator.renderer = renderer
+        context.coordinator.swiftUIVisualState = visualState
         print("[ParticleCore] MTKView delegate set \(view.delegate === renderer)")
         return view
     }
@@ -39,7 +40,10 @@ struct ParticleCoreMetalView: NSViewRepresentable {
             print("[ParticleCore] updateNSView called drawableSize=\(Int(nsView.drawableSize.width))x\(Int(nsView.drawableSize.height))")
             context.coordinator.didLogUpdate = true
         }
-        context.coordinator.renderer?.setVisualState(visualState)
+        if context.coordinator.swiftUIVisualState != visualState {
+            context.coordinator.renderer?.setVisualState(visualState)
+            context.coordinator.swiftUIVisualState = visualState
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -48,6 +52,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
 
     final class Coordinator {
         var renderer: ParticleCoreRenderer?
+        var swiftUIVisualState: ParticleCoreVisualState = .idle
         var didLogUpdate = false
     }
 }
@@ -58,9 +63,17 @@ private final class ParticleCoreInputView: MTKView {
     private var lastMousePosition: SIMD2<Float>?
     private var lastMouseTime: TimeInterval?
 
+    override var acceptsFirstResponder: Bool {
+        true
+    }
+
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         window?.acceptsMouseMovedEvents = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.window?.makeFirstResponder(self)
+        }
     }
 
     override func updateTrackingAreas() {
@@ -87,10 +100,44 @@ private final class ParticleCoreInputView: MTKView {
         updateMouse(with: event, active: true)
     }
 
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(self)
+        super.mouseDown(with: event)
+    }
+
     override func mouseExited(with event: NSEvent) {
         lastMousePosition = nil
         lastMouseTime = nil
         inputRenderer?.updateMouse(position: .zero, velocity: .zero, active: false)
+    }
+
+    override func keyDown(with event: NSEvent) {
+        #if DEBUG
+        guard event.modifierFlags.intersection([.command, .control, .option]).isEmpty,
+              let key = event.charactersIgnoringModifiers?.lowercased() else {
+            super.keyDown(with: event)
+            return
+        }
+
+        switch key {
+        case "i":
+            inputRenderer?.setVisualState(.idle)
+        case "t":
+            inputRenderer?.setVisualState(.thinking)
+        case "s":
+            inputRenderer?.setVisualState(.speaking)
+        case "l":
+            inputRenderer?.setVisualState(.loading)
+        case "e":
+            inputRenderer?.setVisualState(.error)
+        case "x":
+            inputRenderer?.setVisualState(.exit)
+        default:
+            super.keyDown(with: event)
+        }
+        #else
+        super.keyDown(with: event)
+        #endif
     }
 
     private func updateMouse(with event: NSEvent, active: Bool) {

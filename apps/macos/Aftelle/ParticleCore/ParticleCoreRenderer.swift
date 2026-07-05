@@ -15,20 +15,24 @@ struct ParticleCoreFrameUniforms {
     var mousePosition: SIMD2<Float>
     var mouseVelocity: SIMD2<Float>
     var mouseInfluence: Float
+    var visualState: UInt32
     var thinkingStrength: Float
+    var speakingStrength: Float
+    var loadingStrength: Float
+    var errorStrength: Float
+    var exitStrength: Float
 }
 
-enum ParticleCoreVisualState {
+enum ParticleCoreVisualState: UInt32 {
     case idle
     case thinking
+    case speaking
+    case loading
+    case error
+    case exit
 
-    var targetStrength: Float {
-        switch self {
-        case .idle:
-            return 0
-        case .thinking:
-            return 1
-        }
+    func targetStrength(for state: ParticleCoreVisualState) -> Float {
+        self == state ? 1 : 0
     }
 }
 
@@ -51,12 +55,20 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private var lastMouseEventTime = CACurrentMediaTime()
     private var visualState: ParticleCoreVisualState
     private var smoothThinkingStrength: Float
+    private var smoothSpeakingStrength: Float
+    private var smoothLoadingStrength: Float
+    private var smoothErrorStrength: Float
+    private var smoothExitStrength: Float
 
     init?(device: MTLDevice, visualState: ParticleCoreVisualState = .idle) {
         self.device = device
         self.model = ParticleCoreModel()
         self.visualState = visualState
-        self.smoothThinkingStrength = visualState.targetStrength
+        self.smoothThinkingStrength = visualState.targetStrength(for: .thinking)
+        self.smoothSpeakingStrength = visualState.targetStrength(for: .speaking)
+        self.smoothLoadingStrength = visualState.targetStrength(for: .loading)
+        self.smoothErrorStrength = visualState.targetStrength(for: .error)
+        self.smoothExitStrength = visualState.targetStrength(for: .exit)
 
         guard let commandQueue = device.makeCommandQueue() else {
             print("[ParticleCore] commandQueue failed")
@@ -149,14 +161,19 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             mousePosition: smoothMousePosition,
             mouseVelocity: smoothMouseVelocity,
             mouseInfluence: smoothMouseInfluence,
-            thinkingStrength: smoothThinkingStrength
+            visualState: visualState.rawValue,
+            thinkingStrength: smoothThinkingStrength,
+            speakingStrength: smoothSpeakingStrength,
+            loadingStrength: smoothLoadingStrength,
+            errorStrength: smoothErrorStrength,
+            exitStrength: smoothExitStrength
         )
         memcpy(uniformsBuffer.contents(), &uniforms, MemoryLayout<ParticleCoreFrameUniforms>.stride)
 
         if !didLogDraw {
             let aspect = max(resolution.x / max(resolution.y, 1), 1)
             let bounds = model.clipBounds(aspect: aspect, breathing: 1 + breathing)
-            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) visualState=\(visualState) thinkingStrength=\(smoothThinkingStrength) globalBreathingRef=\(breathing) edgeBreathingRef=\(edgeBreathing) coreStability=\(coreStability) motion=video_guided_rotating_surface_field speedScale=\(speedScale) speedRange=0.34...0.50 particleColor=(three_stage_back_front_ion_ridge,back=0.30...0.35,front=0.95...0.98,density_front_gated,no_random_brightness) pointSize=cohesive_body_bound_structure ionCluster=cloud_driven_rolling_ridge cloudDensity=internal_eddy_migration structure=body_envelope_spine_density_sections")
+            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) visualState=\(visualState) thinkingStrength=\(smoothThinkingStrength) previewKeys=(I idle,T thinking,S speaking,L loading,E error,X exit) globalBreathingRef=\(breathing) edgeBreathingRef=\(edgeBreathing) coreStability=\(coreStability) motion=video_guided_rotating_surface_field speedScale=\(speedScale) speedRange=0.34...0.50 particleColor=(three_stage_back_front_ion_ridge,back=0.30...0.35,front=0.95...0.98,density_front_gated,no_random_brightness) pointSize=cohesive_body_bound_structure ionCluster=cloud_driven_rolling_ridge cloudDensity=internal_eddy_migration structure=body_envelope_spine_density_sections")
         }
 
         encoder.setRenderPipelineState(pipelineState)
@@ -183,7 +200,9 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     }
 
     func setVisualState(_ visualState: ParticleCoreVisualState) {
+        guard self.visualState != visualState else { return }
         self.visualState = visualState
+        print("[ParticleCore] visualState changed \(visualState)")
     }
 
     private func uploadParticles() {
@@ -209,7 +228,11 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     }
 
     private func updateSmoothedVisualState() {
-        let alpha: Float = 0.055
-        smoothThinkingStrength += (visualState.targetStrength - smoothThinkingStrength) * alpha
+        let alpha: Float = 0.036
+        smoothThinkingStrength += (visualState.targetStrength(for: .thinking) - smoothThinkingStrength) * alpha
+        smoothSpeakingStrength += (visualState.targetStrength(for: .speaking) - smoothSpeakingStrength) * alpha
+        smoothLoadingStrength += (visualState.targetStrength(for: .loading) - smoothLoadingStrength) * alpha
+        smoothErrorStrength += (visualState.targetStrength(for: .error) - smoothErrorStrength) * alpha
+        smoothExitStrength += (visualState.targetStrength(for: .exit) - smoothExitStrength) * alpha
     }
 }
