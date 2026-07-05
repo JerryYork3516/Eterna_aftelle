@@ -38,6 +38,7 @@ enum ParticleCoreVisualState: UInt32 {
 
 final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private let model: ParticleCoreModel
+    private let frameSeed: UInt32
     private let device: MTLDevice
     private let commandQueue: MTLCommandQueue
     private let pipelineState: MTLRenderPipelineState
@@ -61,8 +62,10 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private var smoothExitStrength: Float
 
     init?(device: MTLDevice, visualState: ParticleCoreVisualState = .idle) {
+        let launchSeed = UInt64.random(in: 1...UInt64.max)
         self.device = device
-        self.model = ParticleCoreModel()
+        self.model = ParticleCoreModel(seed: launchSeed)
+        self.frameSeed = UInt32(truncatingIfNeeded: launchSeed ^ (launchSeed >> 32))
         self.visualState = visualState
         self.smoothThinkingStrength = visualState.targetStrength(for: .thinking)
         self.smoothSpeakingStrength = visualState.targetStrength(for: .speaking)
@@ -156,7 +159,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             edgeBreathing: edgeBreathing,
             coreStability: coreStability,
             resolution: resolution,
-            seed: 0xA7F13,
+            seed: frameSeed,
             particleCount: UInt32(model.particles.count),
             mousePosition: smoothMousePosition,
             mouseVelocity: smoothMouseVelocity,
