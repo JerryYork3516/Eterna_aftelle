@@ -103,6 +103,7 @@
 - 2026-07-04 — Stage 7 v8 文档规划调整 — 7.5 新增 Voice Input MVP(录音转文字,进入现有 text input / Runtime step 链路);7.11 从 Demo Lock 改为 Demo Readiness Polish / 展示版体验打磨;7.12 承接 Demo Lock + 录屏冻结。完整语音交流系统后移,不进入 Stage 7;未改代码、Runtime API、DR schema 或 Provider Profile。
 - 2026-07-05 — Stage 7.3 粒子旋转前表面扰动增强 — 参考 `/Users/jerryyork/Downloads/视频节点 2-2.mp4` 抽帧后,将 turn surface wake 从高频噪声改为低频宽面片 flow,让前表面中段出现连续滑动的亮带/密度带;检查后确认中间被 centerMotionGate / anchor clamp / centerPostClamp / centerDetailGate 多层稳定逻辑压住,边缘由 edge fray / edge dust 抢占视觉,因此新增 frontSheetGate + wakeDetailGate,放开前表面中区并降低边缘扰动和点大小跳跃。整体旋转改为分段随机目标角,用 direction-change pulse 作为方向变化起点;内部表面流动改用独立 surfaceFlowAxis,不跟随整体转向。仅改粒子画法与 DEVLOG,未改 RuntimeCore / Runtime API / DR schema / Provider / 平台 target。`xcrun metal` shader 直编通过;项目级 xcodebuild 因 `.xcodeproj` 缺 `project.pbxproj` 无法执行。
 - 2026-07-05 — Stage 7.3 鼠标外部扰动场恢复 — `ParticleCoreMetalView` 只传鼠标归一化位置 / 速度,`ParticleCoreRenderer` 做 low-pass 平滑,`ParticleCoreShaders` 实现 radial push + small tangential swirl;中心几乎不动,中层轻微,边缘最明显。鼠标不作为 UI hover / click / follow / attract 状态,也不改变整体旋转方向。未改 RuntimeCore / Runtime API / DR schema / Provider / 平台 target。
+- 2026-07-05 — Stage 7.3.9 DR 粒子颜色导入检查 PASS — Debug DR 导入入口、沙盒文件读取 entitlement、`lattice_config.color_palette` 读取、ParticleCore color profile 映射与 Metal uniform 传递链路已检查;`docs/Freezev03.digital_resident` 与内置 `Freezev03.calibration_fixture.json` 同为 `schema_canvas` 且颜色板均为 `["#7aa2f7","#5dd39e","#f2a65a"]`,因此导入该 docs DR 不会产生明显切换感。7.3.9 未改 DR schema / Runtime API / RuntimeCore / Provider / TTS / 平台 target,允许进入 Stage 7.3.10。
 
 ---
 
