@@ -20,6 +20,8 @@ struct ParticleVertexOut {
     float flow;
     float density;
     float frontness;
+    float centerQuiet;
+    float surfaceLight;
 };
 
 float hash11(float n) {
@@ -286,6 +288,13 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     p = body.xy * perspective;
     float anchorBlend = saturate(0.42 + centerCalm * 0.42 + edge * 0.34 + midBand * 0.18 + abs(depth) * 0.16);
     p = mix(p, sphereAnchor, anchorBlend);
+    float anchorRadius = length(sphereAnchor);
+    float anchorClampGate = 1.0 - smoothstep(0.46, 0.84, anchorRadius);
+    float2 anchorDelta = p - sphereAnchor;
+    float anchorDeltaLength = length(anchorDelta);
+    float anchorDeltaLimit = mix(0.006, 0.060, smoothstep(0.34, 0.84, anchorRadius));
+    p = mix(p, sphereAnchor + anchorDelta * min(1.0, anchorDeltaLimit / max(anchorDeltaLength, 0.0001)), anchorClampGate);
+    float2 stableScreenPosition = p;
     float3 axis3 = rotateBody(float3(globalAxis.x, globalAxis.y, 0.0), bodyAngles);
     float2 turnedAxis = normalize(axis3.xy + float2(0.001, 0.001));
     float2 turnedSide = float2(-turnedAxis.y, turnedAxis.x);
@@ -309,13 +318,26 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     p += normalize(p + float2(0.001, 0.001)) * screenCloudRoll * (activeInterior * 0.003 + midBand * 0.012);
     p += (turnedAxis * sin(fieldTime * 0.33 + 0.4) * 0.018
         + turnedSide * cos(fieldTime * 0.29 + 1.2) * 0.012) * (0.34 + postSurfaceMotion * 0.66);
-    float screenEdge = smoothstep(0.44, 0.68, length(p));
+    float preFrayRadius = length(p);
+    float centerPostClampGate = 1.0 - smoothstep(0.50, 0.90, preFrayRadius);
+    float2 postDelta = p - stableScreenPosition;
+    float postDeltaLength = length(postDelta);
+    float postDeltaLimit = mix(0.006, 0.080, smoothstep(0.38, 0.90, preFrayRadius));
+    p = mix(p, stableScreenPosition + postDelta * min(1.0, postDeltaLimit / max(postDeltaLength, 0.0001)), centerPostClampGate);
+    float screenEdge = smoothstep(0.34, 0.66, length(p));
     float edgeDustA = 0.5 + 0.5 * sin(angle * 17.0 + depth * 6.4 + particleSeed * 9.7 - fieldTime * 0.20);
     float edgeDustB = 0.5 + 0.5 * cos(angle * 23.0 - depth * 5.1 + seedB * 8.3 + fieldTime * 0.18);
-    float edgeDustField = screenEdge * edge * smoothstep(0.48, 0.82, edgeDustA * 0.48 + edgeDustB * 0.36 + seedB * 0.16);
     float2 screenNormal = normalize(p + float2(0.001, 0.001));
-    p += screenNormal * edgeDustField * (0.016 + 0.050 * seedB);
-    p += turnedSide * edgeDustField * sin(angle * 3.4 + phaseB + fieldTime * 0.28) * (0.006 + 0.016 * particleSeed);
+    float sideSilhouette = smoothstep(0.08, 0.66, abs(dot(screenNormal, turnedSide)));
+    float depthSilhouette = 0.50 + 0.50 * (1.0 - smoothstep(0.64, 1.00, abs(body.z * 1.55)));
+    float sideSilhouetteBoost = screenEdge * sideSilhouette * depthSilhouette;
+    float centerFrayMute = smoothstep(0.34, 0.64, length(stableScreenPosition));
+    float edgeDustField = centerFrayMute
+        * screenEdge
+        * max(edge * 0.46, sideSilhouetteBoost * 1.26)
+        * smoothstep(0.28, 0.84, edgeDustA * 0.48 + edgeDustB * 0.36 + seedB * 0.16);
+    p += screenNormal * edgeDustField * (0.026 + 0.074 * seedB);
+    p += turnedSide * edgeDustField * sin(angle * 3.4 + phaseB + fieldTime * 0.28) * (0.010 + 0.024 * particleSeed);
     edgeFrayField = saturate(edgeFrayField + edgeDustField * 0.92);
 
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);
@@ -380,14 +402,19 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + cloudDensity * 0.10
         + structuralSpine * 0.48);
     float screenRadius = length(p);
+    float stableScreenRadius = length(stableScreenPosition);
+    float frontDepthGate = smoothstep(-0.36, 0.14, visibleDepth);
+    float baseCenterDetailGate = smoothstep(0.34, 0.64, lengthP);
+    float visualCenterDetailGate = smoothstep(0.48, 0.84, stableScreenRadius);
+    float centerDetailGate = min(baseCenterDetailGate, visualCenterDetailGate);
+    float stableCloudDensity = saturate(0.18 + ridge * 0.08 + frontDepthGate * 0.10 + smoothstep(0.84, 0.20, stableScreenRadius) * 0.12);
+    float visibleCloudDensity = mix(stableCloudDensity, cloudDensity, centerDetailGate);
     float bodyEnvelope = saturate(0.42
-        + smoothstep(0.88, 0.24, screenRadius) * 0.32
+        + smoothstep(0.88, 0.24, stableScreenRadius) * 0.32
         + midBand * 0.18
         + edge * 0.18
         + edgeFrayField * 0.08
-        + cloudDensity * 0.10);
-    float frontDepthGate = smoothstep(-0.36, 0.14, visibleDepth);
-    float centerDetailGate = smoothstep(0.34, 0.64, lengthP);
+        + visibleCloudDensity * 0.10);
     float stableCenterDensity = saturate(0.24 + bodyEnvelope * 0.36 + frontDepthGate * 0.18 + ridge * 0.08);
     float stableCenterRidge = saturate(ridge * 0.10 + stableCenterDensity * 0.12);
     float visibleLayerDensity = mix(stableCenterDensity, layerDensity, centerDetailGate);
@@ -397,6 +424,31 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float visibleIonCluster = ionCluster * centerDetailGate;
     float visibleStructuralSpine = structuralSpine * centerDetailGate;
     float visibleRidgeFlow = ridgeFlow * centerDetailGate;
+    float3 surfaceNormal = normalize(float3(flowedBody.xy * 0.92, flowedBody.z * 1.12 + visibleDepth * 0.22));
+    float3 keyDirection = normalize(float3(turnedSide * 0.74 + turnedAxis * 0.22, 0.54));
+    float3 fillDirection = normalize(float3(-turnedSide * 0.42 + turnedAxis * 0.34, 0.50));
+    float rollingLight = smoothstep(-0.24, 0.66, dot(surfaceNormal, keyDirection));
+    float fillLight = smoothstep(-0.18, 0.62, dot(surfaceNormal, fillDirection));
+    float localLightA = smoothstep(0.50, 0.86, 0.5 + 0.5 * sin(animatedTravel * 3.25 - animatedCross * 1.55 + flowedBody.z * 2.7 - fieldTime * 0.48 + morph));
+    float localLightB = smoothstep(0.54, 0.90, 0.5 + 0.5 * cos(animatedCross * 3.55 + animatedTravel * 1.15 - flowedBody.z * 2.2 + fieldTime * 0.34 + phaseB * 0.10));
+    float localShadowA = smoothstep(0.50, 0.86, 0.5 + 0.5 * sin(animatedTravel * 2.10 + animatedCross * 2.45 + flowedBody.z * 2.1 - fieldTime * 0.38 + phaseB * 0.06));
+    float localShadowB = smoothstep(0.56, 0.90, 0.5 + 0.5 * cos(animatedCross * 2.35 - animatedTravel * 1.70 + flowedBody.z * 2.6 - fieldTime * 0.30 + morph * 0.60));
+    float surfaceLight = saturate(0.34
+        + rollingLight * 0.18
+        + fillLight * 0.12
+        + localLightA * 0.22
+        + localLightB * 0.14
+        + cloudPatchA * 0.08
+        + visibleStructuralSpine * 0.30
+        + visibleIonCluster * 0.22
+        - localShadowA * 0.22
+        - localShadowB * 0.16
+        - visibleSparseCavity * 0.16);
+    surfaceLight = mix(
+        saturate(0.34 + rollingLight * 0.08 + fillLight * 0.08 + localLightA * 0.12 - localShadowA * 0.10),
+        surfaceLight,
+        0.46 + centerDetailGate * 0.54
+    );
     float frontSizeLift = smoothstep(-0.34, 0.52, visibleDepth) * 0.52
         + smoothstep(0.72, 0.10, screenRadius) * frontDepthGate * 0.26 * centerDetailGate;
     float rawSizeJitter = mix(0.82, 1.26, hash11(particleSeed * 137.0 + seedB * 41.0));
@@ -411,19 +463,30 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + visibleIonCluster * 1.08
         + visibleStructuralSpine * 1.26
         + edge * 0.06
-        + edgeFrayField * 0.50
+        + edgeFrayField * 0.72
         + frontSizeLift
         + sizeScatter) * structureScale;
     float depthSize = mix(0.94, 1.20, smoothstep(-0.65, 0.75, visibleDepth));
-    float pointCeiling = mix(3.12, 7.16, centerDetailGate);
-    out.pointSize = clamp(pointBase * sizeJitter * depthSize, 1.76 + frontSizeLift * 0.42, pointCeiling);
+    float frontParticleLift = smoothstep(-0.26, 0.42, visibleDepth);
+    float backParticleMute = 1.0 - smoothstep(-0.72, -0.02, visibleDepth);
+    float ridgeSizeLift = saturate(visibleLocalRidge * 0.74 + visibleStructuralSpine * 0.62 + visibleIonCluster * 0.42);
+    float visualSizeGate = saturate(max(centerDetailGate, max(frontParticleLift * 0.82, ridgeSizeLift * 0.96)));
+    float pointCeiling = mix(2.18, 8.28, visualSizeGate);
+    float depthVisibilitySize = mix(0.42, 1.34, frontParticleLift) * mix(1.0, 0.58, backParticleMute);
+    float layeredPointSize = pointBase * sizeJitter * depthSize * depthVisibilitySize
+        + ridgeSizeLift * (0.84 + frontParticleLift * 0.78);
+    out.pointSize = clamp(layeredPointSize, 1.32 + frontSizeLift * 0.24, pointCeiling + ridgeSizeLift * 0.72);
     out.ridge = visibleLocalRidge;
     out.depth = visibleDepth;
     out.shimmer = 0.5 + 0.5 * sin(t * (0.14 + particleSeed * 0.05) + phaseB * 0.42 + visibleLayerDensity * 1.6);
-    out.flow = saturate(visibleRidgeFlow * 0.20 + visibleLayerDensity * 0.48 + visibleIonCluster * 0.58 + cloudDensity * 0.30 + visibleStructuralSpine * 0.66 + edgeFrayField * 0.22);
+    float stableCenterFlow = saturate(stableCenterDensity * 0.36 + frontDepthGate * 0.12 + ridge * 0.05);
+    float dynamicFlow = saturate(visibleRidgeFlow * 0.20 + visibleLayerDensity * 0.48 + visibleIonCluster * 0.58 + visibleCloudDensity * 0.30 + visibleStructuralSpine * 0.66 + edgeFrayField * 0.30);
+    out.flow = mix(stableCenterFlow, dynamicFlow, centerDetailGate);
     out.density = saturate(visibleLayerDensity * 0.76 + visibleDenseSection * 0.16 + visibleStructuralSpine * 0.28 + bodyEnvelope * 0.24 - visibleSparseCavity * 0.10);
-    float centerFront = smoothstep(0.76, 0.08, screenRadius) * frontDepthGate * (0.50 + visibleLayerDensity * 0.16) * (0.36 + centerDetailGate * 0.64);
+    float centerFront = smoothstep(0.76, 0.08, stableScreenRadius) * frontDepthGate * (0.50 + visibleLayerDensity * 0.16) * (0.36 + centerDetailGate * 0.64);
     out.frontness = saturate(max(smoothstep(-0.50, 0.24, visibleDepth) * 0.86, centerFront));
+    out.centerQuiet = 1.0 - centerDetailGate;
+    out.surfaceLight = surfaceLight;
     return out;
 }
 
@@ -437,19 +500,42 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float ridge = saturate(in.ridge);
     float density = saturate(in.density);
     float densityLight = smoothstep(0.10, 0.92, density);
+    float surfaceLight = saturate(in.surfaceLight);
+    float litSurface = smoothstep(0.34, 0.86, surfaceLight);
+    float frontSurfaceContrast = mix(0.42, 1.18, litSurface);
     float backPresence = 1.0 - smoothstep(-0.54, 0.06, in.depth);
     float frontPresence = smoothstep(-0.22, 0.46, in.depth);
-    float backMute = mix(0.88, 1.0, frontPresence);
-    float densityFront = densityLight * (frontLight * 0.22 + depthLight * 0.05);
-    float densityMist = densityLight * backPresence * 0.115;
-    float ionRidge = frontLight * saturate(ridge * 0.74 + densityLight * 0.22 + in.flow * 0.28);
-    float coverage = saturate(backPresence * 0.205 + depthLight * 0.50 + densityFront + densityMist + ionRidge * 0.18);
-    float highlight = saturate(frontLight * 0.40 + ionRidge * 0.72);
-    float alpha = saturate(halo * coverage * 0.46 + core * coverage * 1.06) * backMute;
-    half3 back = half3(0.40, 0.42, 0.45);
-    half3 frontBase = half3(0.95, 0.96, 0.97);
-    half3 dim = mix(back, frontBase, half(depthLight));
-    half3 bright = half3(0.96, 0.97, 0.98);
+    float backMute = mix(0.34, 1.0, frontPresence);
+    float centerQuiet = saturate(in.centerQuiet);
+    float particleFill = saturate(0.12 + densityLight * 0.14 + ridge * 0.04 + in.flow * 0.035);
+    float litFront = frontLight * litSurface;
+    float densityFront = densityLight * (litFront * 0.80 + depthLight * 0.035);
+    float densityMist = densityLight * (backPresence * 0.075 + 0.032);
+    float interiorBase = saturate(particleFill * 0.24 + densityLight * 0.070 + depthLight * (0.045 + litSurface * 0.26) + backPresence * 0.036);
+    float ionRidge = litFront * saturate(ridge * 1.26 + densityLight * 0.10 + in.flow * 0.42);
+    float ridgeGlow = saturate(ridge * 2.74 + in.flow * 0.92 + densityLight * 0.08)
+        * (0.50 + litFront * 1.42 + backPresence * 0.08);
+    float coverage = saturate(particleFill * 0.34
+        + backPresence * 0.070
+        + depthLight * (0.12 + litSurface * 0.45)
+        + interiorBase * 0.40
+        + densityFront * 1.06
+        + densityMist * 0.34
+        + ionRidge * 0.72
+        + ridgeGlow * 1.02);
+    coverage *= mix(0.76, frontSurfaceContrast, frontLight);
+    float centerCoverage = saturate(0.15 + depthLight * (0.050 + litSurface * 0.24) + centerQuiet * 0.050);
+    coverage = mix(coverage, max(coverage, centerCoverage), centerQuiet * 0.16);
+    float highlight = saturate(litFront * 0.34 + ionRidge * 1.42 + ridgeGlow * 2.12);
+    float centerHighlight = saturate(0.06 + litFront * 0.18);
+    highlight = mix(highlight, centerHighlight, centerQuiet * 0.14);
+    float alpha = saturate(halo * coverage * 0.50 + core * coverage * 1.38) * backMute;
+    half3 back = half3(0.38, 0.40, 0.44);
+    half3 frontBase = half3(0.76, 0.78, 0.82);
+    float compressedDepthLight = 0.16 + depthLight * 0.84;
+    float surfaceTone = 0.38 + litSurface * 0.62;
+    half3 dim = mix(back, frontBase, half(compressedDepthLight * surfaceTone));
+    half3 bright = half3(1.0, 1.0, 1.0);
     half3 color = mix(dim, bright, half(highlight));
     return half4(color, half(alpha));
 }
