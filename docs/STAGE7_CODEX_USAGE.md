@@ -196,3 +196,14 @@ When a task touches SwiftUI, Metal, FileManager, Keychain, HIG, or Accessibility
 - Verification: `git diff --check`; architecture guard; secret guard; documentation grep for sensitive terms.
 - Token note: keep this as document / PR checklist only; do not turn it into a script, lint, or code system.
 - Follow-up: use checklist before Stage 7.1 Final Review and later Stage 7 tasks.
+
+## 7.3-final-review
+
+- Stage: 7.3 Final Review
+- Date: 2026-07-05
+- Task: Final code review for Stage 7.3 particle_core visual foundation and branch handoff.
+- Read scope: `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/*`, `DEVLOG.md`, Stage 7 architecture / code / product docs, Runtime / DR contracts, `apps/macos/Aftelle/*`, `apps/macos/Aftelle/ParticleCore/*`, and `apps/macos/RuntimeCore/*` read-only.
+- Changed files during review: `apps/macos/Aftelle/AftelleApp.swift`, `apps/macos/Aftelle/en.lproj/Localizable.strings`, `apps/macos/Aftelle/zh-Hans.lproj/Localizable.strings`, `DEVLOG.md`, this usage log.
+- Verification: `git diff --check` passed; `tools/architecture_guard/check.sh` ok; `tools/secret_guard/check.sh` ok; `xcodebuild -project apps/macos/Aftelle/Aftelle.xcodeproj -scheme Aftelle -configuration Debug build` passed.
+- Token note: final review only; no new visual tuning, no new UI, no RuntimeCore / Runtime API / DR schema changes.
+- Follow-up: merge `7.3` to `main`, then branch `7.4` from updated `main`.
