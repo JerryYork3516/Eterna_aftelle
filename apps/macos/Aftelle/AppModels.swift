@@ -134,7 +134,7 @@ public struct ParticleRenderResolution: Equatable {
 public enum ParticleShellMode: String, CaseIterable, Identifiable {
     case darkShell = "dark_shell"
     case immersiveShell = "immersive_shell"
-    case transparentShellReserved = "transparent_shell_reserved"
+    case transparentShell = "transparent_shell"
 
     public var id: String {
         rawValue
@@ -146,8 +146,8 @@ public enum ParticleShellMode: String, CaseIterable, Identifiable {
             return "particleDebug.shellMode.darkShell"
         case .immersiveShell:
             return "particleDebug.shellMode.immersiveShell"
-        case .transparentShellReserved:
-            return "particleDebug.shellMode.transparentShellReserved"
+        case .transparentShell:
+            return "particleDebug.shellMode.transparentShell"
         }
     }
 }
@@ -169,7 +169,7 @@ public struct ParticleShellResolution: Equatable {
                 fallbackReason: "active",
                 darkShellStatus: "current / enabled",
                 immersiveShellStatus: "enabled / visual-only / debug-only",
-                transparentShellStatus: "reserved / disabled"
+                transparentShellStatus: "enabled / debug-only"
             )
         case .immersiveShell:
             return ParticleShellResolution(
@@ -178,16 +178,16 @@ public struct ParticleShellResolution: Equatable {
                 fallbackReason: "visual_only",
                 darkShellStatus: "enabled",
                 immersiveShellStatus: "current / enabled / visual-only / debug-only",
-                transparentShellStatus: "reserved / disabled"
+                transparentShellStatus: "enabled / debug-only"
             )
-        case .transparentShellReserved:
+        case .transparentShell:
             return ParticleShellResolution(
                 requestedMode: current.rawValue,
-                activeMode: "dark_shell",
-                fallbackReason: "reserved_not_implemented",
-                darkShellStatus: "fallback / enabled",
+                activeMode: "transparent_shell",
+                fallbackReason: "debug_only",
+                darkShellStatus: "enabled",
                 immersiveShellStatus: "enabled / visual-only / debug-only",
-                transparentShellStatus: "selected / reserved / disabled"
+                transparentShellStatus: "current / enabled / debug-only"
             )
         }
     }
@@ -311,7 +311,7 @@ public struct ParticleDebugSnapshot: Equatable {
         shellFallbackReason: "active",
         darkShellStatus: "current / enabled",
         immersiveShellStatus: "enabled / visual-only / debug-only",
-        transparentShellStatus: "reserved / disabled",
+        transparentShellStatus: "enabled / debug-only",
         colorProfileSource: "systemDefault",
         baseColor: "0.82, 0.84, 0.88",
         ridgeColor: "0.95, 0.96, 0.98",

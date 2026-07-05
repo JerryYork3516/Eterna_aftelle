@@ -6,6 +6,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
     var visualState: ParticleCoreVisualState = .idle
     var tuning: ParticleCoreTuning = .systemDefault
     var colorProfile: ParticleCoreColorProfile = .systemDefault
+    var isTransparentBackground = false
     var debugMetricsHandler: ((ParticleRenderMetrics) -> Void)?
 
     func makeNSView(context: Context) -> MTKView {
@@ -15,13 +16,12 @@ struct ParticleCoreMetalView: NSViewRepresentable {
         }
 
         let view = ParticleCoreInputView(frame: .zero, device: device)
-        view.clearColor = MTLClearColor(red: 0.035, green: 0.04, blue: 0.05, alpha: 1)
         view.colorPixelFormat = .bgra8Unorm
         view.preferredFramesPerSecond = 60
         view.enableSetNeedsDisplay = false
         view.isPaused = false
         view.framebufferOnly = true
-        view.layer?.backgroundColor = NSColor(calibratedRed: 0.035, green: 0.04, blue: 0.05, alpha: 1).cgColor
+        configureBackground(for: view, transparent: isTransparentBackground)
 
         guard let renderer = ParticleCoreRenderer(device: device, visualState: visualState) else {
             print("[ParticleCore] renderer init failed")
@@ -44,6 +44,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: MTKView, context: Context) {
+        configureBackground(for: nsView, transparent: isTransparentBackground)
         if context.coordinator.swiftUIVisualState != visualState {
             context.coordinator.renderer?.setVisualState(visualState, reason: "appMapping")
             context.coordinator.swiftUIVisualState = visualState
@@ -61,6 +62,18 @@ struct ParticleCoreMetalView: NSViewRepresentable {
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
+    }
+
+    private func configureBackground(for view: MTKView, transparent: Bool) {
+        if transparent {
+            view.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
+            view.layer?.backgroundColor = NSColor.clear.cgColor
+            view.layer?.isOpaque = false
+        } else {
+            view.clearColor = MTLClearColor(red: 0.035, green: 0.04, blue: 0.05, alpha: 1)
+            view.layer?.backgroundColor = NSColor(calibratedRed: 0.035, green: 0.04, blue: 0.05, alpha: 1).cgColor
+            view.layer?.isOpaque = true
+        }
     }
 
     final class Coordinator {

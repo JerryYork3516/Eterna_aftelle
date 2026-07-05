@@ -162,7 +162,7 @@ final class AppController: ObservableObject {
     }
 
     func setParticleShellMode(_ mode: ParticleShellMode) {
-        particleShellMode = mode == .transparentShellReserved ? .darkShell : mode
+        particleShellMode = mode
         refreshParticleDebugSnapshot()
     }
 

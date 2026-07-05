@@ -10,7 +10,7 @@
 "particleDebug.shellModeCaption" = "Local shell boundary and reserved state";
 "particleDebug.shellMode.darkShell" = "Dark Shell";
 "particleDebug.shellMode.immersiveShell" = "Visual Immersive Shell";
-"particleDebug.shellMode.transparentShellReserved" = "Transparent Shell (Reserved)";
+"particleDebug.shellMode.transparentShell" = "Transparent Shell";
 "particleDebug.particleAdjustment" = "Particle Adjustment";
 "particleDebug.colorAdjustment" = "Color Adjustment";
 "particleDebug.avatarMode" = "Avatar Mode";

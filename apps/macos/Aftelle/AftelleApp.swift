@@ -34,8 +34,9 @@ struct AftelleApp: App {
                 Button(shellMenuTitle(.immersiveShell)) {
                     controller.setParticleShellMode(.immersiveShell)
                 }
-                Button(shellMenuTitle(.transparentShellReserved)) {}
-                    .disabled(true)
+                Button(shellMenuTitle(.transparentShell)) {
+                    controller.setParticleShellMode(.transparentShell)
+                }
 
                 Divider()
 
@@ -61,9 +62,6 @@ struct AftelleApp: App {
     #if DEBUG
     private func shellMenuTitle(_ mode: ParticleShellMode) -> String {
         let title = String(localized: String.LocalizationValue(mode.localizedKey))
-        if mode == .transparentShellReserved {
-            return title
-        }
         return controller.particleShellMode == mode ? "\(title) ✓" : title
     }
 

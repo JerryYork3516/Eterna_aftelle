@@ -10,7 +10,7 @@
 "particleDebug.shellModeCaption" = "本地 Shell 边界与 reserved 状态";
 "particleDebug.shellMode.darkShell" = "Dark Shell";
 "particleDebug.shellMode.immersiveShell" = "视觉沉浸 Shell";
-"particleDebug.shellMode.transparentShellReserved" = "Transparent Shell（Reserved）";
+"particleDebug.shellMode.transparentShell" = "透明 Shell";
 "particleDebug.particleAdjustment" = "粒子调整";
 "particleDebug.colorAdjustment" = "颜色调整";
 "particleDebug.avatarMode" = "Avatar 模式";

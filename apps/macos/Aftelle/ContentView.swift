@@ -19,6 +19,7 @@ struct ContentView: View {
                 visualState: controller.particleVisualState,
                 tuning: particleTuning,
                 colorProfile: particleColorProfile,
+                isTransparentBackground: controller.particleShellMode == .transparentShell,
                 debugMetricsHandler: controller.updateParticleRenderMetrics
             )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -85,10 +86,12 @@ struct ContentView: View {
 
     private var shellBackground: Color {
         switch controller.particleShellMode {
-        case .darkShell, .transparentShellReserved:
+        case .darkShell:
             return Color(red: 0.045, green: 0.05, blue: 0.06)
         case .immersiveShell:
             return Color(red: 0.026, green: 0.030, blue: 0.036)
+        case .transparentShell:
+            return .clear
         }
     }
 
@@ -158,16 +161,26 @@ private struct WindowShellConfigurator: NSViewRepresentable {
         DispatchQueue.main.async {
             guard let window = nsView.window else { return }
             let immersive = shellMode == .immersiveShell
-            if immersive {
+            let transparent = shellMode == .transparentShell
+            let visualShell = immersive || transparent
+            if visualShell {
                 window.styleMask.insert(.fullSizeContentView)
             } else {
                 window.styleMask.remove(.fullSizeContentView)
             }
-            window.titleVisibility = immersive ? .hidden : .visible
-            window.titlebarAppearsTransparent = immersive
-            window.standardWindowButton(.closeButton)?.isHidden = immersive
-            window.standardWindowButton(.miniaturizeButton)?.isHidden = immersive
-            window.standardWindowButton(.zoomButton)?.isHidden = immersive
+            if transparent {
+                window.styleMask.remove(.titled)
+            } else {
+                window.styleMask.insert(.titled)
+            }
+            window.titleVisibility = visualShell ? .hidden : .visible
+            window.titlebarAppearsTransparent = visualShell
+            window.isOpaque = !transparent
+            window.backgroundColor = transparent ? .clear : NSColor(calibratedRed: 0.045, green: 0.05, blue: 0.06, alpha: 1)
+            window.hasShadow = !transparent
+            window.standardWindowButton(.closeButton)?.isHidden = visualShell
+            window.standardWindowButton(.miniaturizeButton)?.isHidden = visualShell
+            window.standardWindowButton(.zoomButton)?.isHidden = visualShell
         }
     }
 }
@@ -484,6 +497,8 @@ private struct ParticleShellModeView: View {
                     .tag(ParticleShellMode.darkShell)
                 Text(String(localized: "particleDebug.shellMode.immersiveShell"))
                     .tag(ParticleShellMode.immersiveShell)
+                Text(String(localized: "particleDebug.shellMode.transparentShell"))
+                    .tag(ParticleShellMode.transparentShell)
             }
             .pickerStyle(.menu)
 
