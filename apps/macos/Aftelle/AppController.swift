@@ -16,6 +16,7 @@ final class AppController: ObservableObject {
     @Published private(set) var clockState = RuntimeClockViewState()
     @Published private(set) var debugPanelState = DebugPanelViewState()
     @Published private(set) var runtimeState: AppRuntimeState = .idle
+    @Published private(set) var particleVisualState: ParticleCoreVisualState = .idle
     @Published private(set) var particleColorProfile = ParticleCoreColorProfile.systemDefault
 
     private let orchestrationKernel: OrchestrationKernel
@@ -33,6 +34,7 @@ final class AppController: ObservableObject {
 
     func start() {
         startupState = .loading
+        refreshParticleVisualState()
 
         let restoreResult = orchestrationKernel.restoreMostRecentSession()
         if restoreResult.didRestore {
@@ -83,6 +85,7 @@ final class AppController: ObservableObject {
             traceState = RuntimeTraceViewState(summary: diagnostics, entries: [])
             refreshDebugPanelState(shutdownState: restoreResult.shutdownState.rawValue, recoveryRequired: restoreResult.recoveryRequired, recoveredAt: restoreResult.recoveredAt.map { ISO8601DateFormatter().string(from: $0) } ?? "")
             startupState = .loaded
+            refreshParticleVisualState()
             return
         }
 
@@ -103,6 +106,7 @@ final class AppController: ObservableObject {
     #if DEBUG
     func debugImportResident(from url: URL) {
         startupState = .loading
+        refreshParticleVisualState()
         let hasScopedAccess = url.startAccessingSecurityScopedResource()
         defer {
             if hasScopedAccess {
@@ -160,6 +164,7 @@ final class AppController: ObservableObject {
         traceState = RuntimeTraceViewState(summary: result.diagnostics, entries: [])
         refreshDebugPanelState()
         startupState = result.isLoaded ? .loaded : .failed
+        refreshParticleVisualState()
     }
 
     func step(inputText: String) -> RuntimeStepResponse {
@@ -218,17 +223,20 @@ final class AppController: ObservableObject {
             }
         )
         refreshDebugPanelState()
+        refreshParticleVisualState(visualStateMode: response.visualState.mode.rawValue)
         return response
     }
 
     func cancelCurrentStep() {
         orchestrationKernel.cancelCurrentStep()
         runtimeState = .cancelled
+        refreshParticleVisualState()
     }
 
     func interrupt() {
         orchestrationKernel.interrupt()
         runtimeState = .interrupted
+        refreshParticleVisualState()
     }
 
     func runtimeTick() {
@@ -244,6 +252,7 @@ final class AppController: ObservableObject {
             ]
         )
         refreshDebugPanelState()
+        refreshParticleVisualState()
     }
 
     func persistForNormalTerminationIfPossible() {
@@ -307,6 +316,16 @@ final class AppController: ObservableObject {
         )
     }
 
+    private func refreshParticleVisualState(visualStateMode: String? = nil) {
+        particleVisualState = AppParticleVisualStateMapper.map(
+            visualStateMode: visualStateMode,
+            avatarState: avatarState,
+            residentState: residentState,
+            startupState: startupState,
+            runtimeState: runtimeState
+        )
+    }
+
     private func applyFailure(runtimeMessage: String, diagnosticsMessage: String) {
         runtimeStatus = runtimeMessage
         fixtureStatus = "DR fixture: not loaded"
@@ -323,5 +342,6 @@ final class AppController: ObservableObject {
         diagnostics = diagnosticsMessage
         refreshDebugPanelState()
         startupState = .failed
+        refreshParticleVisualState()
     }
 }

@@ -15,7 +15,11 @@ struct ContentView: View {
             Color(red: 0.045, green: 0.05, blue: 0.06)
                 .ignoresSafeArea()
 
-            ParticleCoreMetalView(tuning: particleTuning, colorProfile: particleColorProfile)
+            ParticleCoreMetalView(
+                visualState: controller.particleVisualState,
+                tuning: particleTuning,
+                colorProfile: particleColorProfile
+            )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .ignoresSafeArea()
 

@@ -14,6 +14,84 @@ public enum AppRuntimeState: Equatable {
     case interrupted
 }
 
+struct AppParticleVisualStateMapper {
+    static func map(
+        visualStateMode: String? = nil,
+        avatarState: AppAvatarState? = nil,
+        residentState: AppResidentState? = nil,
+        startupState: AppStartupState = .idle,
+        runtimeState: AppRuntimeState = .idle
+    ) -> ParticleCoreVisualState {
+        let tokens = [
+            visualStateMode,
+            avatarState?.mode,
+            avatarState?.presence,
+            avatarState?.moodHint,
+            avatarState?.activityHint,
+            avatarState?.particleHint,
+            residentState?.lifecycleStatus,
+            residentState?.presence,
+            residentState?.avatarMode,
+            startupToken(for: startupState),
+            runtimeToken(for: runtimeState)
+        ]
+
+        if matches(tokens, ["error", "failed", "failure", "unavailable", "degraded"]) {
+            return .error
+        }
+        if matches(tokens, ["exit", "exiting", "closing", "dismissed"]) {
+            return .exit
+        }
+        if runtimeState == .cancelled || runtimeState == .interrupted {
+            return .idle
+        }
+        if matches(tokens, ["speaking", "responding", "outputting", "active"]) {
+            return .speaking
+        }
+        if matches(tokens, ["loading", "connecting", "preparing", "waiting"]) {
+            return .loading
+        }
+        if matches(tokens, ["thinking", "reasoning", "processing", "composing", "focused"]) {
+            return .thinking
+        }
+        return .idle
+    }
+
+    private static func startupToken(for state: AppStartupState) -> String {
+        switch state {
+        case .idle:
+            return "idle"
+        case .loading:
+            return "loading"
+        case .loaded:
+            return "idle"
+        case .failed:
+            return "failed"
+        }
+    }
+
+    private static func runtimeToken(for state: AppRuntimeState) -> String {
+        switch state {
+        case .idle:
+            return "idle"
+        case .running:
+            return "processing"
+        case .cancelled:
+            return "idle"
+        case .interrupted:
+            return "idle"
+        }
+    }
+
+    private static func matches(_ values: [String?], _ candidates: [String]) -> Bool {
+        values.contains { value in
+            guard let value else { return false }
+            let normalized = value.lowercased()
+            return candidates.contains { normalized.contains($0) }
+        }
+    }
+}
+
 public struct AppDialogueEntryState: Equatable, Identifiable {
     public var id: String
     public var role: String
