@@ -69,11 +69,13 @@ struct ParticleCoreModel {
             x += outward.x * radialScatter + tangent.x * tangentialScatter
             y += outward.y * radialScatter + tangent.y * tangentialScatter
             let silhouette = max(0, min(1, 1 - abs(depth) * 1.85))
-            let seamA = pow(abs(sin(theta * 3.0 + z * 4.4 + depth * 2.6)), 18)
-            let seamB = pow(abs(sin(theta * 5.0 - z * 3.1)), 22)
-            let ridge = max(silhouette * 0.72, max(seamA, seamB) * 0.95 + outlineBand * 0.10)
+            let threadA = pow(max(0, 0.5 + 0.5 * sin(theta * 3.0 + z * 4.4 + depth * 2.6)), 4)
+            let threadB = pow(max(0, 0.5 + 0.5 * sin(theta * 5.0 - z * 3.1)), 5)
+            let grain = 0.5 + 0.5 * sin(theta * 13.0 + z * 8.7 + depth * 3.1)
+            let thread = max(threadA, threadB)
+            let ridge = min(1, silhouette * 0.24 + thread * 0.08 + outlineBand * 0.22 + grain * 0.10)
             let edgeWeight = max(0, min(1, 0.18 + abs(depth) * 0.72 + (1 - silhouette) * 0.34 + outlineBand * 0.16))
-            let ridgeKeep = 0.20 + Double(min(1, ridge)) * 0.58 + Double(outlineBand) * 0.16
+            let ridgeKeep = 0.36 + Double(silhouette) * 0.10 + Double(outlineBand) * 0.24
             if generator.nextUnit() > ridgeKeep && candidateIndex < candidateCount * 3 {
                 continue
             }
