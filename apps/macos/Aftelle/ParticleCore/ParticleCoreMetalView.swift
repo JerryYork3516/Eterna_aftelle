@@ -5,6 +5,7 @@ import SwiftUI
 struct ParticleCoreMetalView: NSViewRepresentable {
     var visualState: ParticleCoreVisualState = .idle
     var tuning: ParticleCoreTuning = .systemDefault
+    var colorProfile: ParticleCoreColorProfile = .systemDefault
 
     func makeNSView(context: Context) -> MTKView {
         print("[ParticleCore] makeNSView called")
@@ -33,6 +34,8 @@ struct ParticleCoreMetalView: NSViewRepresentable {
         context.coordinator.renderer = renderer
         context.coordinator.swiftUIVisualState = visualState
         context.coordinator.tuning = tuning
+        context.coordinator.colorProfile = colorProfile
+        renderer.setColorProfile(colorProfile)
         print("[ParticleCore] MTKView delegate set \(view.delegate === renderer)")
         return view
     }
@@ -50,6 +53,10 @@ struct ParticleCoreMetalView: NSViewRepresentable {
             context.coordinator.renderer?.setTuning(tuning)
             context.coordinator.tuning = tuning
         }
+        if context.coordinator.colorProfile != colorProfile {
+            context.coordinator.renderer?.setColorProfile(colorProfile)
+            context.coordinator.colorProfile = colorProfile
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -60,6 +67,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
         var renderer: ParticleCoreRenderer?
         var swiftUIVisualState: ParticleCoreVisualState = .idle
         var tuning: ParticleCoreTuning = .systemDefault
+        var colorProfile: ParticleCoreColorProfile = .systemDefault
         var didLogUpdate = false
     }
 }

@@ -1,7 +1,9 @@
 "particleDebug.button" = "Debug";
 "particleDebug.title" = "Debug";
 "particleDebug.particleAdjustment" = "Particle Adjustment";
+"particleDebug.colorAdjustment" = "Color Adjustment";
 "particleDebug.parameters" = "Parameters";
+"particleDebug.colorParameters" = "Color Parameters";
 "particleDebug.save" = "Save";
 "particleDebug.restoreDefault" = "Restore Default";
 "particleDebug.parameter.globalScale" = "Global Scale";
@@ -22,3 +24,16 @@
 "particleDebug.direction.down" = "Down";
 "particleDebug.direction.left" = "Left";
 "particleDebug.direction.right" = "Right";
+"particleDebug.color.baseRed" = "Base Red";
+"particleDebug.color.baseGreen" = "Base Green";
+"particleDebug.color.baseBlue" = "Base Blue";
+"particleDebug.color.ridgeRed" = "Ridge Red";
+"particleDebug.color.ridgeGreen" = "Ridge Green";
+"particleDebug.color.ridgeBlue" = "Ridge Blue";
+"particleDebug.color.dimRed" = "Dim Red";
+"particleDebug.color.dimGreen" = "Dim Green";
+"particleDebug.color.dimBlue" = "Dim Blue";
+"particleDebug.color.highlightRed" = "Highlight Red";
+"particleDebug.color.highlightGreen" = "Highlight Green";
+"particleDebug.color.highlightBlue" = "Highlight Blue";
+"particleDebug.color.alphaScale" = "Color Alpha";

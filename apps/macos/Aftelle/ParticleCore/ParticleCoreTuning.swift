@@ -1,4 +1,5 @@
 import Foundation
+import simd
 
 struct ParticleCoreTuning: Codable, Equatable {
     var globalScale: Double
@@ -157,5 +158,208 @@ enum ParticleCoreRotationDirection: CaseIterable, Identifiable {
 
     static func nearest(to value: Double) -> ParticleCoreRotationDirection {
         allCases.min { abs($0.tuningValue - value) < abs($1.tuningValue - value) } ?? .right
+    }
+}
+
+struct ParticleCoreColorProfile: Codable, Equatable {
+    var baseRed: Double
+    var baseGreen: Double
+    var baseBlue: Double
+    var ridgeRed: Double
+    var ridgeGreen: Double
+    var ridgeBlue: Double
+    var dimRed: Double
+    var dimGreen: Double
+    var dimBlue: Double
+    var highlightRed: Double
+    var highlightGreen: Double
+    var highlightBlue: Double
+    var alphaScale: Double
+
+    static let systemDefault = ParticleCoreColorProfile(
+        baseRed: 0.82,
+        baseGreen: 0.84,
+        baseBlue: 0.88,
+        ridgeRed: 0.95,
+        ridgeGreen: 0.96,
+        ridgeBlue: 0.98,
+        dimRed: 0.40,
+        dimGreen: 0.42,
+        dimBlue: 0.46,
+        highlightRed: 0.98,
+        highlightGreen: 0.985,
+        highlightBlue: 1.0,
+        alphaScale: 1.0
+    )
+
+    static let storageKey = "ParticleCoreColorProfile.debug.v1"
+
+    static func loadSaved() -> ParticleCoreColorProfile? {
+        guard let data = UserDefaults.standard.data(forKey: storageKey),
+              let decoded = try? JSONDecoder().decode(ParticleCoreColorProfile.self, from: data) else {
+            return nil
+        }
+        return decoded.clamped()
+    }
+
+    static func hasSavedProfile() -> Bool {
+        UserDefaults.standard.data(forKey: storageKey) != nil
+    }
+
+    func save() {
+        guard let data = try? JSONEncoder().encode(clamped()) else { return }
+        UserDefaults.standard.set(data, forKey: Self.storageKey)
+    }
+
+    static func clearSaved() {
+        UserDefaults.standard.removeObject(forKey: storageKey)
+    }
+
+    static func make(fromDRData data: Data) -> ParticleCoreColorProfile {
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let lattice = object["lattice_config"] as? [String: Any],
+              let palette = lattice["color_palette"] as? [String],
+              let color = dominantResidentColor(from: palette) else {
+            return systemDefault
+        }
+
+        return ParticleCoreColorProfile(
+            baseRed: Double(subtleColor(from: color, target: 0.84, chroma: 0.115).x),
+            baseGreen: Double(subtleColor(from: color, target: 0.84, chroma: 0.115).y),
+            baseBlue: Double(subtleColor(from: color, target: 0.84, chroma: 0.115).z),
+            ridgeRed: Double(subtleColor(from: color, target: 0.93, chroma: 0.095).x),
+            ridgeGreen: Double(subtleColor(from: color, target: 0.93, chroma: 0.095).y),
+            ridgeBlue: Double(subtleColor(from: color, target: 0.93, chroma: 0.095).z),
+            dimRed: Double(subtleColor(from: color, target: 0.43, chroma: 0.075).x),
+            dimGreen: Double(subtleColor(from: color, target: 0.43, chroma: 0.075).y),
+            dimBlue: Double(subtleColor(from: color, target: 0.43, chroma: 0.075).z),
+            highlightRed: Double(subtleColor(from: color, target: 0.965, chroma: 0.055).x),
+            highlightGreen: Double(subtleColor(from: color, target: 0.965, chroma: 0.055).y),
+            highlightBlue: Double(subtleColor(from: color, target: 0.965, chroma: 0.055).z),
+            alphaScale: 1.0
+        ).clamped()
+    }
+
+    var baseVector: SIMD4<Float> {
+        SIMD4(Float(baseRed), Float(baseGreen), Float(baseBlue), 1)
+    }
+
+    var ridgeVector: SIMD4<Float> {
+        SIMD4(Float(ridgeRed), Float(ridgeGreen), Float(ridgeBlue), 1)
+    }
+
+    var dimVector: SIMD4<Float> {
+        SIMD4(Float(dimRed), Float(dimGreen), Float(dimBlue), 1)
+    }
+
+    var highlightVector: SIMD4<Float> {
+        SIMD4(Float(highlightRed), Float(highlightGreen), Float(highlightBlue), 1)
+    }
+
+    func clamped() -> ParticleCoreColorProfile {
+        var value = self
+        for parameter in ParticleCoreColorParameter.allCases {
+            value[keyPath: parameter.keyPath] = Self.clamp(value[keyPath: parameter.keyPath])
+        }
+        return value
+    }
+
+    nonisolated private static func clamp(_ value: Double) -> Double {
+        min(1, max(0, value))
+    }
+
+    nonisolated private static func dominantResidentColor(from palette: [String]) -> SIMD3<Float>? {
+        let colors = palette.compactMap(parseHexColor)
+        guard !colors.isEmpty else { return nil }
+
+        var weighted = SIMD3<Float>(repeating: 0)
+        var totalWeight: Float = 0
+        for (index, color) in colors.prefix(4).enumerated() {
+            let weight = max(0.16, 1.0 - Float(index) * 0.24)
+            weighted += color * weight
+            totalWeight += weight
+        }
+        return weighted / max(totalWeight, 0.001)
+    }
+
+    nonisolated private static func parseHexColor(_ value: String) -> SIMD3<Float>? {
+        var raw = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if raw.hasPrefix("#") {
+            raw.removeFirst()
+        }
+        guard raw.count == 6, let hex = Int(raw, radix: 16) else { return nil }
+        return SIMD3(
+            Float((hex >> 16) & 0xFF) / 255,
+            Float((hex >> 8) & 0xFF) / 255,
+            Float(hex & 0xFF) / 255
+        )
+    }
+
+    nonisolated private static func subtleColor(from color: SIMD3<Float>, target: Float, chroma: Float) -> SIMD3<Float> {
+        let sourceLuma = max(0.001, dot(color, SIMD3<Float>(0.2126, 0.7152, 0.0722)))
+        let normalized = color * (target / sourceLuma)
+        let neutral = SIMD3<Float>(repeating: target)
+        return clampVector(neutral + (normalized - neutral) * chroma, lower: 0.24, upper: 1.0)
+    }
+
+    nonisolated private static func clampVector(_ value: SIMD3<Float>, lower: Float, upper: Float) -> SIMD3<Float> {
+        SIMD3(
+            max(lower, min(upper, value.x)),
+            max(lower, min(upper, value.y)),
+            max(lower, min(upper, value.z))
+        )
+    }
+}
+
+enum ParticleCoreColorParameter: String, CaseIterable, Identifiable {
+    case baseRed
+    case baseGreen
+    case baseBlue
+    case ridgeRed
+    case ridgeGreen
+    case ridgeBlue
+    case dimRed
+    case dimGreen
+    case dimBlue
+    case highlightRed
+    case highlightGreen
+    case highlightBlue
+    case alphaScale
+
+    var id: String { rawValue }
+
+    var localizedKey: String {
+        "particleDebug.color.\(rawValue)"
+    }
+
+    var keyPath: WritableKeyPath<ParticleCoreColorProfile, Double> {
+        switch self {
+        case .baseRed:
+            return \.baseRed
+        case .baseGreen:
+            return \.baseGreen
+        case .baseBlue:
+            return \.baseBlue
+        case .ridgeRed:
+            return \.ridgeRed
+        case .ridgeGreen:
+            return \.ridgeGreen
+        case .ridgeBlue:
+            return \.ridgeBlue
+        case .dimRed:
+            return \.dimRed
+        case .dimGreen:
+            return \.dimGreen
+        case .dimBlue:
+            return \.dimBlue
+        case .highlightRed:
+            return \.highlightRed
+        case .highlightGreen:
+            return \.highlightGreen
+        case .highlightBlue:
+            return \.highlightBlue
+        case .alphaScale:
+            return \.alphaScale
+        }
     }
 }

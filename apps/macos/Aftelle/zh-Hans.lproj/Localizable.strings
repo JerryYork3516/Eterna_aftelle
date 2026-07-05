@@ -1,7 +1,9 @@
 "particleDebug.button" = "调试";
 "particleDebug.title" = "调试";
 "particleDebug.particleAdjustment" = "粒子调整";
+"particleDebug.colorAdjustment" = "颜色调整";
 "particleDebug.parameters" = "参数";
+"particleDebug.colorParameters" = "颜色参数";
 "particleDebug.save" = "保存";
 "particleDebug.restoreDefault" = "恢复默认";
 "particleDebug.parameter.globalScale" = "整体尺寸";
@@ -22,3 +24,16 @@
 "particleDebug.direction.down" = "下";
 "particleDebug.direction.left" = "左";
 "particleDebug.direction.right" = "右";
+"particleDebug.color.baseRed" = "基色 红";
+"particleDebug.color.baseGreen" = "基色 绿";
+"particleDebug.color.baseBlue" = "基色 蓝";
+"particleDebug.color.ridgeRed" = "亮脊 红";
+"particleDebug.color.ridgeGreen" = "亮脊 绿";
+"particleDebug.color.ridgeBlue" = "亮脊 蓝";
+"particleDebug.color.dimRed" = "暗部 红";
+"particleDebug.color.dimGreen" = "暗部 绿";
+"particleDebug.color.dimBlue" = "暗部 蓝";
+"particleDebug.color.highlightRed" = "高光 红";
+"particleDebug.color.highlightGreen" = "高光 绿";
+"particleDebug.color.highlightBlue" = "高光 蓝";
+"particleDebug.color.alphaScale" = "颜色透明度";

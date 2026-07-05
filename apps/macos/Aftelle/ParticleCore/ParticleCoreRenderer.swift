@@ -35,6 +35,11 @@ struct ParticleCoreFrameUniforms {
     var edgeDustAmount: Float
     var edgeFrayAmount: Float
     var surfaceLightStrength: Float
+    var baseColor: SIMD4<Float>
+    var ridgeColor: SIMD4<Float>
+    var dimColor: SIMD4<Float>
+    var highlightColor: SIMD4<Float>
+    var colorAlphaScale: Float
 }
 
 enum ParticleCoreVisualState: UInt32 {
@@ -76,6 +81,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private var smoothErrorStrength: Float
     private var smoothExitStrength: Float
     private var tuning = ParticleCoreTuning.systemDefault
+    private var colorProfile = ParticleCoreColorProfile.systemDefault
 
     init?(device: MTLDevice, visualState: ParticleCoreVisualState = .idle) {
         let launchSeed = UInt64.random(in: 1...UInt64.max)
@@ -207,7 +213,12 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             rotationDirection: Float(tuning.rotationDirection),
             edgeDustAmount: Float(tuning.edgeDustAmount),
             edgeFrayAmount: Float(tuning.edgeFrayAmount),
-            surfaceLightStrength: Float(tuning.surfaceLightStrength)
+            surfaceLightStrength: Float(tuning.surfaceLightStrength),
+            baseColor: colorProfile.baseVector,
+            ridgeColor: colorProfile.ridgeVector,
+            dimColor: colorProfile.dimVector,
+            highlightColor: colorProfile.highlightVector,
+            colorAlphaScale: Float(colorProfile.alphaScale)
         )
         memcpy(uniformsBuffer.contents(), &uniforms, MemoryLayout<ParticleCoreFrameUniforms>.stride)
 
@@ -258,6 +269,10 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
 
     func setTuning(_ tuning: ParticleCoreTuning) {
         self.tuning = tuning.clamped()
+    }
+
+    func setColorProfile(_ colorProfile: ParticleCoreColorProfile) {
+        self.colorProfile = colorProfile.clamped()
     }
 
     private func uploadParticles() {

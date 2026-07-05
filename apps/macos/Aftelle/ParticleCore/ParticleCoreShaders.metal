@@ -32,6 +32,11 @@ struct ParticleCoreFrameUniforms {
     float edgeDustAmount;
     float edgeFrayAmount;
     float surfaceLightStrength;
+    float4 baseColor;
+    float4 ridgeColor;
+    float4 dimColor;
+    float4 highlightColor;
+    float colorAlphaScale;
 };
 
 struct ParticleVertexOut {
@@ -62,6 +67,11 @@ struct ParticleVertexOut {
     float exitDust;
     float brightness;
     float alphaScale;
+    float4 baseColor;
+    float4 ridgeColor;
+    float4 dimColor;
+    float4 highlightColor;
+    float colorAlphaScale;
     float previewPlaceholder;
 };
 
@@ -797,6 +807,11 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     out.exitDust = dustRelease;
     out.brightness = tuneBrightness;
     out.alphaScale = tuneAlpha;
+    out.baseColor = uniforms.baseColor;
+    out.ridgeColor = uniforms.ridgeColor;
+    out.dimColor = uniforms.dimColor;
+    out.highlightColor = uniforms.highlightColor;
+    out.colorAlphaScale = uniforms.colorAlphaScale;
     out.previewPlaceholder = previewPlaceholder;
     return out;
 }
@@ -827,7 +842,7 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float exitBreak = saturate(in.exitBreak);
     float exitDust = saturate(in.exitDust);
     float brightness = max(0.0, in.brightness);
-    float alphaScale = max(0.0, in.alphaScale);
+    float alphaScale = max(0.0, in.alphaScale * in.colorAlphaScale);
     float ionPresence = saturate(in.shimmer);
     float previewPlaceholder = saturate(in.previewPlaceholder);
     float litSurface = smoothstep(0.34, 0.86, surfaceLight);
@@ -886,16 +901,17 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float alpha = saturate(halo * coverage * 0.74 + core * coverage * 2.18) * backMute;
     alpha *= mix(1.0, 0.18 + exitDust * 0.14, exitLocalFade);
     alpha = saturate(alpha * alphaScale);
-    half3 back = half3(0.40, 0.42, 0.46);
-    half3 frontBase = half3(0.82, 0.84, 0.88);
-    half3 wakeTint = half3(0.82, 0.84, 0.88);
+    half3 back = half3(in.dimColor.rgb);
+    half3 frontBase = half3(in.baseColor.rgb);
+    half3 ridgeTint = half3(in.ridgeColor.rgb);
+    half3 wakeTint = mix(frontBase, ridgeTint, half(0.42));
     float compressedDepthLight = 0.16 + depthLight * 0.84;
     float surfaceTone = 0.38 + litSurface * 0.62;
     half3 dim = mix(back, frontBase, half(compressedDepthLight * surfaceTone));
     dim *= half(mix(1.0, 0.86, thinking * outerDim));
     dim *= half(mix(1.0, 0.78, error * (0.34 + outerDim * 0.76)));
     dim *= half(mix(1.0, 0.34 + exitDust * 0.10, exitLocalFade));
-    half3 bright = half3(1.0, 1.0, 1.0);
+    half3 bright = mix(half3(in.highlightColor.rgb), ridgeTint, half(saturate(ridge * 0.28 + in.flow * 0.16)));
     half3 color = mix(dim, bright, half(highlight));
     color = mix(color, half3(0.64, 0.66, 0.70), half(error * errorInterrupt * 0.14));
     color = mix(color, wakeTint, half(surfaceWake * (0.20 + frontLight * 0.80) * 0.12));

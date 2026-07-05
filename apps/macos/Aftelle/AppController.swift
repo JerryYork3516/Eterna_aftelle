@@ -16,6 +16,7 @@ final class AppController: ObservableObject {
     @Published private(set) var clockState = RuntimeClockViewState()
     @Published private(set) var debugPanelState = DebugPanelViewState()
     @Published private(set) var runtimeState: AppRuntimeState = .idle
+    @Published private(set) var particleColorProfile = ParticleCoreColorProfile.systemDefault
 
     private let orchestrationKernel: OrchestrationKernel
     private var loadedResidentID = ""
@@ -98,6 +99,7 @@ final class AppController: ObservableObject {
         let result = orchestrationKernel.loadResident(fixtureData: fixtureData)
         loadedResidentID = result.isLoaded ? result.residentID : ""
         loadedSessionID = result.sessionID?.rawValue ?? ""
+        particleColorProfile = result.isLoaded ? ParticleCoreColorProfile.make(fromDRData: fixtureData) : .systemDefault
         runtimeStatus = "Runtime status: \(result.statusMessage)"
         fixtureStatus = result.isLoaded ? "DR fixture: loaded" : "DR fixture: not loaded"
         residentID = "resident_id: \(result.residentID.isEmpty ? "-" : result.residentID)"
@@ -291,6 +293,7 @@ final class AppController: ObservableObject {
         sessionState = AppSessionState()
         dialogueEntries = []
         avatarState = AppAvatarState()
+        particleColorProfile = .systemDefault
         traceState = RuntimeTraceViewState(summary: diagnosticsMessage, entries: [])
         runtimeState = .idle
         diagnostics = diagnosticsMessage
