@@ -68,7 +68,11 @@ private struct ParticleDebugPanel: View {
 
             VStack(spacing: 8) {
                 ForEach(ParticleCoreTuningParameter.allCases) { parameter in
-                    ParticleParameterRow(parameter: parameter, tuning: $tuning)
+                    if parameter == .rotationDirection {
+                        ParticleDirectionRow(tuning: $tuning)
+                    } else {
+                        ParticleParameterRow(parameter: parameter, tuning: $tuning)
+                    }
                 }
             }
 
@@ -116,6 +120,34 @@ private struct ParticleParameterRow: View {
             tuning[keyPath: parameter.keyPath]
         } set: { newValue in
             tuning[keyPath: parameter.keyPath] = min(1, max(0, newValue))
+        }
+    }
+}
+
+private struct ParticleDirectionRow: View {
+    @Binding var tuning: ParticleCoreTuning
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(String(localized: "particleDebug.parameter.rotationDirection"))
+                .font(.system(size: 12))
+                .frame(width: 116, alignment: .leading)
+
+            Picker("", selection: direction) {
+                ForEach(ParticleCoreRotationDirection.allCases) { direction in
+                    Text(String(localized: String.LocalizationValue(direction.localizedKey)))
+                        .tag(direction)
+                }
+            }
+            .pickerStyle(.segmented)
+        }
+    }
+
+    private var direction: Binding<ParticleCoreRotationDirection> {
+        Binding {
+            ParticleCoreRotationDirection.nearest(to: tuning.rotationDirection)
+        } set: { newValue in
+            tuning.rotationDirection = newValue.tuningValue
         }
     }
 }

@@ -18,3 +18,7 @@
 "particleDebug.parameter.edgeDustAmount" = "边缘微尘";
 "particleDebug.parameter.edgeFrayAmount" = "边缘毛边";
 "particleDebug.parameter.surfaceLightStrength" = "表面光强";
+"particleDebug.direction.up" = "上";
+"particleDebug.direction.down" = "下";
+"particleDebug.direction.left" = "左";
+"particleDebug.direction.right" = "右";

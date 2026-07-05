@@ -120,3 +120,42 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
         }
     }
 }
+
+enum ParticleCoreRotationDirection: CaseIterable, Identifiable {
+    case up
+    case down
+    case left
+    case right
+
+    var id: String { localizedKey }
+
+    var localizedKey: String {
+        switch self {
+        case .up:
+            return "particleDebug.direction.up"
+        case .down:
+            return "particleDebug.direction.down"
+        case .left:
+            return "particleDebug.direction.left"
+        case .right:
+            return "particleDebug.direction.right"
+        }
+    }
+
+    var tuningValue: Double {
+        switch self {
+        case .up:
+            return 0.0
+        case .down:
+            return 1.0 / 3.0
+        case .left:
+            return 2.0 / 3.0
+        case .right:
+            return 1.0
+        }
+    }
+
+    static func nearest(to value: Double) -> ParticleCoreRotationDirection {
+        allCases.min { abs($0.tuningValue - value) < abs($1.tuningValue - value) } ?? .right
+    }
+}
