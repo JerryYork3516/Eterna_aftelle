@@ -14,6 +14,55 @@ public enum AppRuntimeState: Equatable {
     case interrupted
 }
 
+public enum ParticleAvatarMode: String, CaseIterable, Identifiable {
+    case particleCore = "particle_core"
+    case abstractBustReserved = "abstract_bust_reserved"
+
+    public var id: String {
+        rawValue
+    }
+
+    var localizedKey: String {
+        switch self {
+        case .particleCore:
+            return "particleDebug.avatarMode.particleCore"
+        case .abstractBustReserved:
+            return "particleDebug.avatarMode.abstractBustReserved"
+        }
+    }
+
+    var renderFallback: String {
+        "particle_core"
+    }
+
+    var renderFallbackReason: String {
+        switch self {
+        case .particleCore:
+            return "active_renderer"
+        case .abstractBustReserved:
+            return "reserved_not_implemented"
+        }
+    }
+
+    var particleCoreStatus: String {
+        switch self {
+        case .particleCore:
+            return "current / enabled"
+        case .abstractBustReserved:
+            return "fallback / enabled"
+        }
+    }
+
+    var abstractBustStatus: String {
+        switch self {
+        case .particleCore:
+            return "reserved / disabled"
+        case .abstractBustReserved:
+            return "selected / reserved / disabled"
+        }
+    }
+}
+
 public enum ParticleSubtitlePhase: Equatable {
     case hidden
     case showing
@@ -72,6 +121,11 @@ public struct ParticleDebugSnapshot: Equatable {
     public var sourceAvatarState: String
     public var mappedParticleState: String
     public var isDebugOverrideActive: Bool
+    public var avatarMode: String
+    public var particleCoreModeStatus: String
+    public var abstractBustModeStatus: String
+    public var renderFallback: String
+    public var renderFallbackReason: String
     public var colorProfileSource: String
     public var baseColor: String
     public var ridgeColor: String
@@ -99,6 +153,11 @@ public struct ParticleDebugSnapshot: Equatable {
         sourceAvatarState: "mode=idle presence=unknown",
         mappedParticleState: "idle",
         isDebugOverrideActive: false,
+        avatarMode: "particle_core",
+        particleCoreModeStatus: "current / enabled",
+        abstractBustModeStatus: "reserved / disabled",
+        renderFallback: "particle_core",
+        renderFallbackReason: "active_renderer",
         colorProfileSource: "systemDefault",
         baseColor: "0.82, 0.84, 0.88",
         ridgeColor: "0.95, 0.96, 0.98",

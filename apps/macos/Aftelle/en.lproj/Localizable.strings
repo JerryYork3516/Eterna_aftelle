@@ -4,6 +4,10 @@
 "particleDebug.diagnosticsCaption" = "Read-only state snapshot";
 "particleDebug.particleAdjustment" = "Particle Adjustment";
 "particleDebug.colorAdjustment" = "Color Adjustment";
+"particleDebug.avatarMode" = "Avatar Mode";
+"particleDebug.avatarModeCaption" = "Local render mode reserve";
+"particleDebug.avatarMode.particleCore" = "particle_core";
+"particleDebug.avatarMode.abstractBustReserved" = "abstract_bust_reserved";
 "particleDebug.parameters" = "Parameters";
 "particleDebug.colorParameters" = "Color Parameters";
 "particleDebug.importDR" = "Import DR";
@@ -54,6 +58,12 @@
 "particleDebug.diagnostics.sourceAvatarState" = "Source Avatar";
 "particleDebug.diagnostics.mappedParticleState" = "Mapped State";
 "particleDebug.diagnostics.isDebugOverrideActive" = "Key Override";
+"particleDebug.diagnostics.avatarMode" = "Avatar Mode";
+"particleDebug.diagnostics.currentAvatarMode" = "Current Mode";
+"particleDebug.diagnostics.particleCoreMode" = "particle_core";
+"particleDebug.diagnostics.abstractBustMode" = "abstract_bust";
+"particleDebug.diagnostics.renderFallback" = "Render Fallback";
+"particleDebug.diagnostics.renderFallbackReason" = "Fallback Reason";
 "particleDebug.diagnostics.colorProfile" = "DR Color";
 "particleDebug.diagnostics.colorProfileSource" = "Color Source";
 "particleDebug.diagnostics.baseColor" = "Base Color";

@@ -4,6 +4,10 @@
 "particleDebug.diagnosticsCaption" = "只读状态快照";
 "particleDebug.particleAdjustment" = "粒子调整";
 "particleDebug.colorAdjustment" = "颜色调整";
+"particleDebug.avatarMode" = "Avatar 模式";
+"particleDebug.avatarModeCaption" = "本地渲染模式预留";
+"particleDebug.avatarMode.particleCore" = "particle_core";
+"particleDebug.avatarMode.abstractBustReserved" = "abstract_bust_reserved";
 "particleDebug.parameters" = "参数";
 "particleDebug.colorParameters" = "颜色参数";
 "particleDebug.importDR" = "导入 DR";
@@ -54,6 +58,12 @@
 "particleDebug.diagnostics.sourceAvatarState" = "来源 Avatar";
 "particleDebug.diagnostics.mappedParticleState" = "映射状态";
 "particleDebug.diagnostics.isDebugOverrideActive" = "快捷覆盖";
+"particleDebug.diagnostics.avatarMode" = "Avatar 模式";
+"particleDebug.diagnostics.currentAvatarMode" = "当前模式";
+"particleDebug.diagnostics.particleCoreMode" = "particle_core";
+"particleDebug.diagnostics.abstractBustMode" = "abstract_bust";
+"particleDebug.diagnostics.renderFallback" = "渲染 fallback";
+"particleDebug.diagnostics.renderFallbackReason" = "fallback 原因";
 "particleDebug.diagnostics.colorProfile" = "DR 颜色";
 "particleDebug.diagnostics.colorProfileSource" = "颜色来源";
 "particleDebug.diagnostics.baseColor" = "基色";

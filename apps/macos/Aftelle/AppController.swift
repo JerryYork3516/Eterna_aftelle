@@ -17,6 +17,7 @@ final class AppController: ObservableObject {
     @Published private(set) var debugPanelState = DebugPanelViewState()
     @Published private(set) var runtimeState: AppRuntimeState = .idle
     @Published private(set) var particleVisualState: ParticleCoreVisualState = .idle
+    @Published private(set) var particleAvatarMode: ParticleAvatarMode = .particleCore
     @Published private(set) var particleColorProfile = ParticleCoreColorProfile.systemDefault
     @Published private(set) var particleSubtitleState = ParticleSubtitleState.hidden
     @Published private(set) var particleDebugSnapshot = ParticleDebugSnapshot.empty
@@ -137,6 +138,11 @@ final class AppController: ObservableObject {
     }
 
     #if DEBUG
+    func setParticleAvatarMode(_ mode: ParticleAvatarMode) {
+        particleAvatarMode = mode
+        refreshParticleDebugSnapshot()
+    }
+
     func showDebugSubtitle() {
         showDebugSubtitle(at: debugSubtitleIndex)
     }
@@ -417,6 +423,11 @@ final class AppController: ObservableObject {
             sourceAvatarState: avatarStateSummary(),
             mappedParticleState: mappedState,
             isDebugOverrideActive: renderState != mappedState || latestParticleRenderMetrics.lastTransitionReason.hasPrefix("debugKey"),
+            avatarMode: particleAvatarMode.rawValue,
+            particleCoreModeStatus: particleAvatarMode.particleCoreStatus,
+            abstractBustModeStatus: particleAvatarMode.abstractBustStatus,
+            renderFallback: particleAvatarMode.renderFallback,
+            renderFallbackReason: particleAvatarMode.renderFallbackReason,
             colorProfileSource: effectiveColorProfileSource,
             baseColor: colorString(
                 red: effectiveParticleColorProfile.baseRed,
