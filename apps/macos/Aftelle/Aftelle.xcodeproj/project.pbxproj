@@ -164,7 +164,7 @@
 				};
 			};
 			buildConfigurationList = A070C000000000000000000E /* Build configuration list for PBXProject "Aftelle" */;
-			developmentRegion = en;
+			developmentRegion = "zh-Hans";
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
