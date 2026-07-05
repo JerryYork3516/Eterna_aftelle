@@ -3,6 +3,8 @@ import MetalKit
 import SwiftUI
 
 struct ParticleCoreMetalView: NSViewRepresentable {
+    var visualState: ParticleCoreVisualState = .thinking
+
     func makeNSView(context: Context) -> MTKView {
         print("[ParticleCore] makeNSView called")
         guard let device = MTLCreateSystemDefaultDevice() else {
@@ -21,7 +23,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
         view.layer?.backgroundColor = NSColor(calibratedRed: 0.035, green: 0.04, blue: 0.05, alpha: 1).cgColor
 
         print("[ParticleCore] MTKView created deviceOk=\(view.device != nil)")
-        guard let renderer = ParticleCoreRenderer(device: device) else {
+        guard let renderer = ParticleCoreRenderer(device: device, visualState: visualState) else {
             print("[ParticleCore] renderer init failed")
             return view
         }
@@ -37,6 +39,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
             print("[ParticleCore] updateNSView called drawableSize=\(Int(nsView.drawableSize.width))x\(Int(nsView.drawableSize.height))")
             context.coordinator.didLogUpdate = true
         }
+        context.coordinator.renderer?.setVisualState(visualState)
     }
 
     func makeCoordinator() -> Coordinator {

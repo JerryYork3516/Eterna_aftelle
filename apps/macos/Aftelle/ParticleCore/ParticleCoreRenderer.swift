@@ -15,6 +15,21 @@ struct ParticleCoreFrameUniforms {
     var mousePosition: SIMD2<Float>
     var mouseVelocity: SIMD2<Float>
     var mouseInfluence: Float
+    var thinkingStrength: Float
+}
+
+enum ParticleCoreVisualState {
+    case idle
+    case thinking
+
+    var targetStrength: Float {
+        switch self {
+        case .idle:
+            return 0
+        case .thinking:
+            return 1
+        }
+    }
 }
 
 final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
@@ -34,10 +49,14 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private var smoothMouseVelocity = SIMD2<Float>(repeating: 0)
     private var smoothMouseInfluence: Float = 0
     private var lastMouseEventTime = CACurrentMediaTime()
+    private var visualState: ParticleCoreVisualState
+    private var smoothThinkingStrength: Float
 
-    init?(device: MTLDevice) {
+    init?(device: MTLDevice, visualState: ParticleCoreVisualState = .idle) {
         self.device = device
         self.model = ParticleCoreModel()
+        self.visualState = visualState
+        self.smoothThinkingStrength = visualState.targetStrength
 
         guard let commandQueue = device.makeCommandQueue() else {
             print("[ParticleCore] commandQueue failed")
@@ -111,6 +130,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
 
         let elapsed = Float(CACurrentMediaTime() - startTime)
         updateSmoothedMouse(elapsedTime: CACurrentMediaTime())
+        updateSmoothedVisualState()
         let speedPhaseRate: Float = 0.025
         let speedScale = 0.42 + 0.08 * sin(elapsed * speedPhaseRate)
         let motionElapsed = 0.42 * elapsed + (0.08 / speedPhaseRate) * (1 - cos(elapsed * speedPhaseRate))
@@ -128,14 +148,15 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             particleCount: UInt32(model.particles.count),
             mousePosition: smoothMousePosition,
             mouseVelocity: smoothMouseVelocity,
-            mouseInfluence: smoothMouseInfluence
+            mouseInfluence: smoothMouseInfluence,
+            thinkingStrength: smoothThinkingStrength
         )
         memcpy(uniformsBuffer.contents(), &uniforms, MemoryLayout<ParticleCoreFrameUniforms>.stride)
 
         if !didLogDraw {
             let aspect = max(resolution.x / max(resolution.y, 1), 1)
             let bounds = model.clipBounds(aspect: aspect, breathing: 1 + breathing)
-            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) globalBreathingRef=\(breathing) edgeBreathingRef=\(edgeBreathing) coreStability=\(coreStability) motion=video_guided_rotating_surface_field speedScale=\(speedScale) speedRange=0.34...0.50 particleColor=(three_stage_back_front_ion_ridge,back=0.30...0.35,front=0.95...0.98,density_front_gated,no_random_brightness) pointSize=cohesive_body_bound_structure ionCluster=cloud_driven_rolling_ridge cloudDensity=internal_eddy_migration structure=body_envelope_spine_density_sections")
+            print("[ParticleCore] draw called drawableSize=\(Int(drawableSize.width))x\(Int(drawableSize.height)) particleCount=\(model.particles.count) ndcMin=(\(bounds.minX),\(bounds.minY)) ndcMax=(\(bounds.maxX),\(bounds.maxY)) clearColor=(0.035,0.04,0.05,1) visualState=\(visualState) thinkingStrength=\(smoothThinkingStrength) globalBreathingRef=\(breathing) edgeBreathingRef=\(edgeBreathing) coreStability=\(coreStability) motion=video_guided_rotating_surface_field speedScale=\(speedScale) speedRange=0.34...0.50 particleColor=(three_stage_back_front_ion_ridge,back=0.30...0.35,front=0.95...0.98,density_front_gated,no_random_brightness) pointSize=cohesive_body_bound_structure ionCluster=cloud_driven_rolling_ridge cloudDensity=internal_eddy_migration structure=body_envelope_spine_density_sections")
         }
 
         encoder.setRenderPipelineState(pipelineState)
@@ -161,6 +182,10 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         lastMouseEventTime = CACurrentMediaTime()
     }
 
+    func setVisualState(_ visualState: ParticleCoreVisualState) {
+        self.visualState = visualState
+    }
+
     private func uploadParticles() {
         let payloads = model.vertexPayloads
         let pointer = particleBuffer.contents().bindMemory(to: SIMD4<Float>.self, capacity: payloads.count)
@@ -181,5 +206,10 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         smoothMousePosition += (targetMousePosition - smoothMousePosition) * positionAlpha
         smoothMouseVelocity += (targetMouseVelocity - smoothMouseVelocity) * velocityAlpha
         smoothMouseInfluence += (targetMouseInfluence - smoothMouseInfluence) * influenceAlpha
+    }
+
+    private func updateSmoothedVisualState() {
+        let alpha: Float = 0.055
+        smoothThinkingStrength += (visualState.targetStrength - smoothThinkingStrength) * alpha
     }
 }
