@@ -22,6 +22,19 @@ struct ParticleCoreFrameUniforms {
     var errorStrength: Float
     var exitStrength: Float
     var stateElapsedTime: Float
+    var globalScale: Float
+    var pointSizeScale: Float
+    var brightness: Float
+    var alphaScale: Float
+    var ridgeBrightness: Float
+    var breathingAmount: Float
+    var flowStrength: Float
+    var flowSpeed: Float
+    var rotationSpeed: Float
+    var rotationDirection: Float
+    var edgeDustAmount: Float
+    var edgeFrayAmount: Float
+    var surfaceLightStrength: Float
 }
 
 enum ParticleCoreVisualState: UInt32 {
@@ -62,6 +75,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private var smoothLoadingStrength: Float
     private var smoothErrorStrength: Float
     private var smoothExitStrength: Float
+    private var tuning = ParticleCoreTuning.systemDefault
 
     init?(device: MTLDevice, visualState: ParticleCoreVisualState = .idle) {
         let launchSeed = UInt64.random(in: 1...UInt64.max)
@@ -158,8 +172,10 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         let speedScale = 0.42 + 0.08 * sin(elapsed * speedPhaseRate)
         let motionElapsed = 0.42 * elapsed + (0.08 / speedPhaseRate) * (1 - cos(elapsed * speedPhaseRate))
         let resolution = SIMD2<Float>(Float(drawableSize.width), Float(drawableSize.height))
-        let breathing = 0.010 * sin(motionElapsed * 0.23) + 0.006 * sin(motionElapsed * 0.13 + 0.9)
-        let edgeBreathing = 0.012 * sin(motionElapsed * 0.19 + 1.4) + 0.005 * sin(motionElapsed * 0.37 + 0.3)
+        let tunedBreathTime = motionElapsed * scaleAroundOne(tuning.breathingSpeed, range: 0.90)
+        let breathingAmount = scaleAroundOne(tuning.breathingAmount, range: 1.20)
+        let breathing = (0.010 * sin(tunedBreathTime * 0.23) + 0.006 * sin(tunedBreathTime * 0.13 + 0.9)) * breathingAmount
+        let edgeBreathing = (0.012 * sin(tunedBreathTime * 0.19 + 1.4) + 0.005 * sin(tunedBreathTime * 0.37 + 0.3)) * breathingAmount
         let coreStability = 1 - min(0.025, abs(breathing) * 0.16)
         var uniforms = ParticleCoreFrameUniforms(
             time: motionElapsed,
@@ -178,7 +194,20 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             loadingStrength: smoothLoadingStrength,
             errorStrength: smoothErrorStrength,
             exitStrength: smoothExitStrength,
-            stateElapsedTime: stateElapsedTime
+            stateElapsedTime: stateElapsedTime,
+            globalScale: Float(tuning.globalScale),
+            pointSizeScale: Float(tuning.pointSizeScale),
+            brightness: Float(tuning.brightness),
+            alphaScale: Float(tuning.alphaScale),
+            ridgeBrightness: Float(tuning.ridgeBrightness),
+            breathingAmount: Float(tuning.breathingAmount),
+            flowStrength: Float(tuning.flowStrength),
+            flowSpeed: Float(tuning.flowSpeed),
+            rotationSpeed: Float(tuning.rotationSpeed),
+            rotationDirection: Float(tuning.rotationDirection),
+            edgeDustAmount: Float(tuning.edgeDustAmount),
+            edgeFrayAmount: Float(tuning.edgeFrayAmount),
+            surfaceLightStrength: Float(tuning.surfaceLightStrength)
         )
         memcpy(uniformsBuffer.contents(), &uniforms, MemoryLayout<ParticleCoreFrameUniforms>.stride)
 
@@ -227,6 +256,10 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         print("[ParticleCore] visualState changed \(visualState)")
     }
 
+    func setTuning(_ tuning: ParticleCoreTuning) {
+        self.tuning = tuning.clamped()
+    }
+
     private func uploadParticles() {
         let payloads = model.vertexPayloads
         let pointer = particleBuffer.contents().bindMemory(to: SIMD4<Float>.self, capacity: payloads.count)
@@ -257,5 +290,9 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         smoothErrorStrength += (visualState.targetStrength(for: .error) - smoothErrorStrength) * alpha
         let exitAlpha: Float = visualState == .exit ? 0.080 : 0.050
         smoothExitStrength += (visualState.targetStrength(for: .exit) - smoothExitStrength) * exitAlpha
+    }
+
+    private func scaleAroundOne(_ value: Double, range: Float) -> Float {
+        max(0, 1 + (Float(value) - 0.5) * 2 * range)
     }
 }
