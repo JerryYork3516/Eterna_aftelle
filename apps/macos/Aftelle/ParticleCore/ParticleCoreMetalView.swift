@@ -17,6 +17,8 @@ struct ParticleCoreMetalView: NSViewRepresentable {
 
         let view = ParticleCoreInputView(frame: .zero, device: device)
         view.colorPixelFormat = .bgra8Unorm
+        view.depthStencilPixelFormat = .depth32Float
+        view.clearDepth = 1.0
         view.preferredFramesPerSecond = 60
         view.enableSetNeedsDisplay = false
         view.isPaused = false

@@ -63,6 +63,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private let device: MTLDevice
     private let commandQueue: MTLCommandQueue
     private let pipelineState: MTLRenderPipelineState
+    private let depthStencilState: MTLDepthStencilState
     private let particleBuffer: MTLBuffer
     private let uniformsBuffer: MTLBuffer
     private let startTime = CACurrentMediaTime()
@@ -121,6 +122,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         pipelineDescriptor.vertexFunction = vertexFunction
         pipelineDescriptor.fragmentFunction = fragmentFunction
         pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
+        pipelineDescriptor.depthAttachmentPixelFormat = .depth32Float
         pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true
         pipelineDescriptor.colorAttachments[0].rgbBlendOperation = .add
         pipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add
@@ -136,6 +138,14 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             return nil
         }
 
+        let depthDescriptor = MTLDepthStencilDescriptor()
+        depthDescriptor.depthCompareFunction = .lessEqual
+        depthDescriptor.isDepthWriteEnabled = true
+        guard let depthStencilState = device.makeDepthStencilState(descriptor: depthDescriptor) else {
+            print("[ParticleCore] depthStencilState failed")
+            return nil
+        }
+
         guard let particleBuffer = device.makeBuffer(length: MemoryLayout<SIMD4<Float>>.stride * model.particles.count, options: .storageModeShared) else {
             print("[ParticleCore] vertexBuffer failed")
             return nil
@@ -148,6 +158,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         self.commandQueue = commandQueue
         self.particleBuffer = particleBuffer
         self.uniformsBuffer = uniformsBuffer
+        self.depthStencilState = depthStencilState
 
         super.init()
         uploadParticles()
@@ -175,11 +186,11 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         let speedPhaseRate: Float = 0.025
         let motionElapsed = 0.42 * elapsed + (0.08 / speedPhaseRate) * (1 - cos(elapsed * speedPhaseRate))
         let resolution = SIMD2<Float>(Float(drawableSize.width), Float(drawableSize.height))
-        let tunedBreathTime = motionElapsed * sliderScale(tuning.breathingSpeed, minimum: 0.16, maximum: 3.0)
-        let breathingAmount = sliderScale(tuning.breathingAmount, minimum: 0, maximum: 3.0)
-        let breathing = (0.018 * sin(tunedBreathTime * 0.25) + 0.010 * sin(tunedBreathTime * 0.13 + 0.9)) * breathingAmount
-        let edgeBreathing = (0.034 * sin(tunedBreathTime * 0.21 + 1.4) + 0.018 * sin(tunedBreathTime * 0.39 + 0.3)) * breathingAmount
-        let coreStability = 1 - min(0.050, abs(breathing) * 0.18)
+        let tunedBreathTime = motionElapsed * scaleAroundOne(tuning.breathingSpeed, range: 0.90)
+        let breathingAmount = scaleAroundOne(tuning.breathingAmount, range: 1.20)
+        let breathing = (0.010 * sin(tunedBreathTime * 0.23) + 0.006 * sin(tunedBreathTime * 0.13 + 0.9)) * breathingAmount
+        let edgeBreathing = (0.012 * sin(tunedBreathTime * 0.19 + 1.4) + 0.005 * sin(tunedBreathTime * 0.37 + 0.3)) * breathingAmount
+        let coreStability = 1 - min(0.025, abs(breathing) * 0.16)
         let bodyTransform = Self.bodyTransform(for: motionElapsed, state: visualState)
         var uniforms = ParticleCoreFrameUniforms(
             time: motionElapsed,
@@ -223,6 +234,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         memcpy(uniformsBuffer.contents(), &uniforms, MemoryLayout<ParticleCoreFrameUniforms>.stride)
 
         encoder.setRenderPipelineState(pipelineState)
+        encoder.setDepthStencilState(depthStencilState)
         encoder.setVertexBuffer(particleBuffer, offset: 0, index: 0)
         encoder.setVertexBuffer(uniformsBuffer, offset: 0, index: 1)
         encoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: model.particles.count)
@@ -342,33 +354,33 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         print("[ParticleCore] snapshot fps=\(String(format: "%.1f", fps)) particleCount=\(model.particles.count) drawableSize=\(drawableSize) preferredFPS=\(view.preferredFramesPerSecond) visualState=\(visualState) previousVisualState=\(previousVisualState) stateElapsedTime=\(String(format: "%.2f", stateElapsedTime)) reason=\(lastTransitionReason) mouseInside=\(mouseActive) interactionStrength=\(String(format: "%.2f", smoothMouseInfluence))")
     }
 
-    private func sliderScale(_ value: Double, minimum: Float, maximum: Float) -> Float {
-        minimum + (maximum - minimum) * min(1, max(0, Float(value)))
+    private func scaleAroundOne(_ value: Double, range: Float) -> Float {
+        max(0, 1 + (Float(value) - 0.5) * 2 * range)
     }
 
     private static func bodyTransform(for time: Float, state: ParticleCoreVisualState) -> SIMD4<Float> {
         let stateLift: Float
         switch state {
         case .thinking:
-            stateLift = 0.006
+            stateLift = 0.018
         case .speaking:
-            stateLift = 0.010
+            stateLift = 0.030
         case .loading:
-            stateLift = -0.006
+            stateLift = -0.014
         case .error:
             stateLift = 0
         case .exit:
-            stateLift = 0.008
+            stateLift = 0.024
         case .idle:
             stateLift = 0
         }
 
-        let x = sin(time * 0.055 + 0.8) * 0.012
-            + sin(time * 0.029 + 2.4) * 0.006
-        let y = cos(time * 0.050 + 1.1) * 0.010
-            + sin(time * 0.035 + 4.2) * 0.005
+        let x = sin(time * 0.071 + 0.8) * 0.070
+            + sin(time * 0.033 + 2.4) * 0.036
+        let y = cos(time * 0.058 + 1.1) * 0.050
+            + sin(time * 0.041 + 4.2) * 0.028
             + stateLift
-        let scale: Float = 1
+        let scale = 1 + sin(time * 0.029 + 0.6) * 0.018
         return SIMD4<Float>(x, y, scale, 0)
     }
 

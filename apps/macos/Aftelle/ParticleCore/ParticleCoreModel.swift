@@ -36,10 +36,10 @@ struct ParticleCoreModel {
     let surfaceReliefSize: Float
 
     init(
-        count: Int = 20_000,
+        count: Int = 12_000,
         seed: UInt64 = 0xA7F7E11E,
-        roundness: Float = 0.54,
-        surfaceReliefSize: Float = 0.36
+        roundness: Float = 0.28,
+        surfaceReliefSize: Float = 0.45
     ) {
         self.seed = seed
         self.roundness = min(1, max(0, roundness))
@@ -49,65 +49,82 @@ struct ParticleCoreModel {
         values.reserveCapacity(count)
 
         var candidateIndex = 0
-        let baseScale: Float = 0.47
-        let shapeAmount = self.roundness
-        let reliefAmount = self.surfaceReliefSize
         let phaseA = Float(generator.nextUnit() * .pi * 2)
         let phaseB = Float(generator.nextUnit() * .pi * 2)
         let phaseC = Float(generator.nextUnit() * .pi * 2)
-        let stretchX = 1 + shapeAmount * Float(generator.nextUnit() - 0.5) * 0.16
-        let stretchY = 1 + shapeAmount * Float(generator.nextUnit() - 0.5) * 0.16
-        let stretchZ = 1 + shapeAmount * Float(generator.nextUnit() - 0.5) * 0.12
+        let shapeAmount = self.roundness
+        let reliefAmount = self.surfaceReliefSize
+        let baseScale = Float(0.492 + generator.nextUnit() * 0.020)
+        let cellStretchX = 1 + shapeAmount * Float(generator.nextUnit() - 0.5) * 0.080
+        let cellStretchY = 1 + shapeAmount * Float(generator.nextUnit() - 0.5) * 0.080
+        let reliefAmplitude = shapeAmount * (0.012 + reliefAmount * 0.090)
+        let fineReliefAmplitude = shapeAmount * (0.004 + reliefAmount * 0.026)
 
         while values.count < count {
             let index = candidateIndex
             candidateIndex += 1
             let golden = 0.6180339887498949
-            let u = (Double(index) * golden + generator.nextUnit() * 0.004).truncatingRemainder(dividingBy: 1)
+            let u = (Double(index) * golden + generator.nextUnit() * 0.022).truncatingRemainder(dividingBy: 1)
             let v = (Double(index) + 0.5) / Double(count)
-            var theta = Float(u * .pi * 2)
-            var z = Float(1 - 2 * v)
-            let densityWave = sin(theta * 2.4 + z * 4.6 + phaseA) * 0.48
-                + cos(theta * 4.1 - z * 3.2 + phaseB) * 0.34
-                + sin(theta * 6.5 + z * 2.0 + phaseC) * 0.18
-            let cluster = max(0, densityWave)
-            theta += shapeAmount * (cluster * 0.052 * sin(z * 3.1 + phaseB)
-                + sin(theta * 2.0 + phaseC) * 0.010)
-            z = min(0.985, max(-0.985, z + shapeAmount * cluster * 0.060 * cos(theta * 2.6 + phaseA)))
+            let theta = Float(u * .pi * 2)
+            let z = Float(1 - 2 * v)
             let shell = sqrt(max(0, 1 - z * z))
+            let shapedTheta = theta
+                + shapeAmount * sin(z * 1.7 + phaseA) * 0.022
+                + shapeAmount * sin(theta * 2.0 + phaseB) * 0.014
             let unitDirection = SIMD3<Float>(
-                shell * cos(theta),
+                shell * cos(shapedTheta),
                 z,
-                shell * sin(theta)
+                shell * sin(shapedTheta)
             )
-            let radialLayer = 0.925 + pow(Float(generator.nextUnit()), 0.58) * 0.075
-            let broadRelief = sin(theta * 2.3 + z * 3.6 + phaseA) * 0.48
-                + cos(theta * 3.7 - z * 2.8 + phaseB) * 0.34
-                + sin(theta * 5.1 + z * 1.9 + phaseC) * 0.18
-            let foldRelief = abs(sin(theta * 3.0 + z * 5.2 + phaseB))
-                * abs(cos(theta * 1.7 - z * 3.4 + phaseC))
-            let relief = 1 + shapeAmount * reliefAmount * broadRelief * (0.05 + radialLayer * 0.16)
-                + shapeAmount * reliefAmount * foldRelief * radialLayer * 0.05
-            let stretchedDirection = SIMD3<Float>(
-                unitDirection.x * stretchX,
-                unitDirection.y * stretchY,
-                unitDirection.z * stretchZ
+            let rawDepth = unitDirection.z
+            let broadRelief = sin(theta * 3.0 + z * 4.5 + rawDepth * 2.0 + phaseA) * 0.52
+                + sin(theta * 5.0 - z * 2.8 + rawDepth * 3.4 + phaseB) * 0.34
+                + cos(theta * 2.0 + z * 6.2 - rawDepth * 1.6 + phaseC) * 0.28
+            let fineRelief = sin(theta * 9.0 + z * 7.6 + phaseB) * 0.55
+                + cos(theta * 13.0 - rawDepth * 5.1 + phaseC) * 0.45
+            let surfaceSeed = Float(generator.nextUnit())
+            let radialSeed = Float(generator.nextUnit())
+            let surfaceBiasSeed = pow(surfaceSeed, 0.34)
+            let volumeSeed = pow(radialSeed, 1.0 / 3.0)
+            let radialLayer = 0.16 + 0.84 * (volumeSeed * 0.54 + surfaceBiasSeed * 0.46)
+            let surfaceBias = 0.30 + radialLayer * 0.70
+            let fold = max(0.78, 1 + (broadRelief * reliefAmplitude + fineRelief * fineReliefAmplitude) * surfaceBias)
+            var x = unitDirection.x * baseScale * cellStretchX * radialLayer * fold
+            var y = unitDirection.y * baseScale * cellStretchY * radialLayer * fold
+            var depth = unitDirection.z * baseScale * radialLayer * fold
+            let projectedRadius = sqrt(x * x + y * y) / max(baseScale, 0.001)
+            let outlineBand = max(0, min(1, (projectedRadius - 0.74) / 0.24))
+            let outward = SIMD3<Float>(
+                unitDirection.x * cellStretchX,
+                unitDirection.y * cellStretchY,
+                unitDirection.z
             )
-            let surfaceDrift = (Float(generator.nextUnit()) - 0.5) * 0.012 * (0.35 + cluster)
-            let position = stretchedDirection * baseScale * radialLayer * max(0.72, relief + surfaceDrift)
-            let shellPresence: Float = 1
-            let ridge = 0.05 + shellPresence * 0.17
-                + shapeAmount * reliefAmount * max(0, broadRelief) * 0.16
-                + shapeAmount * reliefAmount * foldRelief * shellPresence * 0.30
-                + cluster * 0.12
-                + Float(generator.nextUnit()) * 0.04
-            let edgeWeight = 0.06 + shellPresence * 0.86
+            let outwardLength = max(0.001, simd_length(outward))
+            let normal = outward / outwardLength
+            let planarLength = max(0.001, sqrt(normal.x * normal.x + normal.y * normal.y))
+            let planarOutward = SIMD2<Float>(normal.x / planarLength, normal.y / planarLength)
+            let tangent = SIMD2<Float>(-planarOutward.y, planarOutward.x)
+            let pointJitter = (0.002 + shapeAmount * 0.006) * (0.32 + radialLayer * 0.68)
+            x += normal.x * pointJitter * Float(generator.nextUnit() - 0.5)
+                + tangent.x * pointJitter * Float(generator.nextUnit() - 0.5)
+            y += normal.y * pointJitter * Float(generator.nextUnit() - 0.5)
+                + tangent.y * pointJitter * Float(generator.nextUnit() - 0.5)
+            depth += normal.z * pointJitter * Float(generator.nextUnit() - 0.5)
+            let silhouette = max(0, min(1, 1 - abs(rawDepth) * 1.72))
+            let threadA = pow(max(0, 0.5 + 0.5 * sin(theta * 3.0 + z * 4.4 + rawDepth * 2.6 + phaseA)), 4)
+            let threadB = pow(max(0, 0.5 + 0.5 * sin(theta * 5.0 - z * 3.1 + phaseB)), 5)
+            let grain = 0.5 + 0.5 * sin(theta * 13.0 + z * 8.7 + depth * 3.1 + phaseC)
+            let thread = max(threadA, threadB)
+            let reliefCrest = max(0, min(1, 0.5 + broadRelief * 0.34 + fineRelief * 0.16))
+            let ridge = min(1, silhouette * 0.16 + thread * 0.07 + outlineBand * 0.18 + grain * 0.07 + reliefCrest * shapeAmount * surfaceBias * 0.22)
+            let edgeWeight = max(0, min(1, 0.14 + radialLayer * 0.58 + abs(rawDepth) * 0.20 + outlineBand * 0.16))
 
             values.append(Particle(
-                position: position,
+                position: SIMD3<Float>(x, y, depth),
                 seed: Float(generator.nextUnit()),
                 ridge: ridge,
-                depth: position.z,
+                depth: depth,
                 edgeWeight: edgeWeight
             ))
         }
