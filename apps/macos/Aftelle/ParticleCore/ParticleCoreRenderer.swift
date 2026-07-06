@@ -350,25 +350,25 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         let stateLift: Float
         switch state {
         case .thinking:
-            stateLift = 0.018
+            stateLift = 0.006
         case .speaking:
-            stateLift = 0.030
+            stateLift = 0.010
         case .loading:
-            stateLift = -0.014
+            stateLift = -0.006
         case .error:
             stateLift = 0
         case .exit:
-            stateLift = 0.024
+            stateLift = 0.008
         case .idle:
             stateLift = 0
         }
 
-        let x = sin(time * 0.071 + 0.8) * 0.070
-            + sin(time * 0.033 + 2.4) * 0.036
-        let y = cos(time * 0.058 + 1.1) * 0.050
-            + sin(time * 0.041 + 4.2) * 0.028
+        let x = sin(time * 0.055 + 0.8) * 0.012
+            + sin(time * 0.029 + 2.4) * 0.006
+        let y = cos(time * 0.050 + 1.1) * 0.010
+            + sin(time * 0.035 + 4.2) * 0.005
             + stateLift
-        let scale = 1 + sin(time * 0.029 + 0.6) * 0.018
+        let scale: Float = 1
         return SIMD4<Float>(x, y, scale, 0)
     }
 

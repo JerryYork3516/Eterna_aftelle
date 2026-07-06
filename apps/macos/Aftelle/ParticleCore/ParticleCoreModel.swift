@@ -65,15 +65,22 @@ struct ParticleCoreModel {
             let golden = 0.6180339887498949
             let u = (Double(index) * golden + generator.nextUnit() * 0.004).truncatingRemainder(dividingBy: 1)
             let v = (Double(index) + 0.5) / Double(count)
-            let theta = Float(u * .pi * 2)
-            let z = Float(1 - 2 * v)
+            var theta = Float(u * .pi * 2)
+            var z = Float(1 - 2 * v)
+            let densityWave = sin(theta * 2.4 + z * 4.6 + phaseA) * 0.48
+                + cos(theta * 4.1 - z * 3.2 + phaseB) * 0.34
+                + sin(theta * 6.5 + z * 2.0 + phaseC) * 0.18
+            let cluster = max(0, densityWave)
+            theta += shapeAmount * (cluster * 0.052 * sin(z * 3.1 + phaseB)
+                + sin(theta * 2.0 + phaseC) * 0.010)
+            z = min(0.985, max(-0.985, z + shapeAmount * cluster * 0.060 * cos(theta * 2.6 + phaseA)))
             let shell = sqrt(max(0, 1 - z * z))
             let unitDirection = SIMD3<Float>(
                 shell * cos(theta),
                 z,
                 shell * sin(theta)
             )
-            let radialLayer = 0.94 + pow(Float(generator.nextUnit()), 0.46) * 0.06
+            let radialLayer = 0.925 + pow(Float(generator.nextUnit()), 0.58) * 0.075
             let broadRelief = sin(theta * 2.3 + z * 3.6 + phaseA) * 0.48
                 + cos(theta * 3.7 - z * 2.8 + phaseB) * 0.34
                 + sin(theta * 5.1 + z * 1.9 + phaseC) * 0.18
@@ -86,11 +93,13 @@ struct ParticleCoreModel {
                 unitDirection.y * stretchY,
                 unitDirection.z * stretchZ
             )
-            let position = stretchedDirection * baseScale * radialLayer * max(0.72, relief)
+            let surfaceDrift = (Float(generator.nextUnit()) - 0.5) * 0.012 * (0.35 + cluster)
+            let position = stretchedDirection * baseScale * radialLayer * max(0.72, relief + surfaceDrift)
             let shellPresence: Float = 1
             let ridge = 0.05 + shellPresence * 0.17
                 + shapeAmount * reliefAmount * max(0, broadRelief) * 0.16
                 + shapeAmount * reliefAmount * foldRelief * shellPresence * 0.30
+                + cluster * 0.12
                 + Float(generator.nextUnit()) * 0.04
             let edgeWeight = 0.06 + shellPresence * 0.86
 

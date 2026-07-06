@@ -22,9 +22,9 @@ struct ParticleCoreTuning: Codable, Equatable {
     var surfaceLightStrength: Double
 
     static let systemDefault = ParticleCoreTuning(
-        globalScale: 0.36,
-        pointSizeScale: 0.46,
-        brightness: 0.76,
+        globalScale: 0.32,
+        pointSizeScale: 0.42,
+        brightness: 0.72,
         alphaScale: 0.66,
         ridgeBrightness: 0.92,
         breathingAmount: 0.58,
@@ -36,13 +36,13 @@ struct ParticleCoreTuning: Codable, Equatable {
         shapeSeed: 0.5,
         roundness: 0.54,
         surfaceReliefSize: 0.30,
-        edgeScatterAmount: 0.78,
-        edgeDustAmount: 0.88,
+        edgeScatterAmount: 0.64,
+        edgeDustAmount: 0.82,
         edgeFrayAmount: 0.86,
         surfaceLightStrength: 0.92
     )
 
-    static let storageKey = "ParticleCoreTuning.debug.v6"
+    static let storageKey = "ParticleCoreTuning.debug.v7"
 
     static func loadSaved() -> ParticleCoreTuning {
         guard let data = UserDefaults.standard.data(forKey: storageKey),
