@@ -87,7 +87,7 @@ struct ParticleCoreModel {
             let radialSeed = Float(generator.nextUnit())
             let surfaceBiasSeed = pow(surfaceSeed, 0.34)
             let volumeSeed = pow(radialSeed, 1.0 / 3.0)
-            let radialLayer = 0.16 + 0.84 * (volumeSeed * 0.54 + surfaceBiasSeed * 0.46)
+            let radialLayer = 0.58 + 0.42 * (volumeSeed * 0.28 + surfaceBiasSeed * 0.72)
             let surfaceBias = 0.30 + radialLayer * 0.70
             let fold = max(0.78, 1 + (broadRelief * reliefAmplitude + fineRelief * fineReliefAmplitude) * surfaceBias)
             var x = unitDirection.x * baseScale * cellStretchX * radialLayer * fold

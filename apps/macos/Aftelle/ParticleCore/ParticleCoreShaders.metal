@@ -722,6 +722,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float stableScreenRadius = stableRadius;
     float coreCalm = 1.0 - smoothstep(0.16, 0.50, stableScreenRadius);
     float frontDepthGate = smoothstep(-0.36, 0.14, visibleDepth);
+    float axisSurfacePresence = smoothstep(0.34, 0.04, stableScreenRadius)
+        * smoothstep(0.22, 0.74, abs(visibleDepth));
     float baseDetailGate = smoothstep(0.34, 0.64, lengthP);
     float visualDetailGate = smoothstep(0.48, 0.84, stableScreenRadius);
     float wakeDetailGate = saturate(max(min(baseDetailGate, visualDetailGate), turnWakeEnergy * 0.36));
@@ -739,6 +741,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float visibleIonCluster = ionCluster;
     float visibleStructuralSpine = structuralSpine;
     float visibleRidgeFlow = ridgeFlow;
+    visibleLayerDensity = saturate(visibleLayerDensity + axisSurfacePresence * 0.20);
+    visibleDenseSection = saturate(visibleDenseSection + axisSurfacePresence * 0.12);
+    visibleLocalRidge = saturate(visibleLocalRidge + axisSurfacePresence * 0.045);
     float calmLayerDensity = saturate(bodyEnvelope * 0.50 + visibleCloudDensity * 0.32 + ridge * 0.08 + coreCalm * 0.08);
     float calmLocalRidge = saturate(ridge * 0.18 + visibleCloudDensity * 0.10 + edgeFrayField * 0.04);
     visibleLayerDensity = mix(visibleLayerDensity, calmLayerDensity, coreCalm * 0.86);

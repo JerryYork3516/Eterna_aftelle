@@ -63,7 +63,6 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private let device: MTLDevice
     private let commandQueue: MTLCommandQueue
     private let pipelineState: MTLRenderPipelineState
-    private let depthStencilState: MTLDepthStencilState
     private let particleBuffer: MTLBuffer
     private let uniformsBuffer: MTLBuffer
     private let startTime = CACurrentMediaTime()
@@ -122,7 +121,6 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         pipelineDescriptor.vertexFunction = vertexFunction
         pipelineDescriptor.fragmentFunction = fragmentFunction
         pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
-        pipelineDescriptor.depthAttachmentPixelFormat = .depth32Float
         pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true
         pipelineDescriptor.colorAttachments[0].rgbBlendOperation = .add
         pipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add
@@ -138,14 +136,6 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             return nil
         }
 
-        let depthDescriptor = MTLDepthStencilDescriptor()
-        depthDescriptor.depthCompareFunction = .lessEqual
-        depthDescriptor.isDepthWriteEnabled = true
-        guard let depthStencilState = device.makeDepthStencilState(descriptor: depthDescriptor) else {
-            print("[ParticleCore] depthStencilState failed")
-            return nil
-        }
-
         guard let particleBuffer = device.makeBuffer(length: MemoryLayout<SIMD4<Float>>.stride * model.particles.count, options: .storageModeShared) else {
             print("[ParticleCore] vertexBuffer failed")
             return nil
@@ -158,7 +148,6 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         self.commandQueue = commandQueue
         self.particleBuffer = particleBuffer
         self.uniformsBuffer = uniformsBuffer
-        self.depthStencilState = depthStencilState
 
         super.init()
         uploadParticles()
@@ -234,7 +223,6 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         memcpy(uniformsBuffer.contents(), &uniforms, MemoryLayout<ParticleCoreFrameUniforms>.stride)
 
         encoder.setRenderPipelineState(pipelineState)
-        encoder.setDepthStencilState(depthStencilState)
         encoder.setVertexBuffer(particleBuffer, offset: 0, index: 0)
         encoder.setVertexBuffer(uniformsBuffer, offset: 0, index: 1)
         encoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: model.particles.count)
