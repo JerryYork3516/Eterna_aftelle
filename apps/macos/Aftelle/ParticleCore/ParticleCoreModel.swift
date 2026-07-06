@@ -23,7 +23,7 @@ struct ParticleCoreSeededGenerator {
 
 struct ParticleCoreModel {
     struct Particle: Hashable {
-        var position: SIMD2<Float>
+        var position: SIMD3<Float>
         var seed: Float
         var ridge: Float
         var depth: Float
@@ -77,39 +77,61 @@ struct ParticleCoreModel {
             let shapedTheta = theta
                 + shapeAmount * sin(z * 1.7 + phaseA) * 0.022
                 + shapeAmount * sin(theta * 2.0 + phaseB) * 0.014
-            let rawDepth = shell * sin(shapedTheta)
+            let unitDirection = SIMD3<Float>(
+                shell * cos(shapedTheta),
+                z,
+                shell * sin(shapedTheta)
+            )
+            let rawDepth = unitDirection.z
             let broadRelief = sin(theta * 3.0 + z * 4.5 + rawDepth * 2.0 + phaseA) * 0.52
                 + sin(theta * 5.0 - z * 2.8 + rawDepth * 3.4 + phaseB) * 0.34
                 + cos(theta * 2.0 + z * 6.2 - rawDepth * 1.6 + phaseC) * 0.28
             let fineRelief = sin(theta * 9.0 + z * 7.6 + phaseB) * 0.55
                 + cos(theta * 13.0 - rawDepth * 5.1 + phaseC) * 0.45
-            let fold = max(0.78, 1 + broadRelief * reliefAmplitude + fineRelief * fineReliefAmplitude)
-            var depth = rawDepth * fold
-            var x = shell * cos(shapedTheta) * baseScale * cellStretchX * fold
-            var y = z * baseScale * cellStretchY * fold
+            let surfaceSeed = Float(generator.nextUnit())
+            let radialSeed = Float(generator.nextUnit())
+            let isSurfaceParticle = surfaceSeed > 0.36
+            let radialLayer: Float
+            if isSurfaceParticle {
+                radialLayer = 0.86 + 0.16 * pow(radialSeed, 0.42)
+            } else {
+                radialLayer = 0.18 + 0.72 * pow(radialSeed, 1.0 / 3.0)
+            }
+            let surfaceBias = 0.30 + radialLayer * 0.70
+            let fold = max(0.78, 1 + (broadRelief * reliefAmplitude + fineRelief * fineReliefAmplitude) * surfaceBias)
+            var x = unitDirection.x * baseScale * cellStretchX * radialLayer * fold
+            var y = unitDirection.y * baseScale * cellStretchY * radialLayer * fold
+            var depth = unitDirection.z * baseScale * radialLayer * fold
             let projectedRadius = sqrt(x * x + y * y) / max(baseScale, 0.001)
             let outlineBand = max(0, min(1, (projectedRadius - 0.74) / 0.24))
-            let length = max(0.001, sqrt(x * x + y * y))
-            let outward = SIMD2<Float>(x / length, y / length)
-            let tangent = SIMD2<Float>(-outward.y, outward.x)
+            let outward = SIMD3<Float>(
+                unitDirection.x * cellStretchX,
+                unitDirection.y * cellStretchY,
+                unitDirection.z
+            )
+            let outwardLength = max(0.001, simd_length(outward))
+            let normal = outward / outwardLength
+            let planarLength = max(0.001, sqrt(normal.x * normal.x + normal.y * normal.y))
+            let planarOutward = SIMD2<Float>(normal.x / planarLength, normal.y / planarLength)
+            let tangent = SIMD2<Float>(-planarOutward.y, planarOutward.x)
             let strongScatter = generator.nextUnit() < 0.46
-            let surfaceScatter = 0.24 + outlineBand * 0.76
+            let surfaceScatter = (0.18 + radialLayer * 0.82) * (0.32 + outlineBand * 0.68)
             let radialScatter = surfaceScatter * (strongScatter ? 0.034 : 0.013) * edgeScatterScale * pow(Float(generator.nextUnit()), 1.45)
             let tangentialScatter = surfaceScatter * (Float(generator.nextUnit()) - 0.5) * 0.024 * edgeScatterScale
-            x += outward.x * radialScatter + tangent.x * tangentialScatter
-            y += outward.y * radialScatter + tangent.y * tangentialScatter
-            depth += rawDepth * radialScatter * 1.15
+            x += normal.x * radialScatter + tangent.x * tangentialScatter
+            y += normal.y * radialScatter + tangent.y * tangentialScatter
+            depth += normal.z * radialScatter
             let silhouette = max(0, min(1, 1 - abs(rawDepth) * 1.72))
             let threadA = pow(max(0, 0.5 + 0.5 * sin(theta * 3.0 + z * 4.4 + rawDepth * 2.6 + phaseA)), 4)
             let threadB = pow(max(0, 0.5 + 0.5 * sin(theta * 5.0 - z * 3.1 + phaseB)), 5)
             let grain = 0.5 + 0.5 * sin(theta * 13.0 + z * 8.7 + depth * 3.1 + phaseC)
             let thread = max(threadA, threadB)
             let reliefCrest = max(0, min(1, 0.5 + broadRelief * 0.34 + fineRelief * 0.16))
-            let ridge = min(1, silhouette * 0.18 + thread * 0.07 + outlineBand * 0.20 + grain * 0.08 + reliefCrest * shapeAmount * 0.20)
-            let edgeWeight = max(0, min(1, 0.18 + abs(rawDepth) * 0.72 + (1 - silhouette) * 0.34 + outlineBand * 0.16))
+            let ridge = min(1, silhouette * 0.16 + thread * 0.07 + outlineBand * 0.18 + grain * 0.07 + reliefCrest * shapeAmount * surfaceBias * 0.22)
+            let edgeWeight = max(0, min(1, 0.14 + radialLayer * 0.58 + abs(rawDepth) * 0.20 + outlineBand * 0.16))
 
             values.append(Particle(
-                position: SIMD2<Float>(x, y),
+                position: SIMD3<Float>(x, y, depth),
                 seed: Float(generator.nextUnit()),
                 ridge: ridge,
                 depth: depth,
@@ -122,7 +144,7 @@ struct ParticleCoreModel {
 
     var vertexPayloads: [SIMD4<Float>] {
         particles.map { particle in
-            SIMD4<Float>(particle.position.x, particle.position.y, particle.ridge, particle.depth)
+            SIMD4<Float>(particle.position.x, particle.position.y, particle.position.z, particle.ridge)
         }
     }
 

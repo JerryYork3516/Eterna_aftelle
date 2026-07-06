@@ -90,6 +90,14 @@ float2 rotate2(float2 p, float angle) {
     return float2(p.x * c - p.y * s, p.x * s + p.y * c);
 }
 
+float2 safeNormalize2(float2 value, float2 fallback) {
+    float lengthValue = length(value);
+    if (lengthValue > 0.0001) {
+        return value / lengthValue;
+    }
+    return normalize(fallback + float2(0.001, 0.001));
+}
+
 float3 rotateX(float3 p, float angle) {
     float s = sin(angle);
     float c = cos(angle);
@@ -178,7 +186,7 @@ float2 coherentDirectionField(float2 p,
                               float wave) {
     float travel = dot(p, axis);
     float cross = dot(p, side);
-    float2 radial = normalize(p + float2(0.001, 0.001));
+    float2 radial = safeNormalize2(p, axis);
     float2 tangent = float2(-radial.y, radial.x);
     float layer = 0.34 + interior * 0.44 + midBand * 0.78 + edge * 0.88;
     float roll = sin(travel * 4.1 + cross * 2.0 - time * 0.76 + depth * 1.5);
@@ -270,9 +278,11 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
                                    const device ParticleCoreFrameUniforms &uniforms [[buffer(1)]],
                                    uint vid [[vertex_id]]) {
     float4 particle = particles[vid];
-    float2 p = particle.xy;
-    float ridge = saturate(particle.z);
-    float depth = particle.w;
+    float3 modelPosition = particle.xyz;
+    float2 p = modelPosition.xy;
+    float modelDepth = modelPosition.z;
+    float ridge = saturate(particle.w);
+    float depth = modelDepth * 1.85;
     float id = float(vid);
     float t = uniforms.time;
     float lengthP = length(p);
@@ -282,11 +292,15 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float shellLayer = saturate(abs(depth) * 1.35 + edge * 0.35);
     float particleSeed = hash11(id * 12.9898 + float(uniforms.seed) * 0.017);
     float seedB = hash11(id * 4.1414 + particleSeed * 19.17);
-    float angle = atan2(p.y, p.x);
+    float2 stableFallback = float2(
+        cos(particleSeed * 6.2831853 + seedB * 1.7),
+        sin(seedB * 6.2831853 - particleSeed * 1.3)
+    );
+    float2 radial = safeNormalize2(modelPosition.xy + float2(modelDepth * 0.08, -modelDepth * 0.05), stableFallback);
+    float2 tangent = float2(-radial.y, radial.x);
+    float angle = atan2(radial.y, radial.x);
     float localPhase = particleSeed * 6.2831853 + angle * 1.15 + shellLayer * 2.4 + ridge * 0.9;
     float phaseB = seedB * 6.2831853 - angle * 0.55 + depth * 2.1;
-    float2 radial = normalize(p + float2(0.001, 0.001));
-    float2 tangent = float2(-radial.y, radial.x);
     float tuneGlobalScale = scaleAroundOne(uniforms.globalScale, 0.36);
     float tunePointSize = scaleAroundOne(uniforms.pointSizeScale, 0.82);
     float tuneBrightness = scaleAroundOne(uniforms.brightness, 0.90);
@@ -408,7 +422,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     bodyAngles.x += -tuneRotationDirection.y * directionPulse * (0.12 + tuneRotationEmphasis * 0.06);
     bodyAngles.y += tuneRotationDirection.x * directionPulse * (0.16 + tuneRotationEmphasis * 0.08);
     bodyAngles.z += (tuneRotationDirection.x + tuneRotationDirection.y * 0.40) * directionRoll * 0.05;
-    float bodyDepth = depth * 0.46 + globalWave * (0.018 + midBand * 0.052 + edge * 0.050) + centerFollow * 0.012;
+    float bodyDepth = modelDepth + globalWave * (0.018 + midBand * 0.052 + edge * 0.050) + centerFollow * 0.012;
     float3 body = float3(p.x, p.y, bodyDepth);
     float activeInterior = interior * centerMotionGate;
     float3 materialFlow = materialFlowField(body, fieldTime, particleSeed, seedB, edge, activeInterior, midBand, globalWave, globalAxis, globalSide);
@@ -432,7 +446,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 rotationOrbitAxis = rotate2(tuneRotationDirection, rotationTime * (0.36 + tuneRotationEmphasis * 0.10));
     float rotationOrbitGate = smoothstep(0.10, 0.72, lengthP) * (1.0 - smoothstep(0.94, 1.20, lengthP));
     p += rotationOrbitAxis * rotationOrbitGate * tuneRotationEmphasis * 0.022;
-    float2 viewNormal = normalize(p + float2(0.001, 0.001));
+    float2 viewNormal = safeNormalize2(p, radial);
     float3 rotatedSurfaceNormal = normalize(body + float3(0.001, 0.001, 0.001));
     float2 projectedSurfaceNormal = normalize(rotatedSurfaceNormal.xy + viewNormal * 0.18);
     float2 projectedSurfaceTangent = float2(-projectedSurfaceNormal.y, projectedSurfaceNormal.x);
@@ -485,7 +499,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float edgeFrayA = 0.5 + 0.5 * sin(angle * 7.2 + depth * 4.4 - fieldTime * 0.34 + particleSeed * 6.2831853);
     float edgeFrayB = 0.5 + 0.5 * cos(angle * 11.6 - depth * 3.6 + fieldTime * 0.26 + phaseB);
     float edgeFrayField = (0.32 + surfaceSilhouette * 0.68) * smoothstep(0.34, 0.78, edgeFrayA * 0.56 + edgeFrayB * 0.34 + seedB * 0.10);
-    float2 edgeNormal = normalize(projectedSurfaceNormal + normalize(p + float2(0.001, 0.001)) * 0.20);
+    float2 edgeNormal = normalize(projectedSurfaceNormal + safeNormalize2(p, radial) * 0.20);
     float edgeFrayAmount = edgeFrayField * (0.006 + 0.016 * seedB) * (0.76 + 0.24 * abs(globalWave)) * edgeSettle * speakingEdgeLift * tuneEdgeFray;
     p += edgeNormal * edgeFrayAmount;
     p += projectedSurfaceTangent * edgeFrayField * sin(fieldTime * 0.41 + phaseB + angle * 2.0) * (0.001 + 0.004 * particleSeed) * edgeSettle * speakingEdgeLift;
@@ -493,7 +507,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float screenCloudCurl = cos(dot(p, turnedSide) * 3.6 - body.z * 5.0 + fieldTime * 0.72 + phaseB * 0.10);
     float screenCloudStrength = activeInterior * 0.006 + midBand * 0.018 * stateFocus + edge * 0.002 * edgeSettle;
     p += (turnedAxis * screenCloudCurl + turnedSide * screenCloudRoll) * screenCloudStrength;
-    p += normalize(p + float2(0.001, 0.001)) * screenCloudRoll * (activeInterior * 0.003 + midBand * 0.012);
+    p += safeNormalize2(p, radial) * screenCloudRoll * (activeInterior * 0.003 + midBand * 0.012);
     p += (turnedAxis * sin(fieldTime * 0.33 + 0.4) * 0.018
         + turnedSide * cos(fieldTime * 0.29 + 1.2) * 0.012) * (0.34 + postSurfaceMotion * 0.66);
     float visibleWakeGate = turnWakeGate
@@ -509,7 +523,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * (1.0 - smoothstep(0.68, 0.90, stableRadius));
     float focusWave = sin(sheetTravel * 3.8 - sheetCross * 0.85 + body.z * 2.2 - fieldTime * 0.42 + globalWave);
     p += surfaceFlowAxis * focusWave * (0.006 + midBand * 0.018 + interior * 0.010) * focusGate;
-    p -= normalize(p + float2(0.001, 0.001)) * (0.008 + midBand * 0.013 + interior * 0.006) * focusGate;
+    p -= safeNormalize2(p, radial) * (0.008 + midBand * 0.013 + interior * 0.006) * focusGate;
     float loadingLoopGate = loading
         * (0.30 + interior * 0.56 + midBand * 0.66 + frontSheetGate * 0.22)
         * (1.0 - smoothstep(0.78, 1.00, stableRadius));
@@ -524,7 +538,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * loadingLayer
         * (0.004 + interior * 0.009 + midBand * 0.019 + frontSpreadGate * 0.008)
         * loadingLoopGate;
-    p += normalize(p + float2(0.001, 0.001))
+    p += safeNormalize2(p, radial)
         * (loadingCycle - 0.5)
         * (0.003 + midBand * 0.009 + interior * 0.007)
         * loadingLoopGate;
@@ -543,7 +557,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * errorStall
         * (0.007 + interior * 0.010 + midBand * 0.026)
         * errorDisruptionGate;
-    p += normalize(p + float2(0.001, 0.001))
+    p += safeNormalize2(p, radial)
         * (errorFracture - 0.5)
         * (0.007 + interior * 0.008 + midBand * 0.022)
         * errorDisruptionGate;
@@ -555,7 +569,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * smoothstep(0.48, 0.78, stableRadius)
         * (1.0 - smoothstep(0.86, 1.08, stableRadius))
         * errorEdgePulse;
-    p += normalize(p + float2(0.001, 0.001)) * errorEdgeGate * (0.014 + 0.026 * seedB);
+    p += safeNormalize2(p, radial) * errorEdgeGate * (0.014 + 0.026 * seedB);
     p += surfaceFlowSide
         * errorEdgeGate
         * sin(fieldTime * 0.34 + angle * 2.7 + phaseB)
@@ -567,7 +581,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * (0.24 + interior * 0.42 + midBand * 0.58 + edge * 0.28)
         * (1.0 - smoothstep(0.84, 1.04, stableRadius));
     float speakingPulseSigned = speakingPulse - 0.42;
-    p += normalize(p + float2(0.001, 0.001))
+    p += safeNormalize2(p, radial)
         * speakingPulseSigned
         * (0.008 + interior * 0.016 + midBand * 0.022 + edge * 0.014)
         * speakingFlowGate;
@@ -586,7 +600,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float exitRadius = saturate(lengthP / 0.78);
     float exitRingRelease = smoothstep(0.22 + exitRadius * 0.42, 1.10 + exitRadius * 0.56, exitElapsed);
     float exitLocalFade = exitState * smoothstep(1.02 + exitRadius * 0.88, 1.78 + exitRadius * 1.08, exitElapsed);
-    float2 exitOutward = normalize(p + float2(0.001, 0.001));
+    float2 exitOutward = safeNormalize2(p, radial);
     float2 exitRandom = normalize(float2(
         cos(particleSeed * 6.2831853 + seedB * 2.7),
         sin(seedB * 6.2831853 - particleSeed * 2.1)
@@ -622,7 +636,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float screenEdge = smoothstep(0.34, 0.66, length(p));
     float edgeDustA = 0.5 + 0.5 * sin(angle * 17.0 + depth * 6.4 + particleSeed * 9.7 - fieldTime * 0.20);
     float edgeDustB = 0.5 + 0.5 * cos(angle * 23.0 - depth * 5.1 + seedB * 8.3 + fieldTime * 0.18);
-    float2 screenNormal = normalize(p + float2(0.001, 0.001));
+    float2 screenNormal = safeNormalize2(p, radial);
     float2 screenTangent = float2(-screenNormal.y, screenNormal.x);
     float surfaceDustGate = 0.38 + surfaceSilhouette * 0.62;
     float radialDustGate = 0.46 + screenEdge * 0.54;
