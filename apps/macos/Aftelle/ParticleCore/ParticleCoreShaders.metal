@@ -142,7 +142,6 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
 
     float radius = length(base);
     float shell = smoothstep(0.30, 0.50, radius);
-    float core = 1.0 - smoothstep(0.04, 0.34, radius);
     float stateEnergy = saturate(uniforms.thinkingStrength * 0.20
         + uniforms.speakingStrength * 0.24
         + uniforms.loadingStrength * 0.14
@@ -167,10 +166,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     p += tangent * surfacePulse * shell * tuneFlow * (0.010 + hash11(seed * 83.0) * 0.020);
     p += normal * sin(flowTime * 0.21 + seed * 6.2831853) * (0.001 + shell * 0.010) * tuneFlow;
     float edgeNoise = sin(seed * 31.0 + flowTime * 0.18) * 0.5 + 0.5;
-    float scatter = shell * tuneEdgeScatter * (0.010 + edgeNoise * 0.050 * tuneEdgeDust);
-    p += normal * scatter * (0.20 + hash11(seed * 97.0) * 0.80);
-    p += tangent * scatter * (hash11(seed * 109.0) * 2.0 - 1.0) * 0.72;
-    p += randomVector * scatter * (hash11(seed * 131.0) * 2.0 - 1.0) * 0.38;
+    float scatter = shell * tuneEdgeScatter * (0.020 + edgeNoise * 0.115 * tuneEdgeDust);
+    p += normal * scatter * (0.35 + hash11(seed * 97.0) * 0.90);
+    p += tangent * scatter * (hash11(seed * 109.0) * 2.0 - 1.0) * 1.18;
+    p += randomVector * scatter * (hash11(seed * 131.0) * 2.0 - 1.0) * 0.72;
     p += normal * uniforms.edgeBreathing * shell * (0.65 + edgeNoise * 0.35);
 
     float turn = time * (0.03 + tuneRotation * 0.62);
@@ -190,19 +189,16 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     ParticleVertexOut out;
     float visibleDepth = clamp(p.z * 1.75, -1.0, 1.0);
     float frontness = smoothstep(-0.52, 0.58, visibleDepth);
-    float viewRadius = length(p.xy);
-    float rim = smoothstep(0.19, 0.43, viewRadius);
     float crease = pow(saturate(sin(atan2(base.z, base.x) * 3.4 + base.y * 9.8 + flowTime * 0.16) * 0.5 + 0.5), 6.0) * shell;
-    float rimCrease = crease * smoothstep(0.10, 0.42, viewRadius);
-    float litRidge = saturate(ridge * tuneRidgeBrightness * (0.64 + rim * 1.10) + rimCrease * tuneRidgeBrightness * 0.72);
-    float backLayer = mix(0.20, 0.36, rim);
-    float frontLayer = mix(0.50, 0.82, frontness);
+    float litRidge = saturate(ridge * tuneRidgeBrightness * (0.72 + frontness * 0.58) + crease * tuneRidgeBrightness * 0.54);
+    float backLayer = 0.24;
+    float frontLayer = mix(0.42, 0.88, frontness);
     float ridgeLayer = smoothstep(0.32, 0.86, litRidge);
-    float innerDust = (1.0 - rim) * shell * (0.16 + frontness * 0.18);
-    float density = saturate(0.08 + backLayer * 0.28 + frontLayer * 0.30 + innerDust + litRidge * 0.34 - core * 0.10);
-    float surfaceLight = saturate((0.10 + backLayer * 0.18 + frontLayer * 0.34 + ridgeLayer * 0.52 + sin(flowTime * 0.24 + seed * 5.2) * 0.025) * tuneSurfaceLight);
+    float surfaceLayer = mix(backLayer, frontLayer, frontness);
+    float density = saturate(0.12 + surfaceLayer * 0.42 + litRidge * 0.38);
+    float surfaceLight = saturate((0.12 + surfaceLayer * 0.50 + ridgeLayer * 0.56 + sin(flowTime * 0.24 + seed * 5.2) * 0.025) * tuneSurfaceLight);
     float size = mix(0.92, 3.60, density) * mix(0.70, 1.18, frontness);
-    size += rim * (0.24 + tuneEdgeFray * 0.18) + ridgeLayer * 1.38;
+    size += shell * (0.18 + tuneEdgeFray * 0.14) + ridgeLayer * 1.52;
 
     out.position = float4(clip, clamp(0.52 - visibleDepth * 0.26, 0.04, 0.96), 1.0);
     out.pointSize = clamp(size * tunePointSize, 0.74, 9.80);

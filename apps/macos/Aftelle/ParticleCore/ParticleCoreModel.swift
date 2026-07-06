@@ -38,8 +38,8 @@ struct ParticleCoreModel {
     init(
         count: Int = 20_000,
         seed: UInt64 = 0xA7F7E11E,
-        roundness: Float = 0.62,
-        surfaceReliefSize: Float = 0.48
+        roundness: Float = 0.54,
+        surfaceReliefSize: Float = 0.36
     ) {
         self.seed = seed
         self.roundness = min(1, max(0, roundness))
@@ -73,15 +73,7 @@ struct ParticleCoreModel {
                 z,
                 shell * sin(theta)
             )
-            let layerPick = generator.nextUnit()
-            let radialLayer: Float
-            if layerPick < 0.86 {
-                radialLayer = 0.82 + pow(Float(generator.nextUnit()), 0.34) * 0.18
-            } else if layerPick < 0.97 {
-                radialLayer = 0.62 + pow(Float(generator.nextUnit()), 0.55) * 0.26
-            } else {
-                radialLayer = 0.22 + Float(generator.nextUnit()) * 0.42
-            }
+            let radialLayer = 0.94 + pow(Float(generator.nextUnit()), 0.46) * 0.06
             let broadRelief = sin(theta * 2.3 + z * 3.6 + phaseA) * 0.48
                 + cos(theta * 3.7 - z * 2.8 + phaseB) * 0.34
                 + sin(theta * 5.1 + z * 1.9 + phaseC) * 0.18
@@ -95,8 +87,8 @@ struct ParticleCoreModel {
                 unitDirection.z * stretchZ
             )
             let position = stretchedDirection * baseScale * radialLayer * max(0.72, relief)
-            let shellPresence = max(0, min(1, (radialLayer - 0.64) / 0.30))
-            let ridge = 0.04 + shellPresence * 0.16
+            let shellPresence: Float = 1
+            let ridge = 0.05 + shellPresence * 0.17
                 + shapeAmount * reliefAmount * max(0, broadRelief) * 0.16
                 + shapeAmount * reliefAmount * foldRelief * shellPresence * 0.30
                 + Float(generator.nextUnit()) * 0.04

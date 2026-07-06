@@ -34,15 +34,15 @@ struct ParticleCoreTuning: Codable, Equatable {
         rotationSpeed: 0.32,
         rotationDirection: 1.0,
         shapeSeed: 0.5,
-        roundness: 0.62,
-        surfaceReliefSize: 0.48,
-        edgeScatterAmount: 0.48,
-        edgeDustAmount: 0.66,
+        roundness: 0.54,
+        surfaceReliefSize: 0.36,
+        edgeScatterAmount: 0.62,
+        edgeDustAmount: 0.74,
         edgeFrayAmount: 0.76,
         surfaceLightStrength: 0.84
     )
 
-    static let storageKey = "ParticleCoreTuning.debug.v4"
+    static let storageKey = "ParticleCoreTuning.debug.v5"
 
     static func loadSaved() -> ParticleCoreTuning {
         guard let data = UserDefaults.standard.data(forKey: storageKey),
