@@ -56,8 +56,8 @@ enum ParticleCoreVisualState: UInt32 {
 }
 
 final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
-    private let model: ParticleCoreModel
-    private let frameSeed: UInt32
+    private var model: ParticleCoreModel
+    private var frameSeed: UInt32
     private let device: MTLDevice
     private let commandQueue: MTLCommandQueue
     private let pipelineState: MTLRenderPipelineState
@@ -257,7 +257,13 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     }
 
     func setTuning(_ tuning: ParticleCoreTuning) {
-        self.tuning = tuning.clamped()
+        let nextTuning = tuning.clamped()
+        let nextSeed = Self.modelSeed(for: nextTuning.shapeSeed)
+        self.tuning = nextTuning
+        guard model.seed != nextSeed else { return }
+        model = ParticleCoreModel(seed: nextSeed)
+        frameSeed = Self.frameSeed(for: nextSeed)
+        uploadParticles()
     }
 
     func setColorProfile(_ colorProfile: ParticleCoreColorProfile) {
@@ -325,5 +331,14 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
 
     private func scaleAroundOne(_ value: Double, range: Float) -> Float {
         max(0, 1 + (Float(value) - 0.5) * 2 * range)
+    }
+
+    private static func modelSeed(for value: Double) -> UInt64 {
+        let bucket = UInt64((min(1, max(0, value)) * 4095).rounded())
+        return 0xA7F7E11E9E3779B9 &+ bucket &* 0x9E3779B97F4A7C15
+    }
+
+    private static func frameSeed(for seed: UInt64) -> UInt32 {
+        UInt32(truncatingIfNeeded: seed ^ (seed >> 32))
     }
 }

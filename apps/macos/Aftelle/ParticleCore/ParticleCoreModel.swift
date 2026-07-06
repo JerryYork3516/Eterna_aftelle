@@ -41,6 +41,19 @@ struct ParticleCoreModel {
 
         let candidateCount = Int(Double(count) * 1.8)
         var candidateIndex = 0
+        let phaseA = Float(generator.nextUnit() * .pi * 2)
+        let phaseB = Float(generator.nextUnit() * .pi * 2)
+        let phaseC = Float(generator.nextUnit() * .pi * 2)
+        let horizontalScale = Float(0.53 + generator.nextUnit() * 0.13)
+        let verticalScale = Float(0.39 + generator.nextUnit() * 0.11)
+        let depthShear = Float(0.035 + generator.nextUnit() * 0.090)
+        let sideBias = Float(generator.nextUnit() - 0.5) * 0.070
+        let crownTilt = Float(generator.nextUnit() - 0.5) * 0.080
+        let waistAmount = Float(generator.nextUnit() - 0.5) * 0.110
+        let foldA = Float(0.105 + generator.nextUnit() * 0.080)
+        let foldB = Float(0.060 + generator.nextUnit() * 0.070)
+        let foldC = Float(0.032 + generator.nextUnit() * 0.054)
+        let edgeScatterScale = Float(0.86 + generator.nextUnit() * 0.34)
 
         while values.count < count {
             let index = candidateIndex
@@ -51,27 +64,31 @@ struct ParticleCoreModel {
             let theta = Float(u * .pi * 2)
             let z = Float(1 - 2 * v)
             let shell = sqrt(max(0, 1 - z * z))
-            let depth = shell * sin(theta)
+            let shapedTheta = theta
+                + sin(z * 2.1 + phaseA) * 0.050
+                + sin(theta * 2.0 + phaseB) * 0.025
+            let depth = shell * sin(shapedTheta)
+            let waist = 1 + waistAmount * sin(z * 2.4 + phaseC)
             let fold = 1
-                + 0.14 * sin(theta * 3.0 + z * 4.7)
-                + 0.09 * sin(theta * 6.0 - z * 2.6)
-                + 0.05 * sin(theta * 11.0 + z * 5.1)
-            var x = (shell * cos(theta) * 0.58 + depth * 0.075) * fold
-            var y = (z * 0.44 + 0.035 * sin(theta * 2.0 + depth * 3.0)) * fold
-            let projectedRadius = sqrt(x * x / 0.62 / 0.62 + y * y / 0.48 / 0.48)
+                + foldA * sin(theta * 3.0 + z * 4.7 + phaseA)
+                + foldB * sin(theta * 6.0 - z * 2.6 + phaseB)
+                + foldC * sin(theta * 11.0 + z * 5.1 + phaseC)
+            var x = (shell * cos(shapedTheta) * horizontalScale + depth * depthShear + z * sideBias) * fold * waist
+            var y = (z * verticalScale + crownTilt * shell * cos(theta) + 0.035 * sin(theta * 2.0 + depth * 3.0 + phaseB)) * fold
+            let projectedRadius = sqrt(x * x / (horizontalScale + 0.04) / (horizontalScale + 0.04) + y * y / (verticalScale + 0.04) / (verticalScale + 0.04))
             let outlineBand = max(0, min(1, (projectedRadius - 0.62) / 0.32))
             let length = max(0.001, sqrt(x * x + y * y))
             let outward = SIMD2<Float>(x / length, y / length)
             let tangent = SIMD2<Float>(-outward.y, outward.x)
             let strongScatter = generator.nextUnit() < 0.46
-            let radialScatter = outlineBand * (strongScatter ? 0.105 : 0.034) * pow(Float(generator.nextUnit()), 1.45)
-            let tangentialScatter = outlineBand * (Float(generator.nextUnit()) - 0.5) * 0.048
+            let radialScatter = outlineBand * (strongScatter ? 0.105 : 0.034) * edgeScatterScale * pow(Float(generator.nextUnit()), 1.45)
+            let tangentialScatter = outlineBand * (Float(generator.nextUnit()) - 0.5) * 0.048 * edgeScatterScale
             x += outward.x * radialScatter + tangent.x * tangentialScatter
             y += outward.y * radialScatter + tangent.y * tangentialScatter
             let silhouette = max(0, min(1, 1 - abs(depth) * 1.85))
-            let threadA = pow(max(0, 0.5 + 0.5 * sin(theta * 3.0 + z * 4.4 + depth * 2.6)), 4)
-            let threadB = pow(max(0, 0.5 + 0.5 * sin(theta * 5.0 - z * 3.1)), 5)
-            let grain = 0.5 + 0.5 * sin(theta * 13.0 + z * 8.7 + depth * 3.1)
+            let threadA = pow(max(0, 0.5 + 0.5 * sin(theta * 3.0 + z * 4.4 + depth * 2.6 + phaseA)), 4)
+            let threadB = pow(max(0, 0.5 + 0.5 * sin(theta * 5.0 - z * 3.1 + phaseB)), 5)
+            let grain = 0.5 + 0.5 * sin(theta * 13.0 + z * 8.7 + depth * 3.1 + phaseC)
             let thread = max(threadA, threadB)
             let ridge = min(1, silhouette * 0.24 + thread * 0.08 + outlineBand * 0.22 + grain * 0.10)
             let edgeWeight = max(0, min(1, 0.18 + abs(depth) * 0.72 + (1 - silhouette) * 0.34 + outlineBand * 0.16))

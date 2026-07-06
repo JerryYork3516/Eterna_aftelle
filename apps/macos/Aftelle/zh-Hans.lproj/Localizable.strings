@@ -40,6 +40,7 @@
 "particleDebug.parameter.flowSpeed" = "表面流动速度";
 "particleDebug.parameter.rotationSpeed" = "整体旋转速度";
 "particleDebug.parameter.rotationDirection" = "整体旋转方向";
+"particleDebug.parameter.shapeSeed" = "整体形状 Seed";
 "particleDebug.parameter.edgeDustAmount" = "边缘微尘";
 "particleDebug.parameter.edgeFrayAmount" = "边缘毛边";
 "particleDebug.parameter.surfaceLightStrength" = "表面光强";

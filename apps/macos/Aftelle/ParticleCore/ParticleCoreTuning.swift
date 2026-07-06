@@ -13,6 +13,7 @@ struct ParticleCoreTuning: Codable, Equatable {
     var flowSpeed: Double
     var rotationSpeed: Double
     var rotationDirection: Double
+    var shapeSeed: Double
     var edgeDustAmount: Double
     var edgeFrayAmount: Double
     var surfaceLightStrength: Double
@@ -29,6 +30,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         flowSpeed: 0.5,
         rotationSpeed: 0.5,
         rotationDirection: 1.0,
+        shapeSeed: 0.5,
         edgeDustAmount: 0.5,
         edgeFrayAmount: 0.5,
         surfaceLightStrength: 0.5
@@ -78,6 +80,7 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case flowSpeed
     case rotationSpeed
     case rotationDirection
+    case shapeSeed
     case edgeDustAmount
     case edgeFrayAmount
     case surfaceLightStrength
@@ -112,6 +115,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.rotationSpeed
         case .rotationDirection:
             return \.rotationDirection
+        case .shapeSeed:
+            return \.shapeSeed
         case .edgeDustAmount:
             return \.edgeDustAmount
         case .edgeFrayAmount:
@@ -119,6 +124,45 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
         case .surfaceLightStrength:
             return \.surfaceLightStrength
         }
+    }
+}
+
+extension ParticleCoreTuning {
+    private enum CodingKeys: String, CodingKey {
+        case globalScale
+        case pointSizeScale
+        case brightness
+        case alphaScale
+        case ridgeBrightness
+        case breathingAmount
+        case breathingSpeed
+        case flowStrength
+        case flowSpeed
+        case rotationSpeed
+        case rotationDirection
+        case shapeSeed
+        case edgeDustAmount
+        case edgeFrayAmount
+        case surfaceLightStrength
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.globalScale = try container.decode(Double.self, forKey: .globalScale)
+        self.pointSizeScale = try container.decode(Double.self, forKey: .pointSizeScale)
+        self.brightness = try container.decode(Double.self, forKey: .brightness)
+        self.alphaScale = try container.decode(Double.self, forKey: .alphaScale)
+        self.ridgeBrightness = try container.decode(Double.self, forKey: .ridgeBrightness)
+        self.breathingAmount = try container.decode(Double.self, forKey: .breathingAmount)
+        self.breathingSpeed = try container.decode(Double.self, forKey: .breathingSpeed)
+        self.flowStrength = try container.decode(Double.self, forKey: .flowStrength)
+        self.flowSpeed = try container.decode(Double.self, forKey: .flowSpeed)
+        self.rotationSpeed = try container.decode(Double.self, forKey: .rotationSpeed)
+        self.rotationDirection = try container.decode(Double.self, forKey: .rotationDirection)
+        self.shapeSeed = try container.decodeIfPresent(Double.self, forKey: .shapeSeed) ?? Self.systemDefault.shapeSeed
+        self.edgeDustAmount = try container.decode(Double.self, forKey: .edgeDustAmount)
+        self.edgeFrayAmount = try container.decode(Double.self, forKey: .edgeFrayAmount)
+        self.surfaceLightStrength = try container.decode(Double.self, forKey: .surfaceLightStrength)
     }
 }
 
