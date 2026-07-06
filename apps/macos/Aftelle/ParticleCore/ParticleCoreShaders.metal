@@ -66,6 +66,21 @@ float scale300(float value) {
     return saturate(value) * 3.0;
 }
 
+float2 safeNormalize2(float2 value, float2 fallback) {
+    float lengthValue = length(value);
+    if (lengthValue > 0.0001) {
+        return value / lengthValue;
+    }
+    return normalize(fallback + float2(0.001, 0.001));
+}
+
+float2 globalFlowAxis(float time) {
+    return normalize(float2(
+        cos(time * 0.24 + 0.8) + sin(time * 0.11 + 2.1) * 0.34,
+        sin(time * 0.21 + 1.2) + cos(time * 0.15 + 0.4) * 0.28
+    ) + float2(0.001, 0.001));
+}
+
 float2 cardinalDirection(float value) {
     float bucket = floor(saturate(value) * 3.0 + 0.5);
     if (bucket < 0.5) {
@@ -134,7 +149,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneBreathing = scale300(uniforms.breathingAmount);
     float tuneFlow = scale300(uniforms.flowStrength);
     float tuneRotation = scale300(uniforms.rotationSpeed);
-    float tuneEdgeScatter = saturate(uniforms.edgeScatterAmount);
+    float tuneEdgeScatter = 0.16 + scale300(uniforms.edgeScatterAmount) * 1.18;
     float tuneEdgeDust = max(0.10, scale300(uniforms.edgeDustAmount));
     float tuneEdgeFray = max(0.10, scale300(uniforms.edgeFrayAmount));
     float tuneSurfaceLight = max(0.08, scale300(uniforms.surfaceLightStrength));
@@ -161,15 +176,28 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         hash11(seed * 67.0 + 4.1) * 2.0 - 1.0
     ));
     float3 tangent = normalize(cross(normal, randomVector) + float3(0.001, 0.002, 0.003));
+    float2 flowAxis2 = globalFlowAxis(flowTime);
+    float2 flowSide2 = float2(-flowAxis2.y, flowAxis2.x);
+    float surfaceWave = sin(dot(base.xy, flowAxis2) * 7.0
+        + dot(base.xy, flowSide2) * 2.4
+        + base.z * 4.2
+        - flowTime * 0.92);
+    float surfaceRoll = cos(dot(base.xy, flowSide2) * 6.2
+        - dot(base.xy, flowAxis2) * 1.8
+        + base.z * 3.0
+        + flowTime * 0.70);
     float surfacePulse = sin(flowTime * (0.54 + seed * 0.42) + seed * 19.0);
-    p += lifeField(base, flowTime, seed) * (0.10 + shell * 0.82) * tuneFlow * (1.0 + stateEnergy * 0.50);
-    p += tangent * surfacePulse * shell * tuneFlow * (0.010 + hash11(seed * 83.0) * 0.020);
-    p += normal * sin(flowTime * 0.21 + seed * 6.2831853) * (0.001 + shell * 0.010) * tuneFlow;
+    p += lifeField(base, flowTime, seed) * (0.16 + shell * 0.90) * tuneFlow * (1.0 + stateEnergy * 0.50);
+    p += float3(flowAxis2, 0.0) * surfaceWave * shell * tuneFlow * (0.012 + hash11(seed * 83.0) * 0.018);
+    p += float3(flowSide2, 0.0) * surfaceRoll * shell * tuneFlow * (0.006 + hash11(seed * 89.0) * 0.012);
+    p += tangent * surfacePulse * shell * tuneFlow * (0.010 + hash11(seed * 91.0) * 0.018);
+    p += normal * sin(flowTime * 0.21 + seed * 6.2831853) * (0.001 + shell * 0.008) * tuneFlow;
     float edgeNoise = sin(seed * 31.0 + flowTime * 0.18) * 0.5 + 0.5;
-    float scatter = shell * tuneEdgeScatter * (0.020 + edgeNoise * 0.115 * tuneEdgeDust);
-    p += normal * scatter * (0.35 + hash11(seed * 97.0) * 0.90);
-    p += tangent * scatter * (hash11(seed * 109.0) * 2.0 - 1.0) * 1.18;
-    p += randomVector * scatter * (hash11(seed * 131.0) * 2.0 - 1.0) * 0.72;
+    float scatter = shell * tuneEdgeScatter * (0.006 + edgeNoise * 0.026 * tuneEdgeDust);
+    float3 scatterTangent = normalize(tangent + float3(flowSide2, 0.0) * 0.55 + float3(0.002, 0.001, 0.003));
+    p += normal * scatter * (0.28 + hash11(seed * 97.0) * 0.48);
+    p += scatterTangent * scatter * (hash11(seed * 109.0) * 2.0 - 1.0) * 1.72;
+    p += randomVector * scatter * (hash11(seed * 131.0) * 2.0 - 1.0) * 1.18;
     p += normal * uniforms.edgeBreathing * shell * (0.65 + edgeNoise * 0.35);
 
     float turn = time * (0.03 + tuneRotation * 0.62);
@@ -185,20 +213,31 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 projected = p.xy * perspective * tuneGlobalScale * uniforms.bodyTransform.z;
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);
     float2 clip = float2(projected.x / aspect, projected.y) + uniforms.bodyTransform.xy;
+    float2 mouseDelta = clip - uniforms.mousePosition;
+    float mouseDistance = length(mouseDelta);
+    float2 mouseRadial = safeNormalize2(mouseDelta, flowAxis2);
+    float2 mouseTangent = float2(-mouseRadial.y, mouseRadial.x);
+    float mouseField = (1.0 - smoothstep(0.03, 0.56, mouseDistance)) * uniforms.mouseInfluence * shell;
+    float mouseSwirl = clamp(dot(uniforms.mouseVelocity, mouseTangent) * 0.12, -1.0, 1.0);
+    clip += mouseRadial * mouseField * 0.050;
+    clip += mouseTangent * mouseField * mouseSwirl * 0.030;
 
     ParticleVertexOut out;
     float visibleDepth = clamp(p.z * 1.75, -1.0, 1.0);
-    float frontness = smoothstep(-0.52, 0.58, visibleDepth);
+    float frontness = smoothstep(-0.56, 0.50, visibleDepth);
+    float projectedRadius = length(projected);
+    float frontSurfaceFill = smoothstep(-0.10, 0.82, visibleDepth) * (1.0 - smoothstep(0.10, 0.54, projectedRadius));
+    float flowWake = saturate(abs(surfaceWave) * 0.42 + abs(surfaceRoll) * 0.24);
     float crease = pow(saturate(sin(atan2(base.z, base.x) * 3.4 + base.y * 9.8 + flowTime * 0.16) * 0.5 + 0.5), 6.0) * shell;
     float litRidge = saturate(ridge * tuneRidgeBrightness * (0.72 + frontness * 0.58) + crease * tuneRidgeBrightness * 0.54);
-    float backLayer = 0.24;
-    float frontLayer = mix(0.42, 0.88, frontness);
+    float backLayer = 0.20;
+    float frontLayer = mix(0.46, 0.94, frontness);
     float ridgeLayer = smoothstep(0.32, 0.86, litRidge);
     float surfaceLayer = mix(backLayer, frontLayer, frontness);
-    float density = saturate(0.12 + surfaceLayer * 0.42 + litRidge * 0.38);
-    float surfaceLight = saturate((0.12 + surfaceLayer * 0.50 + ridgeLayer * 0.56 + sin(flowTime * 0.24 + seed * 5.2) * 0.025) * tuneSurfaceLight);
-    float size = mix(0.92, 3.60, density) * mix(0.70, 1.18, frontness);
-    size += shell * (0.18 + tuneEdgeFray * 0.14) + ridgeLayer * 1.52;
+    float density = saturate(0.18 + surfaceLayer * 0.44 + frontSurfaceFill * 0.30 + litRidge * 0.42 + flowWake * 0.08 + mouseField * 0.20);
+    float surfaceLight = saturate((0.18 + surfaceLayer * 0.50 + frontSurfaceFill * 0.34 + ridgeLayer * 0.60 + flowWake * 0.16 + mouseField * 0.28 + sin(flowTime * 0.24 + seed * 5.2) * 0.025) * tuneSurfaceLight);
+    float size = mix(1.08, 3.90, density) * mix(0.82, 1.22, frontness);
+    size += shell * (0.16 + tuneEdgeFray * 0.13) + ridgeLayer * 1.78 + frontSurfaceFill * 0.34 + mouseField * 0.58;
 
     out.position = float4(clip, clamp(0.52 - visibleDepth * 0.26, 0.04, 0.96), 1.0);
     out.pointSize = clamp(size * tunePointSize, 0.74, 9.80);
@@ -229,15 +268,15 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
 
     float coverage = saturate(core * (0.64 + density * 0.72)
         + halo * (0.12 + density * 0.26));
-    coverage *= mix(0.24, 1.0, frontness);
-    coverage *= mix(0.72, 1.0, light);
+    coverage *= mix(0.34, 1.0, frontness);
+    coverage *= mix(0.82, 1.0, light);
 
     half3 dimColor = half3(in.dimColor.rgb);
     half3 baseColor = half3(in.baseColor.rgb);
     half3 ridgeColor = half3(in.ridgeColor.rgb);
     half3 highlightColor = half3(in.highlightColor.rgb);
-    half3 bodyColor = mix(dimColor, baseColor, half(0.20 + frontness * 0.42));
-    half3 litColor = mix(bodyColor, highlightColor, half(saturate(light * 0.74 + ridge * 0.36)));
+    half3 bodyColor = mix(dimColor, baseColor, half(0.26 + frontness * 0.48));
+    half3 litColor = mix(bodyColor, highlightColor, half(saturate(light * 0.78 + ridge * 0.38)));
     half3 color = mix(litColor, ridgeColor, half(ridge * frontness * 0.32));
 
     color *= half(max(0.0, in.brightness));
