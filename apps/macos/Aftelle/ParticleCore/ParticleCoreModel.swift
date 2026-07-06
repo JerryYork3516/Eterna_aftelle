@@ -83,16 +83,11 @@ struct ParticleCoreModel {
                 + cos(theta * 2.0 + z * 6.2 - rawDepth * 1.6 + phaseC) * 0.28
             let fineRelief = sin(theta * 9.0 + z * 7.6 + phaseB) * 0.55
                 + cos(theta * 13.0 - rawDepth * 5.1 + phaseC) * 0.45
-            let layerSelector = Float(generator.nextUnit())
-            let layerSeed = Float(generator.nextUnit())
-            let radialLayer: Float
-            if layerSelector < 0.24 {
-                radialLayer = 0.07 + 0.42 * pow(layerSeed, 0.72)
-            } else if layerSelector < 0.78 {
-                radialLayer = 0.30 + 0.46 * pow(layerSeed, 0.86)
-            } else {
-                radialLayer = 0.66 + 0.34 * pow(layerSeed, 0.42)
-            }
+            let surfaceSeed = Float(generator.nextUnit())
+            let radialSeed = Float(generator.nextUnit())
+            let surfaceBiasSeed = pow(surfaceSeed, 0.34)
+            let volumeSeed = pow(radialSeed, 1.0 / 3.0)
+            let radialLayer = 0.16 + 0.84 * (volumeSeed * 0.54 + surfaceBiasSeed * 0.46)
             let surfaceBias = 0.30 + radialLayer * 0.70
             let fold = max(0.78, 1 + (broadRelief * reliefAmplitude + fineRelief * fineReliefAmplitude) * surfaceBias)
             var x = unitDirection.x * baseScale * cellStretchX * radialLayer * fold
