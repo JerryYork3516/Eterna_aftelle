@@ -87,7 +87,10 @@ struct ParticleCoreModel {
             let radialSeed = Float(generator.nextUnit())
             let surfaceBiasSeed = pow(surfaceSeed, 0.34)
             let volumeSeed = pow(radialSeed, 1.0 / 3.0)
-            let radialLayer = 0.58 + 0.42 * (volumeSeed * 0.28 + surfaceBiasSeed * 0.72)
+            let shellLayer = 0.56 + 0.44 * (volumeSeed * 0.24 + surfaceBiasSeed * 0.76)
+            let coreDustSeed = Float(generator.nextUnit())
+            let coreDustLayer = 0.30 + 0.32 * pow(Float(generator.nextUnit()), 0.72)
+            let radialLayer = coreDustSeed < 0.16 ? coreDustLayer : shellLayer
             let surfaceBias = 0.30 + radialLayer * 0.70
             let fold = max(0.78, 1 + (broadRelief * reliefAmplitude + fineRelief * fineReliefAmplitude) * surfaceBias)
             var x = unitDirection.x * baseScale * cellStretchX * radialLayer * fold

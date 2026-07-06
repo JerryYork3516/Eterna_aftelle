@@ -722,8 +722,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float stableScreenRadius = stableRadius;
     float coreCalm = 1.0 - smoothstep(0.16, 0.50, stableScreenRadius);
     float frontDepthGate = smoothstep(-0.36, 0.14, visibleDepth);
-    float axisSurfacePresence = smoothstep(0.34, 0.04, stableScreenRadius)
-        * smoothstep(0.22, 0.74, abs(visibleDepth));
+    float axisSurfacePresence = smoothstep(0.42, 0.04, stableScreenRadius)
+        * (0.18 + 0.82 * smoothstep(0.18, 0.76, abs(visibleDepth)));
     float baseDetailGate = smoothstep(0.34, 0.64, lengthP);
     float visualDetailGate = smoothstep(0.48, 0.84, stableScreenRadius);
     float wakeDetailGate = saturate(max(min(baseDetailGate, visualDetailGate), turnWakeEnergy * 0.36));
@@ -749,6 +749,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     visibleLayerDensity = mix(visibleLayerDensity, calmLayerDensity, coreCalm * 0.86);
     visibleLocalRidge = mix(visibleLocalRidge, calmLocalRidge, coreCalm * 0.88);
     visibleDenseSection = mix(visibleDenseSection, saturate(visibleCloudDensity * 0.50 + bodyEnvelope * 0.30), coreCalm * 0.72);
+    float innerDustPresence = coreCalm * (0.08 + axisSurfacePresence * 0.34 + visibleCloudDensity * 0.08);
+    visibleLayerDensity = saturate(visibleLayerDensity + innerDustPresence * 0.11);
+    visibleDenseSection = saturate(visibleDenseSection + innerDustPresence * 0.035);
+    visibleLocalRidge = saturate(visibleLocalRidge + axisSurfacePresence * 0.012 + coreCalm * visibleCloudDensity * 0.008);
     visibleSparseCavity *= 1.0 - coreCalm * 0.86;
     visibleIonCluster *= 1.0 - coreCalm * 0.82;
     visibleStructuralSpine *= 1.0 - coreCalm * 0.78;
@@ -857,7 +861,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float depthVisibilitySize = mix(0.76, 1.34, frontParticleLift) * mix(1.0, 0.82, backParticleMute);
     float layeredPointSize = pointBase * sizeJitter * depthSize * depthVisibilitySize
         + ridgeSizeLift * (0.84 + frontParticleLift * 0.78);
-    layeredPointSize = mix(layeredPointSize, layeredPointSize * 0.78 + 1.42, coreCalm * 0.52);
+    layeredPointSize = mix(layeredPointSize, layeredPointSize * 0.72 + 0.98, coreCalm * 0.44);
     float exitPointScale = mix(1.0, 0.56 + dustRelease * 0.16, exitDim);
     exitPointScale *= mix(1.0, 0.84, exitState * exitBreakAmount);
     out.pointSize = clamp(layeredPointSize, 1.70 + frontSizeLift * 0.24, pointCeiling + ridgeSizeLift * 1.12) * 1.24 * exitPointScale * tunePointSize;
