@@ -293,10 +293,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneRidgeBrightness = scaleAroundOne(uniforms.ridgeBrightness, 1.10);
     float tuneFlowStrength = scaleAroundOne(uniforms.flowStrength, 1.10);
     float tuneFlowSpeed = scaleAroundOne(uniforms.flowSpeed, 1.20);
-    float tuneRotationSpeed = scaleAroundOne(uniforms.rotationSpeed, 1.40);
+    float tuneRotationSpeed = saturate(uniforms.rotationSpeed);
     float2 tuneRotationDirection = cardinalDirection(uniforms.rotationDirection);
     float tuneRotationPhase = atan2(tuneRotationDirection.y, tuneRotationDirection.x);
-    float tuneRotationDelta = abs(saturate(uniforms.rotationSpeed) - 0.5) * 2.0;
+    float tuneRotationEmphasis = tuneRotationSpeed * tuneRotationSpeed;
     float tuneEdgeDust = scaleAroundOne(uniforms.edgeDustAmount, 1.20);
     float tuneEdgeFray = scaleAroundOne(uniforms.edgeFrayAmount, 1.20);
     float tuneSurfaceLight = scaleAroundOne(uniforms.surfaceLightStrength, 1.00);
@@ -386,8 +386,16 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * sin(dot(p, globalAxis) * 3.8 + dot(p, globalSide) * 2.6 - fieldTime * 0.74 + localPhase);
     p += (globalAxis * centerFollow + globalSide * centerFollow * 0.45) * (0.006 + midBand * 0.014);
 
-    float rotationTime = fieldTime * tuneRotationSpeed;
+    float rotationTime = t * (0.20 + tuneRotationSpeed * 5.40);
     float rotationPhaseTime = rotationTime + tuneRotationPhase;
+    float directionPulse = sin(rotationTime * 0.72 + tuneRotationPhase);
+    float directionRoll = cos(rotationTime * 0.43 + tuneRotationPhase);
+    float selfSpinAngle = t * tuneRotationSpeed * 5.40 + tuneRotationPhase;
+    float3 selfSpinAngles = float3(
+        -tuneRotationDirection.y * selfSpinAngle,
+        tuneRotationDirection.x * selfSpinAngle,
+        0.0
+    );
     float turnAngle = globalTurnAngle(rotationPhaseTime);
     float turnChangePulse = globalTurnChangePulse(rotationPhaseTime);
     float3 bodyAngles = float3(
@@ -395,6 +403,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         turnAngle * 0.72 + sin(rotationPhaseTime * 0.24 + 0.6) * 0.18,
         sin(rotationPhaseTime * 0.19 + 0.8) * 0.16 + sin(rotationPhaseTime * 0.11 + 2.4) * 0.08 - turnChangePulse * 0.06
     );
+    bodyAngles.x += -tuneRotationDirection.y * directionPulse * (0.12 + tuneRotationEmphasis * 0.06);
+    bodyAngles.y += tuneRotationDirection.x * directionPulse * (0.16 + tuneRotationEmphasis * 0.08);
+    bodyAngles.z += (tuneRotationDirection.x + tuneRotationDirection.y * 0.40) * directionRoll * 0.05;
     float bodyDepth = depth * 0.46 + globalWave * (0.018 + midBand * 0.052 + edge * 0.050) + centerFollow * 0.012;
     float3 body = float3(p.x, p.y, bodyDepth);
     float activeInterior = interior * centerMotionGate;
@@ -407,18 +418,21 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + cloudFlow * (1.68 + activeInterior * 0.20 + midBand * 0.48);
     body += materialFlow * (0.62 + activeInterior * 0.08 + midBand * 0.28)
         + cloudFlow * (1.22 + activeInterior * 0.14 + midBand * 0.50);
+    materialBody = rotateBody(materialBody, selfSpinAngles);
+    body = rotateBody(body, selfSpinAngles);
     body = rotateBody(body, bodyAngles);
     float perspective = clamp(1.0 / (1.0 - body.z * 0.30), 0.84, 1.20);
     p = body.xy * perspective;
     float wholeTurn = globalTurnAngle(rotationPhaseTime * 0.36 + 6.4) * 0.22
         + sin(rotationPhaseTime * 0.19 + 1.7) * 0.08;
+    wholeTurn += (tuneRotationDirection.x - tuneRotationDirection.y) * sin(rotationTime * 0.34 + 0.8) * 0.045 * tuneRotationEmphasis;
     p = rotate2(p, wholeTurn);
-    float2 rotationOrbitAxis = rotate2(tuneRotationDirection, rotationTime * 0.22);
+    float2 rotationOrbitAxis = rotate2(tuneRotationDirection, rotationTime * (0.36 + tuneRotationEmphasis * 0.10));
     float rotationOrbitGate = smoothstep(0.10, 0.72, lengthP) * (1.0 - smoothstep(0.94, 1.20, lengthP));
-    p += rotationOrbitAxis * rotationOrbitGate * tuneRotationDelta * tuneRotationSpeed * 0.010;
+    p += rotationOrbitAxis * rotationOrbitGate * tuneRotationEmphasis * 0.022;
     float2 stableScreenPosition = p;
     float stableRadius = length(stableScreenPosition);
-    float3 axis3 = rotateBody(float3(globalAxis.x, globalAxis.y, 0.0), bodyAngles);
+    float3 axis3 = rotateBody(rotateBody(float3(globalAxis.x, globalAxis.y, 0.0), selfSpinAngles), bodyAngles);
     float2 turnedAxis = normalize(axis3.xy + float2(0.001, 0.001));
     float2 turnedSide = float2(-turnedAxis.y, turnedAxis.x);
     float2 surfaceFlowAxis = globalDirection(fieldTime * 0.91 + 5.8);
@@ -448,7 +462,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float edgeFrayA = 0.5 + 0.5 * sin(angle * 7.2 + depth * 4.4 - fieldTime * 0.34 + particleSeed * 6.2831853);
     float edgeFrayB = 0.5 + 0.5 * cos(angle * 11.6 - depth * 3.6 + fieldTime * 0.26 + phaseB);
     float edgeFrayField = edge * smoothstep(0.34, 0.78, edgeFrayA * 0.56 + edgeFrayB * 0.34 + seedB * 0.10);
-    float3 edgeNormal3 = rotateBody(float3(radial.x, radial.y, depth * 0.20), bodyAngles);
+    float3 edgeNormal3 = rotateBody(rotateBody(float3(radial.x, radial.y, depth * 0.20), selfSpinAngles), bodyAngles);
     float2 edgeNormal = normalize(edgeNormal3.xy + normalize(p + float2(0.001, 0.001)) * 0.35);
     float edgeFrayAmount = edgeFrayField * (0.006 + 0.016 * seedB) * (0.76 + 0.24 * abs(globalWave)) * edgeSettle * speakingEdgeLift * tuneEdgeFray;
     p += edgeNormal * edgeFrayAmount;
