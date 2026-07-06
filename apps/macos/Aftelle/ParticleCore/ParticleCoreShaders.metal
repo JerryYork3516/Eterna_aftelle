@@ -62,8 +62,8 @@ float hash11(float value) {
     return fract(sin(value) * 43758.5453123);
 }
 
-float scaleAroundOne(float value, float range) {
-    return max(0.0, 1.0 + (saturate(value) - 0.5) * 2.0 * range);
+float scale200(float value) {
+    return saturate(value) * 2.0;
 }
 
 float2 cardinalDirection(float value) {
@@ -125,19 +125,19 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float id = float(vid);
     float seed = hash11(id * 12.9898 + float(uniforms.seed) * 0.017);
     float time = uniforms.time;
-    float flowTime = time * scaleAroundOne(uniforms.flowSpeed, 1.20);
-    float tuneGlobalScale = scaleAroundOne(uniforms.globalScale, 0.36);
-    float tunePointSize = scaleAroundOne(uniforms.pointSizeScale, 0.82);
-    float tuneBrightness = scaleAroundOne(uniforms.brightness, 0.90);
-    float tuneAlpha = scaleAroundOne(uniforms.alphaScale, 0.90);
-    float tuneRidgeBrightness = scaleAroundOne(uniforms.ridgeBrightness, 1.10);
-    float tuneBreathing = scaleAroundOne(uniforms.breathingAmount, 1.20);
-    float tuneFlow = scaleAroundOne(uniforms.flowStrength, 1.10);
-    float tuneRotation = saturate(uniforms.rotationSpeed);
-    float tuneEdgeScatter = 0.25 + saturate(uniforms.edgeScatterAmount) * 2.60;
-    float tuneEdgeDust = scaleAroundOne(uniforms.edgeDustAmount, 1.20);
-    float tuneEdgeFray = scaleAroundOne(uniforms.edgeFrayAmount, 1.20);
-    float tuneSurfaceLight = scaleAroundOne(uniforms.surfaceLightStrength, 1.00);
+    float flowTime = time * max(0.18, scale200(uniforms.flowSpeed));
+    float tuneGlobalScale = max(0.18, scale200(uniforms.globalScale));
+    float tunePointSize = max(0.25, scale200(uniforms.pointSizeScale));
+    float tuneBrightness = max(0.08, scale200(uniforms.brightness));
+    float tuneAlpha = max(0.08, scale200(uniforms.alphaScale));
+    float tuneRidgeBrightness = max(0.10, scale200(uniforms.ridgeBrightness));
+    float tuneBreathing = scale200(uniforms.breathingAmount);
+    float tuneFlow = scale200(uniforms.flowStrength);
+    float tuneRotation = scale200(uniforms.rotationSpeed);
+    float tuneEdgeScatter = 0.20 + saturate(uniforms.edgeScatterAmount) * 3.80;
+    float tuneEdgeDust = max(0.18, scale200(uniforms.edgeDustAmount));
+    float tuneEdgeFray = max(0.18, scale200(uniforms.edgeFrayAmount));
+    float tuneSurfaceLight = max(0.10, scale200(uniforms.surfaceLightStrength));
     float2 rotationDirection = cardinalDirection(uniforms.rotationDirection);
 
     float radius = length(base);
@@ -149,19 +149,20 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + uniforms.errorStrength * 0.18);
 
     float breath = 1.0
-        + (sin(flowTime * 0.32) * 0.022
-        + sin(flowTime * 0.17 + seed * 3.1) * 0.010
-        + uniforms.breathing * 0.42) * tuneBreathing;
-    breath += stateEnergy * 0.020 * tuneBreathing;
+        + (sin(flowTime * 0.32) * 0.030
+        + sin(flowTime * 0.17 + seed * 3.1) * 0.012
+        + uniforms.breathing * 0.58) * tuneBreathing;
+    breath += stateEnergy * 0.026 * tuneBreathing;
 
     float3 p = base * breath;
-    p += lifeField(base, flowTime, seed) * (0.55 + shell * 0.45) * tuneFlow * (1.0 + stateEnergy * 0.50);
-    p += base * sin(flowTime * 0.21 + seed * 6.2831853) * (0.004 + shell * 0.010) * tuneFlow;
+    p += lifeField(base, flowTime, seed) * (0.42 + shell * 0.78) * tuneFlow * (1.0 + stateEnergy * 0.50);
+    p += base * sin(flowTime * 0.21 + seed * 6.2831853) * (0.005 + shell * 0.017) * tuneFlow;
     float edgeNoise = sin(seed * 31.0 + flowTime * 0.18) * 0.5 + 0.5;
-    float edgeLift = shell * tuneEdgeScatter * (0.002 + edgeNoise * 0.010 * tuneEdgeDust);
+    float edgeLift = shell * tuneEdgeScatter * (0.002 + edgeNoise * 0.014 * tuneEdgeDust);
     p += normalize(base + float3(0.001, 0.001, 0.001)) * edgeLift;
+    p += normalize(base + float3(0.001, 0.001, 0.001)) * uniforms.edgeBreathing * shell * (0.65 + edgeNoise * 0.35);
 
-    float turn = time * (0.08 + tuneRotation * 1.40);
+    float turn = time * (0.04 + tuneRotation * 0.95);
     float directionPhase = atan2(rotationDirection.y, rotationDirection.x);
     float3 angles = float3(
         sin(time * 0.13 + 0.7) * 0.12 + -rotationDirection.y * turn * 0.72,
@@ -171,23 +172,25 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     p = rotateBody(p, angles);
 
     float perspective = clamp(1.0 / (1.0 - p.z * 0.38), 0.78, 1.28);
-    float2 projected = p.xy * perspective * tuneGlobalScale;
+    float2 projected = p.xy * perspective * tuneGlobalScale * uniforms.bodyTransform.z;
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);
     float2 clip = float2(projected.x / aspect, projected.y) + uniforms.bodyTransform.xy;
 
     ParticleVertexOut out;
     float visibleDepth = clamp(p.z * 1.75, -1.0, 1.0);
     float frontness = smoothstep(-0.52, 0.58, visibleDepth);
-    float density = saturate(0.38 + core * 0.10 + shell * 0.28 + frontness * 0.24 + ridge * tuneRidgeBrightness * 0.12);
-    float surfaceLight = saturate((0.32 + frontness * 0.46 + shell * 0.12 + sin(flowTime * 0.20 + seed * 5.2) * 0.04) * tuneSurfaceLight);
-    float size = mix(1.45, 3.85, density) * mix(0.78, 1.22, frontness);
-    size += shell * (0.40 + tuneEdgeFray * 0.18) + ridge * tuneRidgeBrightness * 0.42;
+    float crease = pow(saturate(sin(atan2(base.z, base.x) * 3.0 + base.y * 8.0 + flowTime * 0.18) * 0.5 + 0.5), 5.0) * shell;
+    float litRidge = saturate(ridge * tuneRidgeBrightness + crease * tuneRidgeBrightness * 0.34);
+    float density = saturate(0.20 + shell * 0.36 + frontness * 0.26 + litRidge * 0.22 - core * 0.12);
+    float surfaceLight = saturate((0.12 + frontness * 0.42 + shell * 0.16 + litRidge * 0.36 + sin(flowTime * 0.20 + seed * 5.2) * 0.03) * tuneSurfaceLight);
+    float size = mix(1.05, 3.75, density) * mix(0.66, 1.24, frontness);
+    size += shell * (0.26 + tuneEdgeFray * 0.24) + litRidge * 0.52;
 
     out.position = float4(clip, clamp(0.52 - visibleDepth * 0.26, 0.04, 0.96), 1.0);
     out.pointSize = clamp(size * tunePointSize, 0.80, 8.00);
     out.depth = visibleDepth;
     out.density = density;
-    out.ridge = saturate(ridge * tuneRidgeBrightness);
+    out.ridge = litRidge;
     out.frontness = frontness;
     out.surfaceLight = surfaceLight;
     out.brightness = tuneBrightness;
@@ -212,7 +215,7 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
 
     float coverage = saturate(core * (0.64 + density * 0.72)
         + halo * (0.12 + density * 0.26));
-    coverage *= mix(0.42, 1.0, frontness);
+    coverage *= mix(0.32, 1.0, frontness);
     coverage *= mix(0.72, 1.0, light);
 
     half3 dimColor = half3(in.dimColor.rgb);
@@ -220,10 +223,10 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     half3 ridgeColor = half3(in.ridgeColor.rgb);
     half3 highlightColor = half3(in.highlightColor.rgb);
     half3 bodyColor = mix(dimColor, baseColor, half(0.30 + frontness * 0.52));
-    half3 litColor = mix(bodyColor, highlightColor, half(saturate(light * 0.52 + ridge * 0.24)));
-    half3 color = mix(litColor, ridgeColor, half(ridge * frontness * 0.16));
+    half3 litColor = mix(bodyColor, highlightColor, half(saturate(light * 0.66 + ridge * 0.30)));
+    half3 color = mix(litColor, ridgeColor, half(ridge * frontness * 0.24));
 
     color *= half(max(0.0, in.brightness));
-    float alpha = saturate(coverage * 0.72 * max(0.0, in.alphaScale));
+    float alpha = saturate(coverage * 0.62 * max(0.0, in.alphaScale));
     return half4(color, half(alpha));
 }

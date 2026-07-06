@@ -175,11 +175,11 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         let speedPhaseRate: Float = 0.025
         let motionElapsed = 0.42 * elapsed + (0.08 / speedPhaseRate) * (1 - cos(elapsed * speedPhaseRate))
         let resolution = SIMD2<Float>(Float(drawableSize.width), Float(drawableSize.height))
-        let tunedBreathTime = motionElapsed * scaleAroundOne(tuning.breathingSpeed, range: 0.90)
-        let breathingAmount = scaleAroundOne(tuning.breathingAmount, range: 1.20)
-        let breathing = (0.010 * sin(tunedBreathTime * 0.23) + 0.006 * sin(tunedBreathTime * 0.13 + 0.9)) * breathingAmount
-        let edgeBreathing = (0.012 * sin(tunedBreathTime * 0.19 + 1.4) + 0.005 * sin(tunedBreathTime * 0.37 + 0.3)) * breathingAmount
-        let coreStability = 1 - min(0.025, abs(breathing) * 0.16)
+        let tunedBreathTime = motionElapsed * sliderScale(tuning.breathingSpeed, minimum: 0.22, maximum: 2.0)
+        let breathingAmount = sliderScale(tuning.breathingAmount, minimum: 0, maximum: 2.0)
+        let breathing = (0.018 * sin(tunedBreathTime * 0.28) + 0.010 * sin(tunedBreathTime * 0.15 + 0.9)) * breathingAmount
+        let edgeBreathing = (0.024 * sin(tunedBreathTime * 0.22 + 1.4) + 0.010 * sin(tunedBreathTime * 0.43 + 0.3)) * breathingAmount
+        let coreStability = 1 - min(0.040, abs(breathing) * 0.18)
         let bodyTransform = Self.bodyTransform(for: motionElapsed, state: visualState)
         var uniforms = ParticleCoreFrameUniforms(
             time: motionElapsed,
@@ -342,8 +342,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         print("[ParticleCore] snapshot fps=\(String(format: "%.1f", fps)) particleCount=\(model.particles.count) drawableSize=\(drawableSize) preferredFPS=\(view.preferredFramesPerSecond) visualState=\(visualState) previousVisualState=\(previousVisualState) stateElapsedTime=\(String(format: "%.2f", stateElapsedTime)) reason=\(lastTransitionReason) mouseInside=\(mouseActive) interactionStrength=\(String(format: "%.2f", smoothMouseInfluence))")
     }
 
-    private func scaleAroundOne(_ value: Double, range: Float) -> Float {
-        max(0, 1 + (Float(value) - 0.5) * 2 * range)
+    private func sliderScale(_ value: Double, minimum: Float, maximum: Float) -> Float {
+        minimum + (maximum - minimum) * min(1, max(0, Float(value)))
     }
 
     private static func bodyTransform(for time: Float, state: ParticleCoreVisualState) -> SIMD4<Float> {
