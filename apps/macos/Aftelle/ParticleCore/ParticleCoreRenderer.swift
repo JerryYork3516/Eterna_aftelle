@@ -175,11 +175,11 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         let speedPhaseRate: Float = 0.025
         let motionElapsed = 0.42 * elapsed + (0.08 / speedPhaseRate) * (1 - cos(elapsed * speedPhaseRate))
         let resolution = SIMD2<Float>(Float(drawableSize.width), Float(drawableSize.height))
-        let tunedBreathTime = motionElapsed * sliderScale(tuning.breathingSpeed, minimum: 0.22, maximum: 2.0)
-        let breathingAmount = sliderScale(tuning.breathingAmount, minimum: 0, maximum: 2.0)
-        let breathing = (0.018 * sin(tunedBreathTime * 0.28) + 0.010 * sin(tunedBreathTime * 0.15 + 0.9)) * breathingAmount
-        let edgeBreathing = (0.024 * sin(tunedBreathTime * 0.22 + 1.4) + 0.010 * sin(tunedBreathTime * 0.43 + 0.3)) * breathingAmount
-        let coreStability = 1 - min(0.040, abs(breathing) * 0.18)
+        let tunedBreathTime = motionElapsed * sliderScale(tuning.breathingSpeed, minimum: 0.16, maximum: 3.0)
+        let breathingAmount = sliderScale(tuning.breathingAmount, minimum: 0, maximum: 3.0)
+        let breathing = (0.014 * sin(tunedBreathTime * 0.25) + 0.008 * sin(tunedBreathTime * 0.13 + 0.9)) * breathingAmount
+        let edgeBreathing = (0.028 * sin(tunedBreathTime * 0.21 + 1.4) + 0.014 * sin(tunedBreathTime * 0.39 + 0.3)) * breathingAmount
+        let coreStability = 1 - min(0.050, abs(breathing) * 0.18)
         let bodyTransform = Self.bodyTransform(for: motionElapsed, state: visualState)
         var uniforms = ParticleCoreFrameUniforms(
             time: motionElapsed,

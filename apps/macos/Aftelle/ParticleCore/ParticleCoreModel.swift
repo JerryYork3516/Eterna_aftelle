@@ -36,10 +36,10 @@ struct ParticleCoreModel {
     let surfaceReliefSize: Float
 
     init(
-        count: Int = 16_000,
+        count: Int = 20_000,
         seed: UInt64 = 0xA7F7E11E,
-        roundness: Float = 0.62,
-        surfaceReliefSize: Float = 0.74
+        roundness: Float = 0.78,
+        surfaceReliefSize: Float = 0.86
     ) {
         self.seed = seed
         self.roundness = min(1, max(0, roundness))
@@ -49,7 +49,7 @@ struct ParticleCoreModel {
         values.reserveCapacity(count)
 
         var candidateIndex = 0
-        let baseScale: Float = 0.48
+        let baseScale: Float = 0.47
         let shapeAmount = self.roundness
         let reliefAmount = self.surfaceReliefSize
         let phaseA = Float(generator.nextUnit() * .pi * 2)
@@ -75,32 +75,32 @@ struct ParticleCoreModel {
             )
             let layerPick = generator.nextUnit()
             let radialLayer: Float
-            if layerPick < 0.70 {
-                radialLayer = 0.64 + pow(Float(generator.nextUnit()), 0.42) * 0.36
-            } else if layerPick < 0.93 {
-                radialLayer = 0.34 + Float(generator.nextUnit()) * 0.36
+            if layerPick < 0.86 {
+                radialLayer = 0.82 + pow(Float(generator.nextUnit()), 0.34) * 0.18
+            } else if layerPick < 0.97 {
+                radialLayer = 0.62 + pow(Float(generator.nextUnit()), 0.55) * 0.26
             } else {
-                radialLayer = 0.12 + Float(generator.nextUnit()) * 0.30
+                radialLayer = 0.22 + Float(generator.nextUnit()) * 0.42
             }
             let broadRelief = sin(theta * 2.3 + z * 3.6 + phaseA) * 0.48
                 + cos(theta * 3.7 - z * 2.8 + phaseB) * 0.34
                 + sin(theta * 5.1 + z * 1.9 + phaseC) * 0.18
             let foldRelief = abs(sin(theta * 3.0 + z * 5.2 + phaseB))
                 * abs(cos(theta * 1.7 - z * 3.4 + phaseC))
-            let relief = 1 + shapeAmount * reliefAmount * broadRelief * (0.06 + radialLayer * 0.24)
-                + shapeAmount * reliefAmount * foldRelief * radialLayer * 0.08
+            let relief = 1 + shapeAmount * reliefAmount * broadRelief * (0.08 + radialLayer * 0.30)
+                + shapeAmount * reliefAmount * foldRelief * radialLayer * 0.12
             let stretchedDirection = SIMD3<Float>(
                 unitDirection.x * stretchX,
                 unitDirection.y * stretchY,
                 unitDirection.z * stretchZ
             )
             let position = stretchedDirection * baseScale * radialLayer * max(0.72, relief)
-            let shellPresence = max(0, min(1, (radialLayer - 0.48) / 0.46))
-            let ridge = 0.05 + shellPresence * 0.18
-                + shapeAmount * reliefAmount * max(0, broadRelief) * 0.18
-                + shapeAmount * reliefAmount * foldRelief * shellPresence * 0.24
-                + Float(generator.nextUnit()) * 0.06
-            let edgeWeight = 0.10 + shellPresence * 0.78
+            let shellPresence = max(0, min(1, (radialLayer - 0.64) / 0.30))
+            let ridge = 0.03 + shellPresence * 0.14
+                + shapeAmount * reliefAmount * max(0, broadRelief) * 0.22
+                + shapeAmount * reliefAmount * foldRelief * shellPresence * 0.34
+                + Float(generator.nextUnit()) * 0.04
+            let edgeWeight = 0.06 + shellPresence * 0.86
 
             values.append(Particle(
                 position: position,
