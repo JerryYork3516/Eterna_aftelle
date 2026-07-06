@@ -435,11 +435,15 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float viewRadius = length(p);
     float2 viewNormal = normalize(p + float2(0.001, 0.001));
     float2 viewTangent = float2(-viewNormal.y, viewNormal.x);
+    float viewSurfaceScatterGate = 0.24 + smoothstep(0.10, 0.94, viewRadius) * 0.76;
     float viewSilhouetteGate = smoothstep(0.38, 0.68, viewRadius) * (1.0 - smoothstep(1.02, 1.22, viewRadius));
     float silhouetteScatterA = hash11(particleSeed * 91.7 + seedB * 37.3);
     float silhouetteScatterB = hash11(seedB * 113.1 + particleSeed * 17.9);
-    float silhouetteRadial = pow(silhouetteScatterA, 1.75) * (0.007 + tuneEdgeScatter * 0.026);
-    float silhouetteTangent = (silhouetteScatterB - 0.5) * (0.006 + tuneEdgeScatter * 0.015);
+    float surfaceRadialScatter = pow(silhouetteScatterA, 1.55) * (0.003 + tuneEdgeScatter * 0.012);
+    float surfaceTangentScatter = (silhouetteScatterB - 0.5) * (0.003 + tuneEdgeScatter * 0.010);
+    float silhouetteRadial = pow(silhouetteScatterA, 1.75) * (0.004 + tuneEdgeScatter * 0.020);
+    float silhouetteTangent = (silhouetteScatterB - 0.5) * (0.004 + tuneEdgeScatter * 0.012);
+    p += (viewNormal * surfaceRadialScatter + viewTangent * surfaceTangentScatter) * viewSurfaceScatterGate * edgeSettle;
     p += (viewNormal * silhouetteRadial + viewTangent * silhouetteTangent) * viewSilhouetteGate * edgeSettle;
     float2 stableScreenPosition = p;
     float stableRadius = length(stableScreenPosition);
@@ -801,7 +805,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float ridgeSizeLift = saturate(stableSizeRidge * 0.86 + ridge * 0.18);
     float visualSizeGate = saturate(max(frontParticleLift * 0.82, ridgeSizeLift * 0.96));
     float pointCeiling = mix(3.20, 10.80, visualSizeGate) + stableSizeRidge * 1.45;
-    float depthVisibilitySize = mix(0.42, 1.34, frontParticleLift) * mix(1.0, 0.58, backParticleMute);
+    float depthVisibilitySize = mix(0.76, 1.34, frontParticleLift) * mix(1.0, 0.82, backParticleMute);
     float layeredPointSize = pointBase * sizeJitter * depthSize * depthVisibilitySize
         + ridgeSizeLift * (0.84 + frontParticleLift * 0.78);
     float exitPointScale = mix(1.0, 0.56 + dustRelease * 0.16, exitDim);
@@ -875,7 +879,7 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float frontSurfaceContrast = mix(0.42, 1.18, litSurface);
     float backPresence = 1.0 - smoothstep(-0.54, 0.06, in.depth);
     float frontPresence = smoothstep(-0.22, 0.46, in.depth);
-    float backMute = mix(0.34, 1.0, frontPresence);
+    float backMute = mix(0.62, 1.0, frontPresence);
     float sparseDim = 1.0 - smoothstep(0.18, 0.58, density);
     float particleFill = saturate(0.12 + densityLight * 0.18 + ridge * 0.075 + ionPresence * 0.10 + in.flow * 0.044);
     float litFront = frontLight * litSurface;
@@ -931,7 +935,7 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     half3 frontBase = half3(in.baseColor.rgb);
     half3 ridgeTint = half3(in.ridgeColor.rgb);
     half3 wakeTint = mix(frontBase, ridgeTint, half(0.42));
-    float compressedDepthLight = 0.16 + depthLight * 0.84;
+    float compressedDepthLight = 0.28 + depthLight * 0.72;
     float surfaceTone = 0.38 + litSurface * 0.62;
     half3 dim = mix(back, frontBase, half(compressedDepthLight * surfaceTone));
     dim *= half(mix(1.0, 0.86, thinking * outerDim));

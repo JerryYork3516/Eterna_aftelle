@@ -51,7 +51,6 @@ struct ParticleCoreModel {
         var values: [Particle] = []
         values.reserveCapacity(count)
 
-        let candidateCount = Int(Double(count) * 1.8)
         var candidateIndex = 0
         let phaseA = Float(generator.nextUnit() * .pi * 2)
         let phaseB = Float(generator.nextUnit() * .pi * 2)
@@ -71,7 +70,7 @@ struct ParticleCoreModel {
             candidateIndex += 1
             let golden = 0.6180339887498949
             let u = (Double(index) * golden + generator.nextUnit() * 0.022).truncatingRemainder(dividingBy: 1)
-            let v = (Double(index % candidateCount) + 0.5) / Double(candidateCount)
+            let v = (Double(index) + 0.5) / Double(count)
             let theta = Float(u * .pi * 2)
             let z = Float(1 - 2 * v)
             let shell = sqrt(max(0, 1 - z * z))
@@ -94,8 +93,9 @@ struct ParticleCoreModel {
             let outward = SIMD2<Float>(x / length, y / length)
             let tangent = SIMD2<Float>(-outward.y, outward.x)
             let strongScatter = generator.nextUnit() < 0.46
-            let radialScatter = outlineBand * (strongScatter ? 0.050 : 0.020) * edgeScatterScale * pow(Float(generator.nextUnit()), 1.45)
-            let tangentialScatter = outlineBand * (Float(generator.nextUnit()) - 0.5) * 0.030 * edgeScatterScale
+            let surfaceScatter = 0.24 + outlineBand * 0.76
+            let radialScatter = surfaceScatter * (strongScatter ? 0.030 : 0.012) * edgeScatterScale * pow(Float(generator.nextUnit()), 1.45)
+            let tangentialScatter = surfaceScatter * (Float(generator.nextUnit()) - 0.5) * 0.020 * edgeScatterScale
             x += outward.x * radialScatter + tangent.x * tangentialScatter
             y += outward.y * radialScatter + tangent.y * tangentialScatter
             let silhouette = max(0, min(1, 1 - abs(rawDepth) * 1.72))
@@ -106,10 +106,6 @@ struct ParticleCoreModel {
             let reliefCrest = max(0, min(1, 0.5 + broadRelief * 0.34 + fineRelief * 0.16))
             let ridge = min(1, silhouette * 0.18 + thread * 0.07 + outlineBand * 0.20 + grain * 0.08 + reliefCrest * shapeAmount * 0.20)
             let edgeWeight = max(0, min(1, 0.18 + abs(rawDepth) * 0.72 + (1 - silhouette) * 0.34 + outlineBand * 0.16))
-            let ridgeKeep = 0.46 + Double(silhouette) * 0.10 + Double(outlineBand) * 0.18 + Double(reliefCrest * shapeAmount) * 0.10
-            if generator.nextUnit() > ridgeKeep && candidateIndex < candidateCount * 3 {
-                continue
-            }
 
             values.append(Particle(
                 position: SIMD2<Float>(x, y),
