@@ -34,19 +34,16 @@ struct ParticleCoreModel {
     let seed: UInt64
     let roundness: Float
     let surfaceReliefSize: Float
-    let edgeScatterAmount: Float
 
     init(
         count: Int = 12_000,
         seed: UInt64 = 0xA7F7E11E,
         roundness: Float = 0.28,
-        surfaceReliefSize: Float = 0.45,
-        edgeScatterAmount: Float = 0.5
+        surfaceReliefSize: Float = 0.45
     ) {
         self.seed = seed
         self.roundness = min(1, max(0, roundness))
         self.surfaceReliefSize = min(1, max(0, surfaceReliefSize))
-        self.edgeScatterAmount = min(1, max(0, edgeScatterAmount))
         var generator = ParticleCoreSeededGenerator(seed: seed)
         var values: [Particle] = []
         values.reserveCapacity(count)
@@ -60,10 +57,8 @@ struct ParticleCoreModel {
         let baseScale = Float(0.492 + generator.nextUnit() * 0.020)
         let cellStretchX = 1 + shapeAmount * Float(generator.nextUnit() - 0.5) * 0.080
         let cellStretchY = 1 + shapeAmount * Float(generator.nextUnit() - 0.5) * 0.080
-        let reliefAmplitude = shapeAmount * (0.020 + reliefAmount * 0.180)
-        let fineReliefAmplitude = shapeAmount * (0.006 + reliefAmount * 0.052)
-        let edgeScatterControl = 0.42 + self.edgeScatterAmount * 2.15
-        let edgeScatterScale = Float(0.82 + generator.nextUnit() * 0.28) * edgeScatterControl
+        let reliefAmplitude = shapeAmount * (0.012 + reliefAmount * 0.090)
+        let fineReliefAmplitude = shapeAmount * (0.004 + reliefAmount * 0.026)
 
         while values.count < count {
             let index = candidateIndex
@@ -90,13 +85,9 @@ struct ParticleCoreModel {
                 + cos(theta * 13.0 - rawDepth * 5.1 + phaseC) * 0.45
             let surfaceSeed = Float(generator.nextUnit())
             let radialSeed = Float(generator.nextUnit())
-            let isSurfaceParticle = surfaceSeed > 0.36
-            let radialLayer: Float
-            if isSurfaceParticle {
-                radialLayer = 0.86 + 0.16 * pow(radialSeed, 0.42)
-            } else {
-                radialLayer = 0.18 + 0.72 * pow(radialSeed, 1.0 / 3.0)
-            }
+            let surfaceBiasSeed = pow(surfaceSeed, 0.34)
+            let volumeSeed = pow(radialSeed, 1.0 / 3.0)
+            let radialLayer = 0.16 + 0.84 * (volumeSeed * 0.54 + surfaceBiasSeed * 0.46)
             let surfaceBias = 0.30 + radialLayer * 0.70
             let fold = max(0.78, 1 + (broadRelief * reliefAmplitude + fineRelief * fineReliefAmplitude) * surfaceBias)
             var x = unitDirection.x * baseScale * cellStretchX * radialLayer * fold
@@ -114,13 +105,12 @@ struct ParticleCoreModel {
             let planarLength = max(0.001, sqrt(normal.x * normal.x + normal.y * normal.y))
             let planarOutward = SIMD2<Float>(normal.x / planarLength, normal.y / planarLength)
             let tangent = SIMD2<Float>(-planarOutward.y, planarOutward.x)
-            let strongScatter = generator.nextUnit() < 0.46
-            let surfaceScatter = (0.18 + radialLayer * 0.82) * (0.32 + outlineBand * 0.68)
-            let radialScatter = surfaceScatter * (strongScatter ? 0.034 : 0.013) * edgeScatterScale * pow(Float(generator.nextUnit()), 1.45)
-            let tangentialScatter = surfaceScatter * (Float(generator.nextUnit()) - 0.5) * 0.024 * edgeScatterScale
-            x += normal.x * radialScatter + tangent.x * tangentialScatter
-            y += normal.y * radialScatter + tangent.y * tangentialScatter
-            depth += normal.z * radialScatter
+            let pointJitter = (0.002 + shapeAmount * 0.006) * (0.32 + radialLayer * 0.68)
+            x += normal.x * pointJitter * Float(generator.nextUnit() - 0.5)
+                + tangent.x * pointJitter * Float(generator.nextUnit() - 0.5)
+            y += normal.y * pointJitter * Float(generator.nextUnit() - 0.5)
+                + tangent.y * pointJitter * Float(generator.nextUnit() - 0.5)
+            depth += normal.z * pointJitter * Float(generator.nextUnit() - 0.5)
             let silhouette = max(0, min(1, 1 - abs(rawDepth) * 1.72))
             let threadA = pow(max(0, 0.5 + 0.5 * sin(theta * 3.0 + z * 4.4 + rawDepth * 2.6 + phaseA)), 4)
             let threadB = pow(max(0, 0.5 + 0.5 * sin(theta * 5.0 - z * 3.1 + phaseB)), 5)

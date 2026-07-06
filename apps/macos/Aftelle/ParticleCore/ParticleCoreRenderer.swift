@@ -41,6 +41,7 @@ struct ParticleCoreFrameUniforms {
     var dimColor: SIMD4<Float>
     var highlightColor: SIMD4<Float>
     var colorAlphaScale: Float
+    var bodyTransform: SIMD4<Float>
 }
 
 enum ParticleCoreVisualState: UInt32 {
@@ -179,6 +180,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         let breathing = (0.010 * sin(tunedBreathTime * 0.23) + 0.006 * sin(tunedBreathTime * 0.13 + 0.9)) * breathingAmount
         let edgeBreathing = (0.012 * sin(tunedBreathTime * 0.19 + 1.4) + 0.005 * sin(tunedBreathTime * 0.37 + 0.3)) * breathingAmount
         let coreStability = 1 - min(0.025, abs(breathing) * 0.16)
+        let bodyTransform = Self.bodyTransform(for: motionElapsed, state: visualState)
         var uniforms = ParticleCoreFrameUniforms(
             time: motionElapsed,
             breathing: breathing,
@@ -215,7 +217,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             ridgeColor: colorProfile.ridgeVector,
             dimColor: colorProfile.dimVector,
             highlightColor: colorProfile.highlightVector,
-            colorAlphaScale: Float(colorProfile.alphaScale)
+            colorAlphaScale: Float(colorProfile.alphaScale),
+            bodyTransform: bodyTransform
         )
         memcpy(uniformsBuffer.contents(), &uniforms, MemoryLayout<ParticleCoreFrameUniforms>.stride)
 
@@ -263,17 +266,14 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         let nextSeed = Self.modelSeed(for: nextTuning.shapeSeed)
         let nextRoundness = Self.modelShapeValue(for: nextTuning.roundness)
         let nextSurfaceReliefSize = Self.modelShapeValue(for: nextTuning.surfaceReliefSize)
-        let nextEdgeScatter = Self.modelEdgeScatter(for: nextTuning.edgeScatterAmount)
         self.tuning = nextTuning
         guard model.seed != nextSeed
             || model.roundness != nextRoundness
-            || model.surfaceReliefSize != nextSurfaceReliefSize
-            || model.edgeScatterAmount != nextEdgeScatter else { return }
+            || model.surfaceReliefSize != nextSurfaceReliefSize else { return }
         model = ParticleCoreModel(
             seed: nextSeed,
             roundness: nextRoundness,
-            surfaceReliefSize: nextSurfaceReliefSize,
-            edgeScatterAmount: nextEdgeScatter
+            surfaceReliefSize: nextSurfaceReliefSize
         )
         frameSeed = Self.frameSeed(for: nextSeed)
         uploadParticles()
@@ -346,13 +346,35 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         max(0, 1 + (Float(value) - 0.5) * 2 * range)
     }
 
+    private static func bodyTransform(for time: Float, state: ParticleCoreVisualState) -> SIMD4<Float> {
+        let stateLift: Float
+        switch state {
+        case .thinking:
+            stateLift = 0.018
+        case .speaking:
+            stateLift = 0.030
+        case .loading:
+            stateLift = -0.014
+        case .error:
+            stateLift = 0
+        case .exit:
+            stateLift = 0.024
+        case .idle:
+            stateLift = 0
+        }
+
+        let x = sin(time * 0.071 + 0.8) * 0.070
+            + sin(time * 0.033 + 2.4) * 0.036
+        let y = cos(time * 0.058 + 1.1) * 0.050
+            + sin(time * 0.041 + 4.2) * 0.028
+            + stateLift
+        let scale = 1 + sin(time * 0.029 + 0.6) * 0.018
+        return SIMD4<Float>(x, y, scale, 0)
+    }
+
     private static func modelSeed(for value: Double) -> UInt64 {
         let bucket = UInt64((min(1, max(0, value)) * 4095).rounded())
         return 0xA7F7E11E9E3779B9 &+ bucket &* 0x9E3779B97F4A7C15
-    }
-
-    private static func modelEdgeScatter(for value: Double) -> Float {
-        Float((min(1, max(0, value)) * 64).rounded() / 64)
     }
 
     private static func modelShapeValue(for value: Double) -> Float {
