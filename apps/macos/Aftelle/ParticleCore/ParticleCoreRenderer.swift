@@ -262,7 +262,21 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     }
 
     func setTuning(_ tuning: ParticleCoreTuning) {
-        self.tuning = tuning.clamped()
+        let nextTuning = tuning.clamped()
+        let nextSeed = Self.modelSeed(for: nextTuning.shapeSeed)
+        let nextRoundness = Self.modelShapeValue(for: nextTuning.roundness)
+        let nextSurfaceReliefSize = Self.modelShapeValue(for: nextTuning.surfaceReliefSize)
+        self.tuning = nextTuning
+        guard model.seed != nextSeed
+            || model.roundness != nextRoundness
+            || model.surfaceReliefSize != nextSurfaceReliefSize else { return }
+        model = ParticleCoreModel(
+            seed: nextSeed,
+            roundness: nextRoundness,
+            surfaceReliefSize: nextSurfaceReliefSize
+        )
+        frameSeed = Self.frameSeed(for: nextSeed)
+        uploadParticles()
     }
 
     func setColorProfile(_ colorProfile: ParticleCoreColorProfile) {

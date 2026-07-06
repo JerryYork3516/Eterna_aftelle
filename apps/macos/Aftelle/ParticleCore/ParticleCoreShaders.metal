@@ -49,6 +49,7 @@ struct ParticleVertexOut {
     float ridge;
     float frontness;
     float surfaceLight;
+    float brightness;
     float alphaScale;
     float4 baseColor;
     float4 ridgeColor;
@@ -59,6 +60,24 @@ struct ParticleVertexOut {
 
 float hash11(float value) {
     return fract(sin(value) * 43758.5453123);
+}
+
+float scaleAroundOne(float value, float range) {
+    return max(0.0, 1.0 + (saturate(value) - 0.5) * 2.0 * range);
+}
+
+float2 cardinalDirection(float value) {
+    float bucket = floor(saturate(value) * 3.0 + 0.5);
+    if (bucket < 0.5) {
+        return float2(0.0, 1.0);
+    }
+    if (bucket < 1.5) {
+        return float2(0.0, -1.0);
+    }
+    if (bucket < 2.5) {
+        return float2(-1.0, 0.0);
+    }
+    return float2(1.0, 0.0);
 }
 
 float3 rotateX(float3 p, float angle) {
@@ -106,6 +125,20 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float id = float(vid);
     float seed = hash11(id * 12.9898 + float(uniforms.seed) * 0.017);
     float time = uniforms.time;
+    float flowTime = time * scaleAroundOne(uniforms.flowSpeed, 1.20);
+    float tuneGlobalScale = scaleAroundOne(uniforms.globalScale, 0.36);
+    float tunePointSize = scaleAroundOne(uniforms.pointSizeScale, 0.82);
+    float tuneBrightness = scaleAroundOne(uniforms.brightness, 0.90);
+    float tuneAlpha = scaleAroundOne(uniforms.alphaScale, 0.90);
+    float tuneRidgeBrightness = scaleAroundOne(uniforms.ridgeBrightness, 1.10);
+    float tuneBreathing = scaleAroundOne(uniforms.breathingAmount, 1.20);
+    float tuneFlow = scaleAroundOne(uniforms.flowStrength, 1.10);
+    float tuneRotation = saturate(uniforms.rotationSpeed);
+    float tuneEdgeScatter = 0.25 + saturate(uniforms.edgeScatterAmount) * 2.60;
+    float tuneEdgeDust = scaleAroundOne(uniforms.edgeDustAmount, 1.20);
+    float tuneEdgeFray = scaleAroundOne(uniforms.edgeFrayAmount, 1.20);
+    float tuneSurfaceLight = scaleAroundOne(uniforms.surfaceLightStrength, 1.00);
+    float2 rotationDirection = cardinalDirection(uniforms.rotationDirection);
 
     float radius = length(base);
     float shell = smoothstep(0.24, 0.50, radius);
@@ -116,43 +149,49 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + uniforms.errorStrength * 0.18);
 
     float breath = 1.0
-        + sin(time * 0.32) * 0.022
-        + sin(time * 0.17 + seed * 3.1) * 0.010;
-    breath += stateEnergy * 0.020;
+        + (sin(flowTime * 0.32) * 0.022
+        + sin(flowTime * 0.17 + seed * 3.1) * 0.010
+        + uniforms.breathing * 0.42) * tuneBreathing;
+    breath += stateEnergy * 0.020 * tuneBreathing;
 
     float3 p = base * breath;
-    p += lifeField(base, time, seed) * (0.55 + shell * 0.45) * (1.0 + stateEnergy * 0.50);
-    p += base * sin(time * 0.21 + seed * 6.2831853) * (0.004 + shell * 0.010);
+    p += lifeField(base, flowTime, seed) * (0.55 + shell * 0.45) * tuneFlow * (1.0 + stateEnergy * 0.50);
+    p += base * sin(flowTime * 0.21 + seed * 6.2831853) * (0.004 + shell * 0.010) * tuneFlow;
+    float edgeNoise = sin(seed * 31.0 + flowTime * 0.18) * 0.5 + 0.5;
+    float edgeLift = shell * tuneEdgeScatter * (0.002 + edgeNoise * 0.010 * tuneEdgeDust);
+    p += normalize(base + float3(0.001, 0.001, 0.001)) * edgeLift;
 
-    float turn = time * 0.34;
+    float turn = time * (0.08 + tuneRotation * 1.40);
+    float directionPhase = atan2(rotationDirection.y, rotationDirection.x);
     float3 angles = float3(
-        sin(time * 0.13 + 0.7) * 0.22,
-        turn + sin(time * 0.09) * 0.18,
-        sin(time * 0.11 + 1.8) * 0.12
+        sin(time * 0.13 + 0.7) * 0.12 + -rotationDirection.y * turn * 0.72,
+        turn + sin(time * 0.09) * 0.12 + rotationDirection.x * turn * 0.72,
+        sin(time * 0.11 + 1.8 + directionPhase) * 0.10
     );
     p = rotateBody(p, angles);
 
     float perspective = clamp(1.0 / (1.0 - p.z * 0.38), 0.78, 1.28);
-    float2 projected = p.xy * perspective;
+    float2 projected = p.xy * perspective * tuneGlobalScale;
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);
-    float2 clip = float2(projected.x / aspect, projected.y);
+    float2 clip = float2(projected.x / aspect, projected.y) + uniforms.bodyTransform.xy;
 
     ParticleVertexOut out;
     float visibleDepth = clamp(p.z * 1.75, -1.0, 1.0);
     float frontness = smoothstep(-0.52, 0.58, visibleDepth);
-    float density = saturate(0.38 + core * 0.10 + shell * 0.28 + frontness * 0.24 + ridge * 0.12);
-    float surfaceLight = saturate(0.32 + frontness * 0.46 + shell * 0.12 + sin(time * 0.20 + seed * 5.2) * 0.04);
+    float density = saturate(0.38 + core * 0.10 + shell * 0.28 + frontness * 0.24 + ridge * tuneRidgeBrightness * 0.12);
+    float surfaceLight = saturate((0.32 + frontness * 0.46 + shell * 0.12 + sin(flowTime * 0.20 + seed * 5.2) * 0.04) * tuneSurfaceLight);
     float size = mix(1.45, 3.85, density) * mix(0.78, 1.22, frontness);
-    size += shell * 0.40 + ridge * 0.42;
+    size += shell * (0.40 + tuneEdgeFray * 0.18) + ridge * tuneRidgeBrightness * 0.42;
 
     out.position = float4(clip, clamp(0.52 - visibleDepth * 0.26, 0.04, 0.96), 1.0);
-    out.pointSize = clamp(size, 1.25, 5.20);
+    out.pointSize = clamp(size * tunePointSize, 0.80, 8.00);
     out.depth = visibleDepth;
     out.density = density;
-    out.ridge = ridge;
+    out.ridge = saturate(ridge * tuneRidgeBrightness);
     out.frontness = frontness;
     out.surfaceLight = surfaceLight;
-    out.alphaScale = uniforms.colorAlphaScale;
+    out.brightness = tuneBrightness;
+    out.alphaScale = tuneAlpha * uniforms.colorAlphaScale;
     out.baseColor = uniforms.baseColor;
     out.ridgeColor = uniforms.ridgeColor;
     out.dimColor = uniforms.dimColor;
@@ -184,6 +223,7 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     half3 litColor = mix(bodyColor, highlightColor, half(saturate(light * 0.52 + ridge * 0.24)));
     half3 color = mix(litColor, ridgeColor, half(ridge * frontness * 0.16));
 
-    float alpha = saturate(coverage * 0.72 * max(0.0, in.colorAlphaScale));
+    color *= half(max(0.0, in.brightness));
+    float alpha = saturate(coverage * 0.72 * max(0.0, in.alphaScale));
     return half4(color, half(alpha));
 }

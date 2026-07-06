@@ -50,6 +50,14 @@ struct ParticleCoreModel {
 
         var candidateIndex = 0
         let baseScale: Float = 0.50
+        let shapeAmount = self.roundness
+        let reliefAmount = self.surfaceReliefSize
+        let phaseA = Float(generator.nextUnit() * .pi * 2)
+        let phaseB = Float(generator.nextUnit() * .pi * 2)
+        let phaseC = Float(generator.nextUnit() * .pi * 2)
+        let stretchX = 1 + shapeAmount * Float(generator.nextUnit() - 0.5) * 0.16
+        let stretchY = 1 + shapeAmount * Float(generator.nextUnit() - 0.5) * 0.16
+        let stretchZ = 1 + shapeAmount * Float(generator.nextUnit() - 0.5) * 0.12
 
         while values.count < count {
             let index = candidateIndex
@@ -66,9 +74,18 @@ struct ParticleCoreModel {
                 shell * sin(theta)
             )
             let radialLayer = pow(Float(generator.nextUnit()), 1.0 / 3.0)
-            let position = unitDirection * baseScale * radialLayer
+            let broadRelief = sin(theta * 2.3 + z * 3.6 + phaseA) * 0.48
+                + cos(theta * 3.7 - z * 2.8 + phaseB) * 0.34
+                + sin(theta * 5.1 + z * 1.9 + phaseC) * 0.18
+            let relief = 1 + shapeAmount * reliefAmount * broadRelief * (0.04 + radialLayer * 0.14)
+            let stretchedDirection = SIMD3<Float>(
+                unitDirection.x * stretchX,
+                unitDirection.y * stretchY,
+                unitDirection.z * stretchZ
+            )
+            let position = stretchedDirection * baseScale * radialLayer * max(0.72, relief)
             let shellPresence = max(0, min(1, (radialLayer - 0.52) / 0.42))
-            let ridge = 0.08 + shellPresence * 0.30 + Float(generator.nextUnit()) * 0.08
+            let ridge = 0.08 + shellPresence * 0.24 + shapeAmount * reliefAmount * max(0, broadRelief) * 0.18 + Float(generator.nextUnit()) * 0.08
             let edgeWeight = 0.16 + shellPresence * 0.72
 
             values.append(Particle(
