@@ -298,7 +298,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 tuneRotationDirection = cardinalDirection(uniforms.rotationDirection);
     float tuneRotationPhase = atan2(tuneRotationDirection.y, tuneRotationDirection.x);
     float tuneRotationEmphasis = tuneRotationSpeed * tuneRotationSpeed;
-    float tuneEdgeScatter = 0.55 + saturate(uniforms.edgeScatterAmount) * 1.35;
+    float tuneEdgeScatter = 0.25 + saturate(uniforms.edgeScatterAmount) * 3.00;
     float tuneEdgeDust = scaleAroundOne(uniforms.edgeDustAmount, 1.20);
     float tuneEdgeFray = scaleAroundOne(uniforms.edgeFrayAmount, 1.20);
     float tuneSurfaceLight = scaleAroundOne(uniforms.surfaceLightStrength, 1.00);
@@ -435,15 +435,21 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float viewRadius = length(p);
     float2 viewNormal = normalize(p + float2(0.001, 0.001));
     float2 viewTangent = float2(-viewNormal.y, viewNormal.x);
-    float viewSurfaceScatterGate = 0.24 + smoothstep(0.10, 0.94, viewRadius) * 0.76;
-    float viewSilhouetteGate = smoothstep(0.38, 0.68, viewRadius) * (1.0 - smoothstep(1.02, 1.22, viewRadius));
     float silhouetteScatterA = hash11(particleSeed * 91.7 + seedB * 37.3);
     float silhouetteScatterB = hash11(seedB * 113.1 + particleSeed * 17.9);
-    float surfaceRadialScatter = pow(silhouetteScatterA, 1.55) * (0.003 + tuneEdgeScatter * 0.012);
-    float surfaceTangentScatter = (silhouetteScatterB - 0.5) * (0.003 + tuneEdgeScatter * 0.010);
-    float silhouetteRadial = pow(silhouetteScatterA, 1.75) * (0.004 + tuneEdgeScatter * 0.020);
-    float silhouetteTangent = (silhouetteScatterB - 0.5) * (0.004 + tuneEdgeScatter * 0.012);
+    float2 viewRandomDirection = normalize(float2(
+        cos(silhouetteScatterA * 6.2831853 + seedB * 2.1),
+        sin(silhouetteScatterB * 6.2831853 - particleSeed * 1.7)
+    ) + float2(0.001, 0.001));
+    float viewSurfaceScatterGate = 0.40 + smoothstep(0.08, 0.94, viewRadius) * 0.60;
+    float viewSilhouetteGate = smoothstep(0.38, 0.68, viewRadius) * (1.0 - smoothstep(1.02, 1.22, viewRadius));
+    float surfaceRadialScatter = pow(silhouetteScatterA, 1.42) * (0.004 + tuneEdgeScatter * 0.016);
+    float surfaceTangentScatter = (silhouetteScatterB - 0.5) * (0.004 + tuneEdgeScatter * 0.014);
+    float surfaceRandomScatter = (0.003 + tuneEdgeScatter * 0.012) * hash11(seedB * 251.0 + particleSeed * 43.0);
+    float silhouetteRadial = pow(silhouetteScatterA, 1.62) * (0.004 + tuneEdgeScatter * 0.030);
+    float silhouetteTangent = (silhouetteScatterB - 0.5) * (0.004 + tuneEdgeScatter * 0.020);
     p += (viewNormal * surfaceRadialScatter + viewTangent * surfaceTangentScatter) * viewSurfaceScatterGate * edgeSettle;
+    p += viewRandomDirection * surfaceRandomScatter * viewSurfaceScatterGate * edgeSettle;
     p += (viewNormal * silhouetteRadial + viewTangent * silhouetteTangent) * viewSilhouetteGate * edgeSettle;
     float2 stableScreenPosition = p;
     float stableRadius = length(stableScreenPosition);
@@ -616,17 +622,17 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float edgeDustA = 0.5 + 0.5 * sin(angle * 17.0 + depth * 6.4 + particleSeed * 9.7 - fieldTime * 0.20);
     float edgeDustB = 0.5 + 0.5 * cos(angle * 23.0 - depth * 5.1 + seedB * 8.3 + fieldTime * 0.18);
     float2 screenNormal = normalize(p + float2(0.001, 0.001));
-    float sideSilhouette = smoothstep(0.08, 0.66, abs(dot(screenNormal, turnedSide)));
+    float2 screenTangent = float2(-screenNormal.y, screenNormal.x);
     float depthSilhouette = 0.50 + 0.50 * (1.0 - smoothstep(0.64, 1.00, abs(body.z * 1.55)));
-    float sideSilhouetteBoost = screenEdge * sideSilhouette * depthSilhouette;
+    float omniSilhouetteBoost = screenEdge * depthSilhouette;
     float centerFrayMute = smoothstep(0.34, 0.64, length(stableScreenPosition));
     float edgeDustField = centerFrayMute
         * screenEdge
-        * max(edge * 0.08, sideSilhouetteBoost * 0.22)
+        * max(edge * 0.10, omniSilhouetteBoost * 0.34)
         * smoothstep(0.28, 0.84, edgeDustA * 0.48 + edgeDustB * 0.36 + seedB * 0.16);
     edgeDustField *= (1.0 - turnWakeEnergy * 0.42) * edgeSettle * speakingEdgeLift * tuneEdgeDust * tuneEdgeScatter;
-    p += screenNormal * edgeDustField * (0.006 + 0.016 * seedB);
-    p += turnedSide * edgeDustField * sin(angle * 3.4 + phaseB + fieldTime * 0.28) * (0.002 + 0.005 * particleSeed);
+    p += screenNormal * edgeDustField * (0.008 + 0.026 * seedB);
+    p += screenTangent * edgeDustField * sin(angle * 3.4 + phaseB + fieldTime * 0.28) * (0.004 + 0.010 * particleSeed);
     edgeFrayField = saturate(edgeFrayField * (0.14 + tuneEdgeScatter * 0.14) * tuneEdgeFray + edgeDustField * 0.20 + exitBreakAmount * 0.42 + exitState * dustRelease * 0.24);
 
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);

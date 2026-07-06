@@ -62,7 +62,7 @@ struct ParticleCoreModel {
         let cellStretchY = 1 + shapeAmount * Float(generator.nextUnit() - 0.5) * 0.080
         let reliefAmplitude = shapeAmount * (0.020 + reliefAmount * 0.180)
         let fineReliefAmplitude = shapeAmount * (0.006 + reliefAmount * 0.052)
-        let edgeScatterControl = 0.68 + self.edgeScatterAmount * 1.05
+        let edgeScatterControl = 0.42 + self.edgeScatterAmount * 2.15
         let edgeScatterScale = Float(0.82 + generator.nextUnit() * 0.28) * edgeScatterControl
 
         while values.count < count {
@@ -94,8 +94,8 @@ struct ParticleCoreModel {
             let tangent = SIMD2<Float>(-outward.y, outward.x)
             let strongScatter = generator.nextUnit() < 0.46
             let surfaceScatter = 0.24 + outlineBand * 0.76
-            let radialScatter = surfaceScatter * (strongScatter ? 0.030 : 0.012) * edgeScatterScale * pow(Float(generator.nextUnit()), 1.45)
-            let tangentialScatter = surfaceScatter * (Float(generator.nextUnit()) - 0.5) * 0.020 * edgeScatterScale
+            let radialScatter = surfaceScatter * (strongScatter ? 0.034 : 0.013) * edgeScatterScale * pow(Float(generator.nextUnit()), 1.45)
+            let tangentialScatter = surfaceScatter * (Float(generator.nextUnit()) - 0.5) * 0.024 * edgeScatterScale
             x += outward.x * radialScatter + tangent.x * tangentialScatter
             y += outward.y * radialScatter + tangent.y * tangentialScatter
             let silhouette = max(0, min(1, 1 - abs(rawDepth) * 1.72))
