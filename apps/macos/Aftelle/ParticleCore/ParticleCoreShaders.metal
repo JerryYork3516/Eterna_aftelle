@@ -134,7 +134,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneBreathing = scale300(uniforms.breathingAmount);
     float tuneFlow = scale300(uniforms.flowStrength);
     float tuneRotation = scale300(uniforms.rotationSpeed);
-    float tuneEdgeScatter = 0.12 + saturate(uniforms.edgeScatterAmount) * 5.80;
+    float tuneEdgeScatter = saturate(uniforms.edgeScatterAmount);
     float tuneEdgeDust = max(0.10, scale300(uniforms.edgeDustAmount));
     float tuneEdgeFray = max(0.10, scale300(uniforms.edgeFrayAmount));
     float tuneSurfaceLight = max(0.08, scale300(uniforms.surfaceLightStrength));
@@ -155,12 +155,23 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     breath += stateEnergy * 0.020 * tuneBreathing;
 
     float3 p = base * breath;
-    p += lifeField(base, flowTime, seed) * (0.18 + shell * 0.92) * tuneFlow * (1.0 + stateEnergy * 0.50);
-    p += base * sin(flowTime * 0.21 + seed * 6.2831853) * (0.002 + shell * 0.020) * tuneFlow;
+    float3 normal = normalize(base + float3(0.001, 0.001, 0.001));
+    float3 randomVector = normalize(float3(
+        hash11(seed * 41.0 + 1.7) * 2.0 - 1.0,
+        hash11(seed * 53.0 + 2.9) * 2.0 - 1.0,
+        hash11(seed * 67.0 + 4.1) * 2.0 - 1.0
+    ));
+    float3 tangent = normalize(cross(normal, randomVector) + float3(0.001, 0.002, 0.003));
+    float surfacePulse = sin(flowTime * (0.54 + seed * 0.42) + seed * 19.0);
+    p += lifeField(base, flowTime, seed) * (0.10 + shell * 0.82) * tuneFlow * (1.0 + stateEnergy * 0.50);
+    p += tangent * surfacePulse * shell * tuneFlow * (0.010 + hash11(seed * 83.0) * 0.020);
+    p += normal * sin(flowTime * 0.21 + seed * 6.2831853) * (0.001 + shell * 0.010) * tuneFlow;
     float edgeNoise = sin(seed * 31.0 + flowTime * 0.18) * 0.5 + 0.5;
-    float edgeLift = shell * tuneEdgeScatter * (0.001 + edgeNoise * 0.012 * tuneEdgeDust);
-    p += normalize(base + float3(0.001, 0.001, 0.001)) * edgeLift;
-    p += normalize(base + float3(0.001, 0.001, 0.001)) * uniforms.edgeBreathing * shell * (0.65 + edgeNoise * 0.35);
+    float scatter = shell * tuneEdgeScatter * (0.010 + edgeNoise * 0.050 * tuneEdgeDust);
+    p += normal * scatter * (0.20 + hash11(seed * 97.0) * 0.80);
+    p += tangent * scatter * (hash11(seed * 109.0) * 2.0 - 1.0) * 0.72;
+    p += randomVector * scatter * (hash11(seed * 131.0) * 2.0 - 1.0) * 0.38;
+    p += normal * uniforms.edgeBreathing * shell * (0.65 + edgeNoise * 0.35);
 
     float turn = time * (0.03 + tuneRotation * 0.62);
     float directionPhase = atan2(rotationDirection.y, rotationDirection.x);
@@ -183,15 +194,18 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float rim = smoothstep(0.19, 0.43, viewRadius);
     float crease = pow(saturate(sin(atan2(base.z, base.x) * 3.4 + base.y * 9.8 + flowTime * 0.16) * 0.5 + 0.5), 6.0) * shell;
     float rimCrease = crease * smoothstep(0.10, 0.42, viewRadius);
-    float litRidge = saturate(ridge * tuneRidgeBrightness * (0.42 + rim * 0.92) + rimCrease * tuneRidgeBrightness * 0.54);
-    float innerDust = (1.0 - rim) * shell * frontness * 0.11;
-    float density = saturate(0.030 + rim * 0.48 + frontness * 0.10 + litRidge * 0.34 + innerDust - core * 0.26);
-    float surfaceLight = saturate((0.045 + rim * 0.28 + frontness * 0.26 + litRidge * 0.48 + sin(flowTime * 0.20 + seed * 5.2) * 0.02) * tuneSurfaceLight);
-    float size = mix(0.76, 3.70, density) * mix(0.54, 1.22, frontness);
-    size += rim * (0.34 + tuneEdgeFray * 0.28) + litRidge * 0.62;
+    float litRidge = saturate(ridge * tuneRidgeBrightness * (0.64 + rim * 1.10) + rimCrease * tuneRidgeBrightness * 0.72);
+    float backLayer = mix(0.20, 0.36, rim);
+    float frontLayer = mix(0.50, 0.82, frontness);
+    float ridgeLayer = smoothstep(0.32, 0.86, litRidge);
+    float innerDust = (1.0 - rim) * shell * (0.16 + frontness * 0.18);
+    float density = saturate(0.08 + backLayer * 0.28 + frontLayer * 0.30 + innerDust + litRidge * 0.34 - core * 0.10);
+    float surfaceLight = saturate((0.10 + backLayer * 0.18 + frontLayer * 0.34 + ridgeLayer * 0.52 + sin(flowTime * 0.24 + seed * 5.2) * 0.025) * tuneSurfaceLight);
+    float size = mix(0.92, 3.60, density) * mix(0.70, 1.18, frontness);
+    size += rim * (0.24 + tuneEdgeFray * 0.18) + ridgeLayer * 1.38;
 
     out.position = float4(clip, clamp(0.52 - visibleDepth * 0.26, 0.04, 0.96), 1.0);
-    out.pointSize = clamp(size * tunePointSize, 0.80, 8.00);
+    out.pointSize = clamp(size * tunePointSize, 0.74, 9.80);
     out.depth = visibleDepth;
     out.density = density;
     out.ridge = litRidge;
