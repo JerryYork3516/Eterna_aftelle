@@ -728,9 +728,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     visibleIonCluster *= mix(1.0, 0.48, exitStructureLoss);
     visibleCloudDensity *= mix(1.0, 0.68, exitDim);
     visibleDenseSection *= mix(1.0, 0.64, exitDim);
-    float3 surfaceNormal = normalize(float3(flowedBody.xy * 0.92, flowedBody.z * 1.12 + visibleDepth * 0.22));
-    float3 keyDirection = normalize(float3(turnedSide * 0.74 + turnedAxis * 0.22, 0.54));
-    float3 fillDirection = normalize(float3(-turnedSide * 0.42 + turnedAxis * 0.34, 0.50));
+    float3 surfaceNormal = normalize(float3(body.xy * 0.74 + flowedBody.xy * 0.22, visibleDepth * 1.18));
+    float3 keyDirection = normalize(float3(-0.38, 0.28, 0.88));
+    float3 fillDirection = normalize(float3(0.42, -0.16, 0.72));
     float rollingLight = smoothstep(-0.24, 0.66, dot(surfaceNormal, keyDirection));
     float fillLight = smoothstep(-0.18, 0.62, dot(surfaceNormal, fillDirection));
     float localLightA = smoothstep(0.50, 0.86, 0.5 + 0.5 * sin(animatedTravel * 3.25 - animatedCross * 1.55 + flowedBody.z * 2.7 - fieldTime * 0.48 + morph));
@@ -761,7 +761,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         - exitBreakAmount * 0.040);
     surfaceLight = saturate(surfaceLight * tuneSurfaceLight);
     float ionPresence = saturate(visibleIonCluster * 0.82 + visibleStructuralSpine * 0.86 + visibleLayerDensity * 0.24);
-    float baseDepthGate = smoothstep(-0.48, 0.46, depth);
+    float baseDepthGate = smoothstep(-0.48, 0.46, visibleDepth);
     float frontSizeLift = baseDepthGate * 0.34
         + smoothstep(0.72, 0.10, stableScreenRadius) * 0.08;
     float stableSizeRidge = saturate(ridge * 0.58
@@ -783,9 +783,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + hash11(seedB * 67.0 + particleSeed * 23.0) * 0.18
         + frontSizeLift
         + sizeScatter) * structureScale * mix(1.0, 0.74, stableSparsePresence) * mix(1.0, 0.84, thinking * edge) * mix(1.0, 0.94, loading * edge) * mix(1.0, 1.06, speaking * edge) * mix(1.0, 0.96, previewPlaceholder * edge);
-    float depthSize = mix(0.94, 1.20, smoothstep(-0.65, 0.75, depth));
-    float frontParticleLift = smoothstep(-0.26, 0.42, depth);
-    float backParticleMute = 1.0 - smoothstep(-0.72, -0.02, depth);
+    float depthSize = mix(0.84, 1.26, smoothstep(-0.65, 0.75, visibleDepth));
+    float frontParticleLift = smoothstep(-0.26, 0.42, visibleDepth);
+    float backParticleMute = 1.0 - smoothstep(-0.72, -0.02, visibleDepth);
     float ridgeSizeLift = saturate(stableSizeRidge * 0.86 + ridge * 0.18);
     float visualSizeGate = saturate(max(frontParticleLift * 0.82, ridgeSizeLift * 0.96));
     float pointCeiling = mix(3.20, 10.80, visualSizeGate) + stableSizeRidge * 1.45;
