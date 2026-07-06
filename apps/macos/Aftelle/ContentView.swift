@@ -299,12 +299,8 @@ private struct ParticleDebugPanel: View {
                             setRenderKind: setRenderKind
                         )
                     case .particle:
-                        ForEach(ParticleCoreTuningParameter.allCases) { parameter in
-                            if parameter == .rotationDirection {
-                                ParticleDirectionRow(tuning: $tuning)
-                            } else {
-                                ParticleParameterRow(parameter: parameter, tuning: $tuning)
-                            }
+                        ForEach(ParticleCoreTuningGroup.allCases) { group in
+                            ParticleTuningGroupSection(group: group, tuning: $tuning)
                         }
                     case .color:
                         ForEach(ParticleCoreColorParameter.allCases) { parameter in
@@ -600,6 +596,25 @@ private struct ParticleDiagnosticsRow: View {
                 .truncationMode(.middle)
 
             Spacer(minLength: 0)
+        }
+    }
+}
+
+private struct ParticleTuningGroupSection: View {
+    let group: ParticleCoreTuningGroup
+    @Binding var tuning: ParticleCoreTuning
+
+    var body: some View {
+        ParticleDiagnosticsSection(titleKey: group.localizedKey) {
+            VStack(spacing: 8) {
+                ForEach(group.parameters) { parameter in
+                    if parameter == .rotationDirection {
+                        ParticleDirectionRow(tuning: $tuning)
+                    } else {
+                        ParticleParameterRow(parameter: parameter, tuning: $tuning)
+                    }
+                }
+            }
         }
     }
 }

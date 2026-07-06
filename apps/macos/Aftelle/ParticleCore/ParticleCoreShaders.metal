@@ -432,25 +432,27 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 rotationOrbitAxis = rotate2(tuneRotationDirection, rotationTime * (0.36 + tuneRotationEmphasis * 0.10));
     float rotationOrbitGate = smoothstep(0.10, 0.72, lengthP) * (1.0 - smoothstep(0.94, 1.20, lengthP));
     p += rotationOrbitAxis * rotationOrbitGate * tuneRotationEmphasis * 0.022;
-    float viewRadius = length(p);
     float2 viewNormal = normalize(p + float2(0.001, 0.001));
-    float2 viewTangent = float2(-viewNormal.y, viewNormal.x);
+    float3 rotatedSurfaceNormal = normalize(body + float3(0.001, 0.001, 0.001));
+    float2 projectedSurfaceNormal = normalize(rotatedSurfaceNormal.xy + viewNormal * 0.18);
+    float2 projectedSurfaceTangent = float2(-projectedSurfaceNormal.y, projectedSurfaceNormal.x);
+    float surfaceSilhouette = smoothstep(0.18, 0.92, 1.0 - abs(rotatedSurfaceNormal.z));
     float silhouetteScatterA = hash11(particleSeed * 91.7 + seedB * 37.3);
     float silhouetteScatterB = hash11(seedB * 113.1 + particleSeed * 17.9);
     float2 viewRandomDirection = normalize(float2(
         cos(silhouetteScatterA * 6.2831853 + seedB * 2.1),
         sin(silhouetteScatterB * 6.2831853 - particleSeed * 1.7)
     ) + float2(0.001, 0.001));
-    float viewSurfaceScatterGate = 0.40 + smoothstep(0.08, 0.94, viewRadius) * 0.60;
-    float viewSilhouetteGate = smoothstep(0.38, 0.68, viewRadius) * (1.0 - smoothstep(1.02, 1.22, viewRadius));
+    float viewSurfaceScatterGate = 0.68 + surfaceSilhouette * 0.32;
+    float viewSilhouetteGate = 0.28 + surfaceSilhouette * 0.72;
     float surfaceRadialScatter = pow(silhouetteScatterA, 1.42) * (0.004 + tuneEdgeScatter * 0.016);
     float surfaceTangentScatter = (silhouetteScatterB - 0.5) * (0.004 + tuneEdgeScatter * 0.014);
     float surfaceRandomScatter = (0.003 + tuneEdgeScatter * 0.012) * hash11(seedB * 251.0 + particleSeed * 43.0);
     float silhouetteRadial = pow(silhouetteScatterA, 1.62) * (0.004 + tuneEdgeScatter * 0.030);
     float silhouetteTangent = (silhouetteScatterB - 0.5) * (0.004 + tuneEdgeScatter * 0.020);
-    p += (viewNormal * surfaceRadialScatter + viewTangent * surfaceTangentScatter) * viewSurfaceScatterGate * edgeSettle;
+    p += (projectedSurfaceNormal * surfaceRadialScatter + projectedSurfaceTangent * surfaceTangentScatter) * viewSurfaceScatterGate * edgeSettle;
     p += viewRandomDirection * surfaceRandomScatter * viewSurfaceScatterGate * edgeSettle;
-    p += (viewNormal * silhouetteRadial + viewTangent * silhouetteTangent) * viewSilhouetteGate * edgeSettle;
+    p += (projectedSurfaceNormal * silhouetteRadial + projectedSurfaceTangent * silhouetteTangent) * viewSilhouetteGate * edgeSettle;
     float2 stableScreenPosition = p;
     float stableRadius = length(stableScreenPosition);
     float3 axis3 = rotateBody(rotateBody(float3(globalAxis.x, globalAxis.y, 0.0), selfSpinAngles), bodyAngles);
@@ -482,12 +484,11 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     p += surfaceFlowSide * turnWakeB * (0.003 + interior * 0.004 + midBand * 0.010 + frontSheetGate * 0.008 + frontSpreadGate * 0.012 + edge * 0.001) * turnWakeGate * mix(1.0, 1.06, thinking) * mix(1.0, 1.08, speaking);
     float edgeFrayA = 0.5 + 0.5 * sin(angle * 7.2 + depth * 4.4 - fieldTime * 0.34 + particleSeed * 6.2831853);
     float edgeFrayB = 0.5 + 0.5 * cos(angle * 11.6 - depth * 3.6 + fieldTime * 0.26 + phaseB);
-    float edgeFrayField = edge * smoothstep(0.34, 0.78, edgeFrayA * 0.56 + edgeFrayB * 0.34 + seedB * 0.10);
-    float3 edgeNormal3 = rotateBody(rotateBody(float3(radial.x, radial.y, depth * 0.20), selfSpinAngles), bodyAngles);
-    float2 edgeNormal = normalize(edgeNormal3.xy + normalize(p + float2(0.001, 0.001)) * 0.35);
+    float edgeFrayField = (0.32 + surfaceSilhouette * 0.68) * smoothstep(0.34, 0.78, edgeFrayA * 0.56 + edgeFrayB * 0.34 + seedB * 0.10);
+    float2 edgeNormal = normalize(projectedSurfaceNormal + normalize(p + float2(0.001, 0.001)) * 0.20);
     float edgeFrayAmount = edgeFrayField * (0.006 + 0.016 * seedB) * (0.76 + 0.24 * abs(globalWave)) * edgeSettle * speakingEdgeLift * tuneEdgeFray;
     p += edgeNormal * edgeFrayAmount;
-    p += turnedSide * edgeFrayField * sin(fieldTime * 0.41 + phaseB + angle * 2.0) * (0.001 + 0.004 * particleSeed) * edgeSettle * speakingEdgeLift;
+    p += projectedSurfaceTangent * edgeFrayField * sin(fieldTime * 0.41 + phaseB + angle * 2.0) * (0.001 + 0.004 * particleSeed) * edgeSettle * speakingEdgeLift;
     float screenCloudRoll = sin(dot(p, turnedAxis) * 3.2 + body.z * 4.4 - fieldTime * 0.86 + globalWave);
     float screenCloudCurl = cos(dot(p, turnedSide) * 3.6 - body.z * 5.0 + fieldTime * 0.72 + phaseB * 0.10);
     float screenCloudStrength = activeInterior * 0.006 + midBand * 0.018 * stateFocus + edge * 0.002 * edgeSettle;
@@ -623,12 +624,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float edgeDustB = 0.5 + 0.5 * cos(angle * 23.0 - depth * 5.1 + seedB * 8.3 + fieldTime * 0.18);
     float2 screenNormal = normalize(p + float2(0.001, 0.001));
     float2 screenTangent = float2(-screenNormal.y, screenNormal.x);
-    float depthSilhouette = 0.50 + 0.50 * (1.0 - smoothstep(0.64, 1.00, abs(body.z * 1.55)));
-    float omniSilhouetteBoost = screenEdge * depthSilhouette;
-    float centerFrayMute = smoothstep(0.34, 0.64, length(stableScreenPosition));
-    float edgeDustField = centerFrayMute
-        * screenEdge
-        * max(edge * 0.10, omniSilhouetteBoost * 0.34)
+    float surfaceDustGate = 0.38 + surfaceSilhouette * 0.62;
+    float radialDustGate = 0.46 + screenEdge * 0.54;
+    float edgeDustField = surfaceDustGate
+        * radialDustGate
         * smoothstep(0.28, 0.84, edgeDustA * 0.48 + edgeDustB * 0.36 + seedB * 0.16);
     edgeDustField *= (1.0 - turnWakeEnergy * 0.42) * edgeSettle * speakingEdgeLift * tuneEdgeDust * tuneEdgeScatter;
     p += screenNormal * edgeDustField * (0.008 + 0.026 * seedB);
@@ -788,7 +787,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float stableSizeRidge = saturate(ridge * 0.58
         + smoothstep(0.30, 0.78, stableScreenRadius) * 0.16
         + baseDepthGate * 0.14
-        + edge * tuneEdgeScatter * 0.035
+        + surfaceSilhouette * tuneEdgeScatter * 0.035
         + hash11(particleSeed * 73.0 + seedB * 19.0) * 0.10);
     float stableSparsePresence = saturate((1.0 - stableSizeRidge) * 0.18
         + smoothstep(0.78, 1.02, stableScreenRadius) * 0.14);
@@ -801,7 +800,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float pointBase = (mix(1.82, 4.82, stableSizeRidge)
         + ridge * 0.84 * backAggregationMute
         + stableSizeRidge * 1.18
-        + edge * (0.10 + tuneEdgeScatter * 0.08) * edgeSettle
+        + surfaceSilhouette * (0.10 + tuneEdgeScatter * 0.08) * edgeSettle
         + hash11(seedB * 67.0 + particleSeed * 23.0) * 0.18
         + frontSizeLift
         + sizeScatter) * structureScale * mix(1.0, 0.74, stableSparsePresence) * mix(1.0, 0.84, thinking * edge) * mix(1.0, 0.94, loading * edge) * mix(1.0, 1.06, speaking * edge) * mix(1.0, 0.96, previewPlaceholder * edge);

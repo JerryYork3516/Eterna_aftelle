@@ -29,6 +29,11 @@
 "particleDebug.importDR" = "Import DR";
 "particleDebug.save" = "Save";
 "particleDebug.restoreDefault" = "Restore Default";
+"particleDebug.tuningGroup.overall" = "Overall";
+"particleDebug.tuningGroup.shape" = "Shape";
+"particleDebug.tuningGroup.motion" = "Motion";
+"particleDebug.tuningGroup.surface" = "Surface";
+"particleDebug.tuningGroup.render" = "Render";
 "particleDebug.parameter.globalScale" = "Global Scale";
 "particleDebug.parameter.pointSizeScale" = "Particle Size";
 "particleDebug.parameter.brightness" = "Brightness";

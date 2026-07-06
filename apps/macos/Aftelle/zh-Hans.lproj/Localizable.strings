@@ -29,6 +29,11 @@
 "particleDebug.importDR" = "导入 DR";
 "particleDebug.save" = "保存";
 "particleDebug.restoreDefault" = "恢复默认";
+"particleDebug.tuningGroup.overall" = "整体";
+"particleDebug.tuningGroup.shape" = "形体";
+"particleDebug.tuningGroup.motion" = "运动";
+"particleDebug.tuningGroup.surface" = "表面";
+"particleDebug.tuningGroup.render" = "渲染";
 "particleDebug.parameter.globalScale" = "整体尺寸";
 "particleDebug.parameter.pointSizeScale" = "粒子大小";
 "particleDebug.parameter.brightness" = "整体亮度";

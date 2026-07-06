@@ -84,7 +84,7 @@ struct ParticleCoreModel {
             let fineRelief = sin(theta * 9.0 + z * 7.6 + phaseB) * 0.55
                 + cos(theta * 13.0 - rawDepth * 5.1 + phaseC) * 0.45
             let fold = max(0.78, 1 + broadRelief * reliefAmplitude + fineRelief * fineReliefAmplitude)
-            let depth = rawDepth * fold
+            var depth = rawDepth * fold
             var x = shell * cos(shapedTheta) * baseScale * cellStretchX * fold
             var y = z * baseScale * cellStretchY * fold
             let projectedRadius = sqrt(x * x + y * y) / max(baseScale, 0.001)
@@ -98,6 +98,7 @@ struct ParticleCoreModel {
             let tangentialScatter = surfaceScatter * (Float(generator.nextUnit()) - 0.5) * 0.024 * edgeScatterScale
             x += outward.x * radialScatter + tangent.x * tangentialScatter
             y += outward.y * radialScatter + tangent.y * tangentialScatter
+            depth += rawDepth * radialScatter * 1.15
             let silhouette = max(0, min(1, 1 - abs(rawDepth) * 1.72))
             let threadA = pow(max(0, 0.5 + 0.5 * sin(theta * 3.0 + z * 4.4 + rawDepth * 2.6 + phaseA)), 4)
             let threadB = pow(max(0, 0.5 + 0.5 * sin(theta * 5.0 - z * 3.1 + phaseB)), 5)

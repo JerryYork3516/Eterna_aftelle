@@ -100,6 +100,21 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
         "particleDebug.parameter.\(rawValue)"
     }
 
+    var group: ParticleCoreTuningGroup {
+        switch self {
+        case .globalScale, .pointSizeScale:
+            return .overall
+        case .shapeSeed, .roundness, .surfaceReliefSize:
+            return .shape
+        case .breathingAmount, .breathingSpeed, .rotationSpeed, .rotationDirection:
+            return .motion
+        case .flowStrength, .flowSpeed, .edgeScatterAmount, .edgeDustAmount, .edgeFrayAmount:
+            return .surface
+        case .brightness, .alphaScale, .ridgeBrightness, .surfaceLightStrength:
+            return .render
+        }
+    }
+
     var keyPath: WritableKeyPath<ParticleCoreTuning, Double> {
         switch self {
         case .globalScale:
@@ -139,6 +154,24 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
         case .surfaceLightStrength:
             return \.surfaceLightStrength
         }
+    }
+}
+
+enum ParticleCoreTuningGroup: String, CaseIterable, Identifiable {
+    case overall
+    case shape
+    case motion
+    case surface
+    case render
+
+    var id: String { rawValue }
+
+    var localizedKey: String {
+        "particleDebug.tuningGroup.\(rawValue)"
+    }
+
+    var parameters: [ParticleCoreTuningParameter] {
+        ParticleCoreTuningParameter.allCases.filter { $0.group == self }
     }
 }
 
