@@ -41,6 +41,7 @@
 "particleDebug.parameter.rotationSpeed" = "整体旋转速度";
 "particleDebug.parameter.rotationDirection" = "整体旋转方向";
 "particleDebug.parameter.shapeSeed" = "整体形状 Seed";
+"particleDebug.parameter.edgeScatterAmount" = "边缘散发强度";
 "particleDebug.parameter.edgeDustAmount" = "边缘微尘";
 "particleDebug.parameter.edgeFrayAmount" = "边缘毛边";
 "particleDebug.parameter.surfaceLightStrength" = "表面光强";

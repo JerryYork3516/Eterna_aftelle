@@ -32,6 +32,7 @@ struct ParticleCoreFrameUniforms {
     var flowSpeed: Float
     var rotationSpeed: Float
     var rotationDirection: Float
+    var edgeScatterAmount: Float
     var edgeDustAmount: Float
     var edgeFrayAmount: Float
     var surfaceLightStrength: Float
@@ -206,6 +207,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             flowSpeed: Float(tuning.flowSpeed),
             rotationSpeed: Float(tuning.rotationSpeed),
             rotationDirection: Float(tuning.rotationDirection),
+            edgeScatterAmount: Float(tuning.edgeScatterAmount),
             edgeDustAmount: Float(tuning.edgeDustAmount),
             edgeFrayAmount: Float(tuning.edgeFrayAmount),
             surfaceLightStrength: Float(tuning.surfaceLightStrength),
@@ -259,9 +261,10 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     func setTuning(_ tuning: ParticleCoreTuning) {
         let nextTuning = tuning.clamped()
         let nextSeed = Self.modelSeed(for: nextTuning.shapeSeed)
+        let nextEdgeScatter = Self.modelEdgeScatter(for: nextTuning.edgeScatterAmount)
         self.tuning = nextTuning
-        guard model.seed != nextSeed else { return }
-        model = ParticleCoreModel(seed: nextSeed)
+        guard model.seed != nextSeed || model.edgeScatterAmount != nextEdgeScatter else { return }
+        model = ParticleCoreModel(seed: nextSeed, edgeScatterAmount: nextEdgeScatter)
         frameSeed = Self.frameSeed(for: nextSeed)
         uploadParticles()
     }
@@ -336,6 +339,10 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private static func modelSeed(for value: Double) -> UInt64 {
         let bucket = UInt64((min(1, max(0, value)) * 4095).rounded())
         return 0xA7F7E11E9E3779B9 &+ bucket &* 0x9E3779B97F4A7C15
+    }
+
+    private static func modelEdgeScatter(for value: Double) -> Float {
+        Float((min(1, max(0, value)) * 64).rounded() / 64)
     }
 
     private static func frameSeed(for seed: UInt64) -> UInt32 {

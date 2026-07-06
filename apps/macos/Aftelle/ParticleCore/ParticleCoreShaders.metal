@@ -29,6 +29,7 @@ struct ParticleCoreFrameUniforms {
     float flowSpeed;
     float rotationSpeed;
     float rotationDirection;
+    float edgeScatterAmount;
     float edgeDustAmount;
     float edgeFrayAmount;
     float surfaceLightStrength;
@@ -297,6 +298,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 tuneRotationDirection = cardinalDirection(uniforms.rotationDirection);
     float tuneRotationPhase = atan2(tuneRotationDirection.y, tuneRotationDirection.x);
     float tuneRotationEmphasis = tuneRotationSpeed * tuneRotationSpeed;
+    float tuneEdgeScatter = 0.55 + saturate(uniforms.edgeScatterAmount) * 1.35;
     float tuneEdgeDust = scaleAroundOne(uniforms.edgeDustAmount, 1.20);
     float tuneEdgeFray = scaleAroundOne(uniforms.edgeFrayAmount, 1.20);
     float tuneSurfaceLight = scaleAroundOne(uniforms.surfaceLightStrength, 1.00);
@@ -430,6 +432,15 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 rotationOrbitAxis = rotate2(tuneRotationDirection, rotationTime * (0.36 + tuneRotationEmphasis * 0.10));
     float rotationOrbitGate = smoothstep(0.10, 0.72, lengthP) * (1.0 - smoothstep(0.94, 1.20, lengthP));
     p += rotationOrbitAxis * rotationOrbitGate * tuneRotationEmphasis * 0.022;
+    float viewRadius = length(p);
+    float2 viewNormal = normalize(p + float2(0.001, 0.001));
+    float2 viewTangent = float2(-viewNormal.y, viewNormal.x);
+    float viewSilhouetteGate = smoothstep(0.38, 0.68, viewRadius) * (1.0 - smoothstep(1.02, 1.22, viewRadius));
+    float silhouetteScatterA = hash11(particleSeed * 91.7 + seedB * 37.3);
+    float silhouetteScatterB = hash11(seedB * 113.1 + particleSeed * 17.9);
+    float silhouetteRadial = pow(silhouetteScatterA, 1.75) * (0.007 + tuneEdgeScatter * 0.026);
+    float silhouetteTangent = (silhouetteScatterB - 0.5) * (0.006 + tuneEdgeScatter * 0.015);
+    p += (viewNormal * silhouetteRadial + viewTangent * silhouetteTangent) * viewSilhouetteGate * edgeSettle;
     float2 stableScreenPosition = p;
     float stableRadius = length(stableScreenPosition);
     float3 axis3 = rotateBody(rotateBody(float3(globalAxis.x, globalAxis.y, 0.0), selfSpinAngles), bodyAngles);
@@ -609,10 +620,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * screenEdge
         * max(edge * 0.08, sideSilhouetteBoost * 0.22)
         * smoothstep(0.28, 0.84, edgeDustA * 0.48 + edgeDustB * 0.36 + seedB * 0.16);
-    edgeDustField *= (1.0 - turnWakeEnergy * 0.42) * edgeSettle * speakingEdgeLift * tuneEdgeDust;
+    edgeDustField *= (1.0 - turnWakeEnergy * 0.42) * edgeSettle * speakingEdgeLift * tuneEdgeDust * tuneEdgeScatter;
     p += screenNormal * edgeDustField * (0.006 + 0.016 * seedB);
     p += turnedSide * edgeDustField * sin(angle * 3.4 + phaseB + fieldTime * 0.28) * (0.002 + 0.005 * particleSeed);
-    edgeFrayField = saturate(edgeFrayField * 0.26 * tuneEdgeFray + edgeDustField * 0.20 + exitBreakAmount * 0.42 + exitState * dustRelease * 0.24);
+    edgeFrayField = saturate(edgeFrayField * (0.14 + tuneEdgeScatter * 0.14) * tuneEdgeFray + edgeDustField * 0.20 + exitBreakAmount * 0.42 + exitState * dustRelease * 0.24);
 
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);
     p *= tuneGlobalScale;
@@ -767,6 +778,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float stableSizeRidge = saturate(ridge * 0.58
         + smoothstep(0.30, 0.78, stableScreenRadius) * 0.16
         + baseDepthGate * 0.14
+        + edge * tuneEdgeScatter * 0.035
         + hash11(particleSeed * 73.0 + seedB * 19.0) * 0.10);
     float stableSparsePresence = saturate((1.0 - stableSizeRidge) * 0.18
         + smoothstep(0.78, 1.02, stableScreenRadius) * 0.14);
@@ -779,7 +791,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float pointBase = (mix(1.82, 4.82, stableSizeRidge)
         + ridge * 0.84 * backAggregationMute
         + stableSizeRidge * 1.18
-        + edge * 0.14 * edgeSettle
+        + edge * (0.10 + tuneEdgeScatter * 0.08) * edgeSettle
         + hash11(seedB * 67.0 + particleSeed * 23.0) * 0.18
         + frontSizeLift
         + sizeScatter) * structureScale * mix(1.0, 0.74, stableSparsePresence) * mix(1.0, 0.84, thinking * edge) * mix(1.0, 0.94, loading * edge) * mix(1.0, 1.06, speaking * edge) * mix(1.0, 0.96, previewPlaceholder * edge);

@@ -32,9 +32,11 @@ struct ParticleCoreModel {
 
     let particles: [Particle]
     let seed: UInt64
+    let edgeScatterAmount: Float
 
-    init(count: Int = 12_000, seed: UInt64 = 0xA7F7E11E) {
+    init(count: Int = 12_000, seed: UInt64 = 0xA7F7E11E, edgeScatterAmount: Float = 0.5) {
         self.seed = seed
+        self.edgeScatterAmount = min(1, max(0, edgeScatterAmount))
         var generator = ParticleCoreSeededGenerator(seed: seed)
         var values: [Particle] = []
         values.reserveCapacity(count)
@@ -53,7 +55,8 @@ struct ParticleCoreModel {
         let foldA = Float(0.105 + generator.nextUnit() * 0.080)
         let foldB = Float(0.060 + generator.nextUnit() * 0.070)
         let foldC = Float(0.032 + generator.nextUnit() * 0.054)
-        let edgeScatterScale = Float(0.86 + generator.nextUnit() * 0.34)
+        let edgeScatterControl = 0.68 + self.edgeScatterAmount * 1.05
+        let edgeScatterScale = Float(0.82 + generator.nextUnit() * 0.28) * edgeScatterControl
 
         while values.count < count {
             let index = candidateIndex

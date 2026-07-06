@@ -14,6 +14,7 @@ struct ParticleCoreTuning: Codable, Equatable {
     var rotationSpeed: Double
     var rotationDirection: Double
     var shapeSeed: Double
+    var edgeScatterAmount: Double
     var edgeDustAmount: Double
     var edgeFrayAmount: Double
     var surfaceLightStrength: Double
@@ -31,6 +32,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         rotationSpeed: 0.5,
         rotationDirection: 1.0,
         shapeSeed: 0.5,
+        edgeScatterAmount: 0.5,
         edgeDustAmount: 0.5,
         edgeFrayAmount: 0.5,
         surfaceLightStrength: 0.5
@@ -81,6 +83,7 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case rotationSpeed
     case rotationDirection
     case shapeSeed
+    case edgeScatterAmount
     case edgeDustAmount
     case edgeFrayAmount
     case surfaceLightStrength
@@ -117,6 +120,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.rotationDirection
         case .shapeSeed:
             return \.shapeSeed
+        case .edgeScatterAmount:
+            return \.edgeScatterAmount
         case .edgeDustAmount:
             return \.edgeDustAmount
         case .edgeFrayAmount:
@@ -141,6 +146,7 @@ extension ParticleCoreTuning {
         case rotationSpeed
         case rotationDirection
         case shapeSeed
+        case edgeScatterAmount
         case edgeDustAmount
         case edgeFrayAmount
         case surfaceLightStrength
@@ -160,6 +166,7 @@ extension ParticleCoreTuning {
         self.rotationSpeed = try container.decode(Double.self, forKey: .rotationSpeed)
         self.rotationDirection = try container.decode(Double.self, forKey: .rotationDirection)
         self.shapeSeed = try container.decodeIfPresent(Double.self, forKey: .shapeSeed) ?? Self.systemDefault.shapeSeed
+        self.edgeScatterAmount = try container.decodeIfPresent(Double.self, forKey: .edgeScatterAmount) ?? Self.systemDefault.edgeScatterAmount
         self.edgeDustAmount = try container.decode(Double.self, forKey: .edgeDustAmount)
         self.edgeFrayAmount = try container.decode(Double.self, forKey: .edgeFrayAmount)
         self.surfaceLightStrength = try container.decode(Double.self, forKey: .surfaceLightStrength)
