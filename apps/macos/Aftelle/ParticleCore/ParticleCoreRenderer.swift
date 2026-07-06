@@ -261,10 +261,20 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     func setTuning(_ tuning: ParticleCoreTuning) {
         let nextTuning = tuning.clamped()
         let nextSeed = Self.modelSeed(for: nextTuning.shapeSeed)
+        let nextRoundness = Self.modelShapeValue(for: nextTuning.roundness)
+        let nextSurfaceReliefSize = Self.modelShapeValue(for: nextTuning.surfaceReliefSize)
         let nextEdgeScatter = Self.modelEdgeScatter(for: nextTuning.edgeScatterAmount)
         self.tuning = nextTuning
-        guard model.seed != nextSeed || model.edgeScatterAmount != nextEdgeScatter else { return }
-        model = ParticleCoreModel(seed: nextSeed, edgeScatterAmount: nextEdgeScatter)
+        guard model.seed != nextSeed
+            || model.roundness != nextRoundness
+            || model.surfaceReliefSize != nextSurfaceReliefSize
+            || model.edgeScatterAmount != nextEdgeScatter else { return }
+        model = ParticleCoreModel(
+            seed: nextSeed,
+            roundness: nextRoundness,
+            surfaceReliefSize: nextSurfaceReliefSize,
+            edgeScatterAmount: nextEdgeScatter
+        )
         frameSeed = Self.frameSeed(for: nextSeed)
         uploadParticles()
     }
@@ -342,6 +352,10 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     }
 
     private static func modelEdgeScatter(for value: Double) -> Float {
+        Float((min(1, max(0, value)) * 64).rounded() / 64)
+    }
+
+    private static func modelShapeValue(for value: Double) -> Float {
         Float((min(1, max(0, value)) * 64).rounded() / 64)
     }
 

@@ -14,6 +14,8 @@ struct ParticleCoreTuning: Codable, Equatable {
     var rotationSpeed: Double
     var rotationDirection: Double
     var shapeSeed: Double
+    var roundness: Double
+    var surfaceReliefSize: Double
     var edgeScatterAmount: Double
     var edgeDustAmount: Double
     var edgeFrayAmount: Double
@@ -32,6 +34,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         rotationSpeed: 0.5,
         rotationDirection: 1.0,
         shapeSeed: 0.5,
+        roundness: 0.28,
+        surfaceReliefSize: 0.45,
         edgeScatterAmount: 0.5,
         edgeDustAmount: 0.5,
         edgeFrayAmount: 0.5,
@@ -83,6 +87,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case rotationSpeed
     case rotationDirection
     case shapeSeed
+    case roundness
+    case surfaceReliefSize
     case edgeScatterAmount
     case edgeDustAmount
     case edgeFrayAmount
@@ -120,6 +126,10 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.rotationDirection
         case .shapeSeed:
             return \.shapeSeed
+        case .roundness:
+            return \.roundness
+        case .surfaceReliefSize:
+            return \.surfaceReliefSize
         case .edgeScatterAmount:
             return \.edgeScatterAmount
         case .edgeDustAmount:
@@ -146,6 +156,8 @@ extension ParticleCoreTuning {
         case rotationSpeed
         case rotationDirection
         case shapeSeed
+        case roundness
+        case surfaceReliefSize
         case edgeScatterAmount
         case edgeDustAmount
         case edgeFrayAmount
@@ -166,6 +178,8 @@ extension ParticleCoreTuning {
         self.rotationSpeed = try container.decode(Double.self, forKey: .rotationSpeed)
         self.rotationDirection = try container.decode(Double.self, forKey: .rotationDirection)
         self.shapeSeed = try container.decodeIfPresent(Double.self, forKey: .shapeSeed) ?? Self.systemDefault.shapeSeed
+        self.roundness = try container.decodeIfPresent(Double.self, forKey: .roundness) ?? Self.systemDefault.roundness
+        self.surfaceReliefSize = try container.decodeIfPresent(Double.self, forKey: .surfaceReliefSize) ?? Self.systemDefault.surfaceReliefSize
         self.edgeScatterAmount = try container.decodeIfPresent(Double.self, forKey: .edgeScatterAmount) ?? Self.systemDefault.edgeScatterAmount
         self.edgeDustAmount = try container.decode(Double.self, forKey: .edgeDustAmount)
         self.edgeFrayAmount = try container.decode(Double.self, forKey: .edgeFrayAmount)
