@@ -429,18 +429,19 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 globalAxis = globalDirection(fieldTime);
     float2 globalSide = float2(-globalAxis.y, globalAxis.x);
     float surfaceMotion = smoothstep(0.24, 0.58, lengthP);
-    float reliefFrequency = mix(24.0, 4.2, surfaceReliefDensity);
-    float reliefCrossFrequency = mix(18.0, 3.2, surfaceReliefDensity);
-    float reliefDetail = sin(angle * reliefFrequency + depth * 3.1 + phaseB * 0.18 - fieldTime * 0.16) * 0.46
-        + cos(angle * reliefFrequency * 1.37 - depth * 2.7 + localPhase * 0.14 + fieldTime * 0.11) * 0.34
-        + sin(dot(p, globalAxis) * reliefCrossFrequency + dot(p, globalSide) * reliefCrossFrequency * 0.48 + seedB * 6.2831853) * 0.20;
+    float reliefPatchScale = mix(15.5, 3.4, surfaceReliefDensity);
+    float reliefCrossScale = mix(12.0, 2.6, surfaceReliefDensity);
+    float reliefTravel = dot(p, globalAxis) * reliefCrossScale;
+    float reliefCross = dot(p, globalSide) * reliefCrossScale;
+    float reliefRaw = sin(angle * reliefPatchScale + depth * 2.2 + phaseB * 0.12 - fieldTime * 0.12) * 0.50
+        + cos(angle * reliefPatchScale * 0.72 - depth * 1.8 + localPhase * 0.08 + fieldTime * 0.07) * 0.32
+        + sin(reliefTravel + reliefCross * 0.62 + seedB * 6.2831853) * 0.18;
+    float reliefSignal = clamp(reliefRaw, -1.0, 1.0);
     float broadRelief = globalShapeWave(p, depth, fieldTime, globalAxis, globalSide) * surfaceReliefAmount;
-    float seededRelief = morphField(angle, depth, fieldTime * 0.72, float(uniforms.seed) * 0.0017 + particleSeed * 0.41) * surfaceReliefAmount;
-    float densityRelief = clamp(reliefDetail, -1.0, 1.0) * surfaceReliefAmount;
-    float globalWave = broadRelief * mix(0.16, 0.42, surfaceReliefDensity);
-    float localMorph = mix(densityRelief, seededRelief, mix(0.06, 0.24, surfaceReliefDensity));
-    float morph = globalWave * mix(0.14, 0.34, surfaceReliefDensity) + localMorph * mix(0.86, 0.66, surfaceReliefDensity);
-    float reliefSignal = clamp(densityRelief / max(surfaceReliefAmount, 0.001), -1.0, 1.0);
+    float densityRelief = reliefSignal * surfaceReliefAmount;
+    float globalWave = broadRelief * 0.18;
+    float localMorph = densityRelief;
+    float morph = globalWave * 0.18 + localMorph * 0.82;
     float reliefRadiusGate = smoothstep(0.34, 0.72, lengthP) * (0.42 + edge * 0.36) * (0.54 + shellLayer * 0.34);
     float reliefRadiusOffset = reliefSignal * surfaceReliefValue * reliefRadiusGate * (0.0030 + edge * 0.0045 + surfaceMotion * 0.0020);
     float edgeMorph = edge * edge * (0.010 + 0.026 * edge + 0.006 * particleSeed) * morph * edgeSettle * speakingEdgeLift;
@@ -512,7 +513,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     body = rotateBody(body, bodyAngles);
     projectionBody = rotateBody(projectionBody, bodyAngles);
     float perspective = clamp(1.0 / (1.0 - projectionBody.z * 0.26), 0.84, 1.22);
-    p = mix(p, projectionBody.xy * perspective, membraneFullnessValue);
+    p = mix(p, projectionBody.xy * perspective, membraneFullnessValue * 0.16);
     float wholeTurn = globalTurnAngle(rotationPhaseTime * 0.36 + 6.4) * 0.10
         + sin(rotationPhaseTime * 0.19 + 1.7) * 0.035;
     p = rotate2(p, wholeTurn);
