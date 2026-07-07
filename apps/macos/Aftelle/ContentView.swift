@@ -8,6 +8,7 @@ struct ContentView: View {
     @State private var particleColorProfile = ParticleCoreColorProfile.loadSaved() ?? .systemDefault
     #if DEBUG
     @State private var debugSubtitleKeyMonitor: Any?
+    @State private var particleDebugWindow = ParticleDebugWindowController()
     #endif
 
     var body: some View {
@@ -27,32 +28,6 @@ struct ContentView: View {
 
             ParticleSubtitleOverlay(state: controller.particleSubtitleState)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            #if DEBUG
-            if controller.isParticleDebugPanelPresented {
-                ParticleDebugPanel(
-                    snapshot: controller.particleDebugSnapshot,
-                    shellMode: controller.particleShellMode,
-                    renderKind: controller.particleRenderKind,
-                    tuning: $particleTuning,
-                    colorProfile: $particleColorProfile,
-                    defaultColorProfile: controller.particleColorProfile,
-                    setShellMode: controller.setParticleShellMode,
-                    setRenderKind: controller.setParticleRenderKind,
-                    refreshColorProfileSnapshot: {
-                        controller.updateEffectiveParticleColorProfile(
-                            particleColorProfile,
-                            savedOverride: ParticleCoreColorProfile.hasSavedProfile()
-                        )
-                    },
-                    importDR: openDebugDRImportPanel
-                )
-                .padding(.top, 18)
-                .padding(.trailing, 18)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .transition(.opacity)
-            }
-            #endif
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(WindowShellConfigurator(shellMode: controller.particleShellMode))
@@ -77,9 +52,29 @@ struct ContentView: View {
                 savedOverride: ParticleCoreColorProfile.hasSavedProfile()
             )
             installDebugSubtitleKeyMonitor()
+            syncParticleDebugWindow()
         }
         .onDisappear {
+            particleDebugWindow.close()
             removeDebugSubtitleKeyMonitor()
+        }
+        .onChange(of: controller.isParticleDebugPanelPresented) { _, _ in
+            syncParticleDebugWindow()
+        }
+        .onChange(of: controller.particleDebugSnapshot) { _, _ in
+            syncParticleDebugWindow()
+        }
+        .onChange(of: controller.particleShellMode) { _, _ in
+            syncParticleDebugWindow()
+        }
+        .onChange(of: controller.particleRenderKind) { _, _ in
+            syncParticleDebugWindow()
+        }
+        .onChange(of: particleTuning) { _, _ in
+            syncParticleDebugWindow()
+        }
+        .onChange(of: particleColorProfile) { _, _ in
+            syncParticleDebugWindow()
         }
         #endif
     }
@@ -96,6 +91,36 @@ struct ContentView: View {
     }
 
     #if DEBUG
+    private func syncParticleDebugWindow() {
+        particleDebugWindow.update(
+            isPresented: controller.isParticleDebugPanelPresented,
+            rootView: particleDebugPanelView,
+            onClose: {
+                controller.setParticleDebugPanelPresented(false)
+            }
+        )
+    }
+
+    private var particleDebugPanelView: ParticleDebugPanel {
+        ParticleDebugPanel(
+            snapshot: controller.particleDebugSnapshot,
+            shellMode: controller.particleShellMode,
+            renderKind: controller.particleRenderKind,
+            tuning: $particleTuning,
+            colorProfile: $particleColorProfile,
+            defaultColorProfile: controller.particleColorProfile,
+            setShellMode: controller.setParticleShellMode,
+            setRenderKind: controller.setParticleRenderKind,
+            refreshColorProfileSnapshot: {
+                controller.updateEffectiveParticleColorProfile(
+                    particleColorProfile,
+                    savedOverride: ParticleCoreColorProfile.hasSavedProfile()
+                )
+            },
+            importDR: openDebugDRImportPanel
+        )
+    }
+
     private func openDebugDRImportPanel() {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = false
@@ -222,6 +247,62 @@ private struct ParticleSubtitleOverlay: View {
 }
 
 #if DEBUG
+private final class ParticleDebugWindowController: NSObject, NSWindowDelegate {
+    private var panel: NSPanel?
+    private var hostingView: NSHostingView<ParticleDebugPanel>?
+    private var onClose: (() -> Void)?
+
+    func update(isPresented: Bool, rootView: ParticleDebugPanel, onClose: @escaping () -> Void) {
+        self.onClose = onClose
+        guard isPresented else {
+            close()
+            return
+        }
+
+        if let panel, let hostingView {
+            hostingView.rootView = rootView
+            if !panel.isVisible {
+                panel.makeKeyAndOrderFront(nil)
+            }
+            return
+        }
+
+        let hostingView = NSHostingView(rootView: rootView)
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 760, height: 740),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .utilityWindow],
+            backing: .buffered,
+            defer: false
+        )
+        panel.title = String(localized: "particleDebug.windowTitle")
+        panel.contentMinSize = NSSize(width: 680, height: 560)
+        panel.contentView = hostingView
+        panel.delegate = self
+        panel.isFloatingPanel = true
+        panel.hidesOnDeactivate = false
+        panel.collectionBehavior = [.moveToActiveSpace]
+        panel.center()
+        panel.makeKeyAndOrderFront(nil)
+
+        self.hostingView = hostingView
+        self.panel = panel
+    }
+
+    func close() {
+        guard let panel else { return }
+        panel.delegate = nil
+        panel.close()
+        hostingView = nil
+        self.panel = nil
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        hostingView = nil
+        panel = nil
+        onClose?()
+    }
+}
+
 private enum ParticleDebugSection {
     case diagnostics
     case shell
@@ -231,27 +312,27 @@ private enum ParticleDebugSection {
 }
 
 private enum ParticleTuningGroup: CaseIterable, Identifiable {
-    case basics
+    case basic
     case shape
-    case membrane
+    case surface
     case motion
-    case scatter
+    case edge
     case spine
 
     var id: String { localizedKey }
 
     var localizedKey: String {
         switch self {
-        case .basics:
-            return "particleDebug.tuningGroup.basics"
+        case .basic:
+            return "particleDebug.tuningGroup.basic"
         case .shape:
             return "particleDebug.tuningGroup.shape"
-        case .membrane:
-            return "particleDebug.tuningGroup.membrane"
+        case .surface:
+            return "particleDebug.tuningGroup.surface"
         case .motion:
             return "particleDebug.tuningGroup.motion"
-        case .scatter:
-            return "particleDebug.tuningGroup.scatter"
+        case .edge:
+            return "particleDebug.tuningGroup.edge"
         case .spine:
             return "particleDebug.tuningGroup.spine"
         }
@@ -259,18 +340,18 @@ private enum ParticleTuningGroup: CaseIterable, Identifiable {
 
     var parameters: [ParticleCoreTuningParameter] {
         switch self {
-        case .basics:
-            return [.globalScale, .pointSizeScale, .brightness, .alphaScale, .ridgeBrightness, .surfaceLightStrength]
+        case .basic:
+            return [.globalScale, .pointSizeScale, .brightness, .alphaScale]
         case .shape:
-            return [.shapeRoundness, .surfaceReliefStrength, .shapeSeed]
-        case .membrane:
-            return [.membraneAspect, .membraneScale, .membraneFullness, .membraneMist, .membraneGrain, .sheetLightStrength, .flowLightStrength, .membraneLineStrength, .membraneLineWidth, .membraneStability]
+            return [.shapeRoundness, .surfaceReliefStrength, .shapeSeed, .membraneAspect, .membraneScale, .membraneFullness]
+        case .surface:
+            return [.membraneMist, .membraneGrain, .sheetLightStrength, .flowLightStrength, .surfaceLightStrength, .surfaceDispersionStrength]
         case .motion:
             return [.breathingAmount, .breathingSpeed, .flowStrength, .flowSpeed, .rotationSpeed, .rotationDirection]
-        case .scatter:
-            return [.edgeDustAmount, .edgeFrayAmount, .surfaceDispersionStrength]
+        case .edge:
+            return [.edgeDustAmount, .edgeFrayAmount]
         case .spine:
-            return [.spineLineStrength, .spineLineHighlight, .spineLineContrast, .spineLineSharpness, .spineLineWidth, .spineLineDensity]
+            return [.ridgeBrightness, .membraneLineStrength, .membraneLineWidth, .membraneStability, .spineLineStrength, .spineLineWidth, .spineLineDensity, .spineLineHighlight, .spineLineContrast, .spineLineSharpness]
         }
     }
 }
@@ -288,6 +369,8 @@ private struct ParticleDebugPanel: View {
     let importDR: () -> Void
     @State private var section: ParticleDebugSection = .diagnostics
     @State private var tuningGroup: ParticleTuningGroup = .shape
+    @State private var userPresets = ParticleCoreTuningUserPresetStore.load()
+    @State private var selectedUserPresetID: UUID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -346,6 +429,12 @@ private struct ParticleDebugPanel: View {
                         )
                     case .particle:
                         VStack(spacing: 8) {
+                            ParticleTuningPresetView(
+                                tuning: $tuning,
+                                userPresets: $userPresets,
+                                selectedUserPresetID: $selectedUserPresetID
+                            )
+
                             Picker("", selection: $tuningGroup) {
                                 ForEach(ParticleTuningGroup.allCases) { group in
                                     Text(String(localized: String.LocalizationValue(group.localizedKey)))
@@ -354,11 +443,13 @@ private struct ParticleDebugPanel: View {
                             }
                             .pickerStyle(.segmented)
 
-                            ForEach(tuningGroup.parameters) { parameter in
-                                if parameter == .rotationDirection {
-                                    ParticleDirectionRow(tuning: $tuning)
-                                } else {
-                                    ParticleParameterRow(parameter: parameter, tuning: $tuning)
+                            VStack(spacing: 10) {
+                                ForEach(tuningGroup.parameters) { parameter in
+                                    if parameter == .rotationDirection {
+                                        ParticleDirectionRow(tuning: $tuning)
+                                    } else {
+                                        ParticleParameterRow(parameter: parameter, tuning: $tuning)
+                                    }
                                 }
                             }
                         }
@@ -369,7 +460,7 @@ private struct ParticleDebugPanel: View {
                     }
                 }
             }
-            .frame(maxHeight: section == .diagnostics ? 460 : 360)
+            .frame(maxHeight: section == .diagnostics ? 500 : (section == .particle ? 560 : 380))
 
             if section == .particle || section == .color {
                 Divider()
@@ -389,7 +480,7 @@ private struct ParticleDebugPanel: View {
             }
         }
         .padding(14)
-        .frame(width: 430)
+        .frame(minWidth: 680, idealWidth: 720, minHeight: 540)
     }
 
     private var sectionSubtitle: String {
@@ -660,22 +751,272 @@ private struct ParticleDiagnosticsRow: View {
     }
 }
 
+private struct ParticleTuningPresetView: View {
+    @Binding var tuning: ParticleCoreTuning
+    @Binding var userPresets: [ParticleCoreTuningUserPreset]
+    @Binding var selectedUserPresetID: UUID?
+    @State private var builtInPreset: ParticleCoreTuningBuiltInPreset = .systemDefault
+    @State private var presetName = ""
+    @State private var warning = ""
+    @State private var presetPendingDelete: ParticleCoreTuningUserPreset?
+    @State private var isDeleteConfirmationPresented = false
+
+    var body: some View {
+        ParticleDiagnosticsSection(titleKey: "particleDebug.presets") {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(String(localized: "particleDebug.preset.builtInPresets"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Picker("", selection: $builtInPreset) {
+                            ForEach(ParticleCoreTuningBuiltInPreset.allCases) { preset in
+                                Text(String(localized: String.LocalizationValue(preset.localizedKey)))
+                                    .tag(preset)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+
+                        Button(String(localized: "particleDebug.preset.apply")) {
+                            tuning = builtInPreset.tuning
+                        }
+                        .controlSize(.small)
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(String(localized: "particleDebug.preset.userPresets"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Picker(String(localized: "particleDebug.preset.userPresets"), selection: $selectedUserPresetID) {
+                            Text(String(localized: "particleDebug.preset.none"))
+                                .tag(Optional<UUID>.none)
+                            ForEach(userPresets) { preset in
+                                Text(preset.name)
+                                    .tag(Optional(preset.id))
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(maxWidth: .infinity)
+                        .onChange(of: selectedUserPresetID) { _, _ in
+                            presetName = selectedPreset?.name ?? ""
+                            warning = ""
+                        }
+
+                        TextField(String(localized: "particleDebug.preset.name"), text: $presetName)
+                            .textFieldStyle(.roundedBorder)
+
+                        if !warning.isEmpty {
+                            Text(warning)
+                                .font(.caption2)
+                                .foregroundStyle(.red)
+                        }
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    Button(String(localized: "particleDebug.preset.saveCurrentAs")) {
+                        saveCurrentAsPreset()
+                    }
+                    .controlSize(.small)
+
+                    Button(String(localized: "particleDebug.preset.apply")) {
+                        applySelectedPreset()
+                    }
+                    .controlSize(.small)
+                    .disabled(selectedPreset == nil)
+
+                    Button(String(localized: "particleDebug.preset.updateSelected")) {
+                        updateSelectedPreset()
+                    }
+                    .controlSize(.small)
+                    .disabled(selectedPreset == nil)
+
+                    Button(String(localized: "particleDebug.preset.rename")) {
+                        renameSelectedPreset()
+                    }
+                    .controlSize(.small)
+                    .disabled(selectedPreset == nil)
+
+                    Button(String(localized: "particleDebug.preset.duplicate")) {
+                        duplicateSelectedPreset()
+                    }
+                    .controlSize(.small)
+                    .disabled(selectedPreset == nil)
+
+                    Button(String(localized: "particleDebug.preset.delete")) {
+                        if let selectedPreset {
+                            presetPendingDelete = selectedPreset
+                            isDeleteConfirmationPresented = true
+                        }
+                    }
+                    .controlSize(.small)
+                    .disabled(selectedPreset == nil)
+                }
+            }
+            .confirmationDialog(
+                String(localized: "particleDebug.preset.deleteConfirmation"),
+                isPresented: $isDeleteConfirmationPresented,
+                titleVisibility: .visible
+            ) {
+                Button(String(localized: "particleDebug.preset.delete"), role: .destructive) {
+                    deletePendingPreset()
+                }
+                Button(String(localized: "particleDebug.preset.cancel"), role: .cancel) {}
+            }
+        }
+    }
+
+    private var selectedPreset: ParticleCoreTuningUserPreset? {
+        guard let selectedUserPresetID else { return nil }
+        return userPresets.first { $0.id == selectedUserPresetID }
+    }
+
+    private func saveCurrentAsPreset() {
+        guard let name = validPresetName() else { return }
+        let now = Date()
+        let preset = ParticleCoreTuningUserPreset(
+            id: UUID(),
+            name: ParticleCoreTuningUserPresetStore.uniqueName(name, in: userPresets),
+            tuning: tuning.clamped(),
+            createdAt: now,
+            updatedAt: now
+        )
+        userPresets.insert(preset, at: 0)
+        selectedUserPresetID = preset.id
+        presetName = preset.name
+        savePresets()
+    }
+
+    private func applySelectedPreset() {
+        guard let selectedPreset else { return }
+        tuning = selectedPreset.tuning.clamped()
+    }
+
+    private func updateSelectedPreset() {
+        guard let selectedPreset,
+              let index = userPresets.firstIndex(where: { $0.id == selectedPreset.id }) else { return }
+        userPresets[index].tuning = tuning.clamped()
+        userPresets[index].updatedAt = Date()
+        savePresets()
+    }
+
+    private func renameSelectedPreset() {
+        guard let selectedPreset,
+              let name = validPresetName(),
+              let index = userPresets.firstIndex(where: { $0.id == selectedPreset.id }) else { return }
+        let uniqueName = ParticleCoreTuningUserPresetStore.uniqueName(name, in: userPresets, excluding: selectedPreset.id)
+        userPresets[index].name = uniqueName
+        userPresets[index].updatedAt = Date()
+        presetName = uniqueName
+        savePresets()
+    }
+
+    private func duplicateSelectedPreset() {
+        guard let selectedPreset else { return }
+        let now = Date()
+        let baseName = presetName.isEmpty ? selectedPreset.name : presetName
+        let duplicate = ParticleCoreTuningUserPreset(
+            id: UUID(),
+            name: ParticleCoreTuningUserPresetStore.uniqueName(baseName, in: userPresets),
+            tuning: selectedPreset.tuning.clamped(),
+            createdAt: now,
+            updatedAt: now
+        )
+        userPresets.insert(duplicate, at: 0)
+        selectedUserPresetID = duplicate.id
+        presetName = duplicate.name
+        savePresets()
+    }
+
+    private func deletePendingPreset() {
+        guard let presetPendingDelete else { return }
+        userPresets.removeAll { $0.id == presetPendingDelete.id }
+        if selectedUserPresetID == presetPendingDelete.id {
+            selectedUserPresetID = nil
+            presetName = ""
+        }
+        self.presetPendingDelete = nil
+        savePresets()
+    }
+
+    private func validPresetName() -> String? {
+        let name = presetName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else {
+            warning = String(localized: "particleDebug.preset.emptyNameWarning")
+            return nil
+        }
+        warning = ""
+        return name
+    }
+
+    private func savePresets() {
+        userPresets.sort { $0.updatedAt > $1.updatedAt }
+        ParticleCoreTuningUserPresetStore.save(userPresets)
+    }
+}
+
 private struct ParticleParameterRow: View {
     let parameter: ParticleCoreTuningParameter
     @Binding var tuning: ParticleCoreTuning
 
     var body: some View {
-        HStack(spacing: 10) {
-            Text(String(localized: String.LocalizationValue(parameter.localizedKey)))
-                .font(.system(size: 12))
-                .frame(width: 116, alignment: .leading)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(String(localized: String.LocalizationValue(parameter.localizedKey)))
+                    .font(.system(size: 12, weight: .semibold))
 
-            Slider(value: value, in: 0...1)
+                Text(statusText)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(isDefault ? Color.secondary : Color.blue)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill(isDefault ? Color.secondary.opacity(0.12) : Color.blue.opacity(0.14))
+                    )
 
-            TextField("", value: value, format: .number.precision(.fractionLength(2)))
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 58)
+                Text(valueSummary)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.secondary)
+
+                Spacer(minLength: 0)
+
+                Button(String(localized: "particleDebug.parameter.resetOne")) {
+                    tuning[keyPath: parameter.keyPath] = parameter.defaultValue
+                }
+                .controlSize(.mini)
+                .disabled(isDefault)
+            }
+
+            Text(String(localized: String.LocalizationValue(parameter.captionKey)))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 10) {
+                Text(String(localized: String.LocalizationValue(parameter.lowHintKey)))
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 92, alignment: .leading)
+                    .lineLimit(2)
+
+                Slider(value: value, in: 0...1, step: parameter.step)
+
+                Text(String(localized: String.LocalizationValue(parameter.highHintKey)))
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 92, alignment: .trailing)
+                    .lineLimit(2)
+
+                TextField("", value: value, format: .number.precision(.fractionLength(2)))
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 11, design: .monospaced))
+                    .frame(width: 58)
+            }
         }
+        .padding(.vertical, 4)
     }
 
     private var value: Binding<Double> {
@@ -685,25 +1026,85 @@ private struct ParticleParameterRow: View {
             tuning[keyPath: parameter.keyPath] = min(1, max(0, newValue))
         }
     }
+
+    private var currentValue: Double {
+        tuning[keyPath: parameter.keyPath]
+    }
+
+    private var isDefault: Bool {
+        abs(currentValue - parameter.defaultValue) < 0.0005
+    }
+
+    private var statusText: String {
+        String(localized: isDefault ? "particleDebug.parameter.defaultBadge" : "particleDebug.parameter.modifiedBadge")
+    }
+
+    private var valueSummary: String {
+        String(
+            format: String(localized: "particleDebug.parameter.valueSummary"),
+            currentValue,
+            parameter.defaultValue
+        )
+    }
 }
 
 private struct ParticleDirectionRow: View {
     @Binding var tuning: ParticleCoreTuning
 
     var body: some View {
-        HStack(spacing: 10) {
-            Text(String(localized: "particleDebug.parameter.rotationDirection"))
-                .font(.system(size: 12))
-                .frame(width: 116, alignment: .leading)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(String(localized: "particleDebug.parameter.rotationDirection"))
+                    .font(.system(size: 12, weight: .semibold))
 
-            Picker("", selection: direction) {
-                ForEach(ParticleCoreRotationDirection.allCases) { direction in
-                    Text(String(localized: String.LocalizationValue(direction.localizedKey)))
-                        .tag(direction)
+                Text(statusText)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(isDefault ? Color.secondary : Color.blue)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill(isDefault ? Color.secondary.opacity(0.12) : Color.blue.opacity(0.14))
+                    )
+
+                Text(valueSummary)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.secondary)
+
+                Spacer(minLength: 0)
+
+                Button(String(localized: "particleDebug.parameter.resetOne")) {
+                    tuning.rotationDirection = ParticleCoreTuningParameter.rotationDirection.defaultValue
                 }
+                .controlSize(.mini)
+                .disabled(isDefault)
             }
-            .pickerStyle(.segmented)
+
+            Text(String(localized: "particleDebug.parameter.rotationDirection.caption"))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 10) {
+                Text(String(localized: "particleDebug.parameter.rotationDirection.lowHint"))
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 92, alignment: .leading)
+
+                Picker("", selection: direction) {
+                    ForEach(ParticleCoreRotationDirection.allCases) { direction in
+                        Text(String(localized: String.LocalizationValue(direction.localizedKey)))
+                            .tag(direction)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Text(String(localized: "particleDebug.parameter.rotationDirection.highHint"))
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 92, alignment: .trailing)
+            }
         }
+        .padding(.vertical, 4)
     }
 
     private var direction: Binding<ParticleCoreRotationDirection> {
@@ -712,6 +1113,21 @@ private struct ParticleDirectionRow: View {
         } set: { newValue in
             tuning.rotationDirection = newValue.tuningValue
         }
+    }
+
+    private var isDefault: Bool {
+        abs(tuning.rotationDirection - ParticleCoreTuningParameter.rotationDirection.defaultValue) < 0.0005
+    }
+
+    private var statusText: String {
+        String(localized: isDefault ? "particleDebug.parameter.defaultBadge" : "particleDebug.parameter.modifiedBadge")
+    }
+
+    private var valueSummary: String {
+        String(
+            format: String(localized: "particleDebug.parameter.directionSummary"),
+            String(localized: String.LocalizationValue(direction.wrappedValue.localizedKey))
+        )
     }
 }
 

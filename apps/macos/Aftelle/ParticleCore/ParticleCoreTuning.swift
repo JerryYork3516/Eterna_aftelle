@@ -146,6 +146,43 @@ struct ParticleCoreTuning: Codable, Equatable {
         surfaceLightStrength: 0.92
     )
 
+    static let idlePolish = ParticleCoreTuning(
+        globalScale: 0.58,
+        pointSizeScale: 0.54,
+        brightness: 0.82,
+        alphaScale: 0.86,
+        ridgeBrightness: 0.70,
+        breathingAmount: 0.34,
+        breathingSpeed: 0.32,
+        flowStrength: 0.44,
+        flowSpeed: 0.28,
+        rotationSpeed: 0.30,
+        rotationDirection: 1.0,
+        shapeRoundness: 0.82,
+        surfaceReliefStrength: 0.72,
+        shapeSeed: 0.5,
+        membraneAspect: 0.24,
+        membraneScale: 0.54,
+        membraneMist: 0.86,
+        membraneGrain: 0.46,
+        membraneLineStrength: 0.70,
+        membraneLineWidth: 0.46,
+        membraneStability: 0.96,
+        membraneFullness: 0.82,
+        sheetLightStrength: 0.82,
+        flowLightStrength: 0.86,
+        spineLineStrength: 0.58,
+        spineLineWidth: 0.50,
+        spineLineDensity: 0.62,
+        spineLineHighlight: 0.56,
+        spineLineContrast: 0.56,
+        spineLineSharpness: 0.54,
+        edgeDustAmount: 0.34,
+        edgeFrayAmount: 0.34,
+        surfaceDispersionStrength: 0.34,
+        surfaceLightStrength: 0.82
+    )
+
     static let storageKey = "ParticleCoreTuning.debug.v6"
 
     private enum CodingKeys: String, CodingKey {
@@ -297,6 +334,41 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
         "particleDebug.parameter.\(rawValue)"
     }
 
+    var captionKey: String {
+        "particleDebug.parameter.\(rawValue).caption"
+    }
+
+    var lowHintKey: String {
+        "particleDebug.parameter.\(rawValue).lowHint"
+    }
+
+    var highHintKey: String {
+        "particleDebug.parameter.\(rawValue).highHint"
+    }
+
+    var step: Double {
+        switch self {
+        case .rotationDirection:
+            return 1.0 / 3.0
+        case .shapeSeed:
+            return 0.05
+        case .globalScale, .pointSizeScale, .brightness, .alphaScale, .ridgeBrightness,
+             .breathingSpeed, .flowSpeed, .rotationSpeed, .surfaceLightStrength,
+             .shapeRoundness, .surfaceReliefStrength, .membraneAspect, .membraneScale,
+             .membraneMist, .membraneGrain, .membraneLineStrength, .membraneLineWidth,
+             .membraneStability, .membraneFullness, .sheetLightStrength, .flowLightStrength,
+             .spineLineStrength, .spineLineWidth, .spineLineDensity, .spineLineHighlight,
+             .spineLineContrast, .spineLineSharpness:
+            return 0.01
+        case .breathingAmount, .flowStrength, .edgeDustAmount, .edgeFrayAmount, .surfaceDispersionStrength:
+            return 0.02
+        }
+    }
+
+    var defaultValue: Double {
+        ParticleCoreTuning.systemDefault[keyPath: keyPath]
+    }
+
     var keyPath: WritableKeyPath<ParticleCoreTuning, Double> {
         switch self {
         case .globalScale:
@@ -368,6 +440,71 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
         case .surfaceLightStrength:
             return \.surfaceLightStrength
         }
+    }
+}
+
+enum ParticleCoreTuningBuiltInPreset: String, CaseIterable, Identifiable {
+    case systemDefault
+    case idlePolish
+
+    var id: String { rawValue }
+
+    var localizedKey: String {
+        "particleDebug.preset.\(rawValue)"
+    }
+
+    var tuning: ParticleCoreTuning {
+        switch self {
+        case .systemDefault:
+            return .systemDefault
+        case .idlePolish:
+            return .idlePolish
+        }
+    }
+}
+
+struct ParticleCoreTuningUserPreset: Codable, Identifiable, Equatable {
+    var id: UUID
+    var name: String
+    var tuning: ParticleCoreTuning
+    var createdAt: Date
+    var updatedAt: Date
+}
+
+enum ParticleCoreTuningUserPresetStore {
+    static let storageKey = "ParticleCoreTuning.userPresets.v1"
+
+    static func load() -> [ParticleCoreTuningUserPreset] {
+        guard let data = UserDefaults.standard.data(forKey: storageKey),
+              let decoded = try? JSONDecoder().decode([ParticleCoreTuningUserPreset].self, from: data) else {
+            return []
+        }
+        return decoded.map { preset in
+            var value = preset
+            value.name = preset.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            value.tuning = preset.tuning.clamped()
+            return value
+        }
+        .filter { !$0.name.isEmpty }
+        .sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    static func save(_ presets: [ParticleCoreTuningUserPreset]) {
+        guard let data = try? JSONEncoder().encode(presets) else { return }
+        UserDefaults.standard.set(data, forKey: storageKey)
+    }
+
+    static func uniqueName(_ proposedName: String, in presets: [ParticleCoreTuningUserPreset], excluding id: UUID? = nil) -> String {
+        let baseName = proposedName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !baseName.isEmpty else { return "" }
+        let existing = Set(presets.filter { $0.id != id }.map { $0.name })
+        guard existing.contains(baseName) else { return baseName }
+
+        var suffix = 2
+        while existing.contains("\(baseName) \(suffix)") {
+            suffix += 1
+        }
+        return "\(baseName) \(suffix)"
     }
 }
 
