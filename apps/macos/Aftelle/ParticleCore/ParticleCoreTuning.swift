@@ -19,6 +19,9 @@ struct ParticleCoreTuning: Codable, Equatable {
     var spineLineStrength: Double
     var spineLineWidth: Double
     var spineLineDensity: Double
+    var spineLineHighlight: Double
+    var spineLineContrast: Double
+    var spineLineSharpness: Double
     var edgeDustAmount: Double
     var edgeFrayAmount: Double
     var surfaceDispersionStrength: Double
@@ -42,6 +45,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         spineLineStrength: Double,
         spineLineWidth: Double,
         spineLineDensity: Double,
+        spineLineHighlight: Double,
+        spineLineContrast: Double,
+        spineLineSharpness: Double,
         edgeDustAmount: Double,
         edgeFrayAmount: Double,
         surfaceDispersionStrength: Double,
@@ -64,6 +70,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.spineLineStrength = spineLineStrength
         self.spineLineWidth = spineLineWidth
         self.spineLineDensity = spineLineDensity
+        self.spineLineHighlight = spineLineHighlight
+        self.spineLineContrast = spineLineContrast
+        self.spineLineSharpness = spineLineSharpness
         self.edgeDustAmount = edgeDustAmount
         self.edgeFrayAmount = edgeFrayAmount
         self.surfaceDispersionStrength = surfaceDispersionStrength
@@ -88,13 +97,16 @@ struct ParticleCoreTuning: Codable, Equatable {
         spineLineStrength: 0.5,
         spineLineWidth: 0.5,
         spineLineDensity: 0.5,
+        spineLineHighlight: 0.5,
+        spineLineContrast: 0.5,
+        spineLineSharpness: 0.5,
         edgeDustAmount: 0.5,
         edgeFrayAmount: 0.5,
         surfaceDispersionStrength: 0.5,
         surfaceLightStrength: 0.5
     )
 
-    static let storageKey = "ParticleCoreTuning.debug.v3"
+    static let storageKey = "ParticleCoreTuning.debug.v4"
 
     private enum CodingKeys: String, CodingKey {
         case globalScale
@@ -114,6 +126,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         case spineLineStrength
         case spineLineWidth
         case spineLineDensity
+        case spineLineHighlight
+        case spineLineContrast
+        case spineLineSharpness
         case edgeDustAmount
         case edgeFrayAmount
         case surfaceDispersionStrength
@@ -140,6 +155,9 @@ struct ParticleCoreTuning: Codable, Equatable {
             spineLineStrength: try values.decodeIfPresent(Double.self, forKey: .spineLineStrength) ?? 0.5,
             spineLineWidth: try values.decodeIfPresent(Double.self, forKey: .spineLineWidth) ?? 0.5,
             spineLineDensity: try values.decodeIfPresent(Double.self, forKey: .spineLineDensity) ?? 0.5,
+            spineLineHighlight: try values.decodeIfPresent(Double.self, forKey: .spineLineHighlight) ?? 0.5,
+            spineLineContrast: try values.decodeIfPresent(Double.self, forKey: .spineLineContrast) ?? 0.5,
+            spineLineSharpness: try values.decodeIfPresent(Double.self, forKey: .spineLineSharpness) ?? 0.5,
             edgeDustAmount: try values.decodeIfPresent(Double.self, forKey: .edgeDustAmount) ?? 0.5,
             edgeFrayAmount: try values.decodeIfPresent(Double.self, forKey: .edgeFrayAmount) ?? 0.5,
             surfaceDispersionStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceDispersionStrength) ?? 0.5,
@@ -195,6 +213,9 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case spineLineStrength
     case spineLineWidth
     case spineLineDensity
+    case spineLineHighlight
+    case spineLineContrast
+    case spineLineSharpness
     case edgeDustAmount
     case edgeFrayAmount
     case surfaceDispersionStrength
@@ -242,6 +263,12 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.spineLineWidth
         case .spineLineDensity:
             return \.spineLineDensity
+        case .spineLineHighlight:
+            return \.spineLineHighlight
+        case .spineLineContrast:
+            return \.spineLineContrast
+        case .spineLineSharpness:
+            return \.spineLineSharpness
         case .edgeDustAmount:
             return \.edgeDustAmount
         case .edgeFrayAmount:

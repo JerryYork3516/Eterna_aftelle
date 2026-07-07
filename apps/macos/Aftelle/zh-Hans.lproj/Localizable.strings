@@ -49,6 +49,9 @@
 "particleDebug.parameter.surfaceReliefStrength" = "表面起伏";
 "particleDebug.parameter.shapeSeed" = "形态 Seed";
 "particleDebug.parameter.spineLineStrength" = "背脊强度";
+"particleDebug.parameter.spineLineHighlight" = "背脊高光";
+"particleDebug.parameter.spineLineContrast" = "背脊对比";
+"particleDebug.parameter.spineLineSharpness" = "背脊锐度";
 "particleDebug.parameter.spineLineWidth" = "背脊宽度";
 "particleDebug.parameter.spineLineDensity" = "背脊密度";
 "particleDebug.parameter.edgeDustAmount" = "边缘微尘";

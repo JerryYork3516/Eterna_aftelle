@@ -35,6 +35,9 @@ struct ParticleCoreFrameUniforms {
     float spineLineStrength;
     float spineLineWidth;
     float spineLineDensity;
+    float spineLineHighlight;
+    float spineLineContrast;
+    float spineLineSharpness;
     float edgeDustAmount;
     float edgeFrayAmount;
     float surfaceDispersionStrength;
@@ -329,6 +332,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneSpineStrength = scaleAroundOne(uniforms.spineLineStrength, 3.00);
     float tuneSpineWidth = scaleAroundOne(uniforms.spineLineWidth, 3.00);
     float tuneSpineDensity = scaleAroundOne(uniforms.spineLineDensity, 3.00);
+    float tuneSpineHighlight = scaleAroundOne(uniforms.spineLineHighlight, 4.00);
+    float tuneSpineContrast = scaleAroundOne(uniforms.spineLineContrast, 3.00);
+    float tuneSpineSharpness = scaleAroundOne(uniforms.spineLineSharpness, 3.00);
     float tuneEdgeDust = scaleAroundOne(uniforms.edgeDustAmount, 3.60);
     float tuneEdgeFray = scaleAroundOne(uniforms.edgeFrayAmount, 3.60);
     float tuneSurfaceDispersion = scaleAroundOne(uniforms.surfaceDispersionStrength, 3.60);
@@ -675,11 +681,13 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * (interior * 0.20 + midBand * 0.16);
     float spineWidthShift = (tuneSpineWidth - 1.0) * 0.080;
     float spineDensityShift = (tuneSpineDensity - 1.0) * 0.110;
-    float ridgePick = smoothstep(0.64 - spineDensityShift * 0.55, 0.92 - spineDensityShift * 0.35, 0.5 + 0.5 * sin(structureAngle * 5.1 + animatedTravel * 2.2 + flowedBody.z * 2.4 + particleSeed * 19.0 + seedB * 7.0));
-    float spineBandA = smoothstep(0.70 - spineWidthShift - spineDensityShift, 0.98 - spineDensityShift * 0.45, 0.5 + 0.5 * sin(animatedTravel * 5.0 - animatedCross * 1.7 + flowedBody.z * 4.2 - fieldTime * 0.18 + particleSeed * 2.0));
-    float spineBandB = smoothstep(0.76 - spineWidthShift - spineDensityShift, 0.99 - spineDensityShift * 0.45, 0.5 + 0.5 * cos(animatedCross * 5.8 + animatedTravel * 1.6 - flowedBody.z * 3.6 + fieldTime * 0.14 + phaseB * 0.22));
+    float spineSharpShift = (tuneSpineSharpness - 1.0) * 0.060;
+    float ridgePick = smoothstep(0.64 - spineDensityShift * 0.55 + spineSharpShift, 0.92 - spineDensityShift * 0.35 + spineSharpShift * 0.45, 0.5 + 0.5 * sin(structureAngle * 5.1 + animatedTravel * 2.2 + flowedBody.z * 2.4 + particleSeed * 19.0 + seedB * 7.0));
+    float spineBandA = smoothstep(0.70 - spineWidthShift - spineDensityShift + spineSharpShift, 0.98 - spineDensityShift * 0.45 + spineSharpShift * 0.42, 0.5 + 0.5 * sin(animatedTravel * 5.0 - animatedCross * 1.7 + flowedBody.z * 4.2 - fieldTime * 0.18 + particleSeed * 2.0));
+    float spineBandB = smoothstep(0.76 - spineWidthShift - spineDensityShift + spineSharpShift, 0.99 - spineDensityShift * 0.45 + spineSharpShift * 0.42, 0.5 + 0.5 * cos(animatedCross * 5.8 + animatedTravel * 1.6 - flowedBody.z * 3.6 + fieldTime * 0.14 + phaseB * 0.22));
     float spineSurfaceGate = frontIonGate * (0.24 + interior * 0.30 + edge * 0.46);
-    float structuralSpine = saturate((spineBandA * 0.58 + spineBandB * 0.42) * ridgePick * spineSurfaceGate * tuneSpineStrength);
+    float spineRaw = saturate((spineBandA * 0.58 + spineBandB * 0.42) * ridgePick * spineSurfaceGate);
+    float structuralSpine = saturate(pow(spineRaw, max(0.34, 1.0 + (tuneSpineSharpness - 1.0) * 0.50)) * tuneSpineStrength);
     float ridgeFlow = structuralSpine * smoothstep(0.34, 0.88, 0.5 + 0.5 * sin(animatedTravel * 7.4 + flowedBody.z * 3.8 - fieldTime * 0.58 + phaseB * 0.18));
     float densityFlow = smoothstep(0.42, 0.91, 0.5 + 0.5 * sin(animatedTravel * 7.1 - animatedCross * 2.5 + flowedBody.z * 3.6 - fieldTime * 0.78 + globalWave));
     float densitySheet = 0.5 + 0.5 * cos(animatedCross * 4.2 - animatedTravel * 1.1 + flowedBody.z * 3.2 + fieldTime * 0.48 + globalWave * 0.7);
@@ -730,6 +738,19 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float visibleIonCluster = ionCluster;
     float visibleStructuralSpine = structuralSpine;
     float visibleRidgeFlow = ridgeFlow;
+    float spineHighlightLift = visibleStructuralSpine * max(0.0, tuneSpineHighlight - 1.0);
+    float spineHighlightMute = visibleStructuralSpine * max(0.0, 1.0 - tuneSpineHighlight);
+    float spineContrastLift = max(0.0, tuneSpineContrast - 1.0);
+    float spineContrastMask = frontDepthGate * (1.0 - visibleStructuralSpine) * (0.42 + visibleLayerDensity * 0.58);
+    visibleStructuralSpine = saturate(visibleStructuralSpine * tuneSpineHighlight);
+    visibleLayerDensity = saturate(visibleLayerDensity * (1.0 - spineContrastMask * spineContrastLift * 0.12)
+        + spineHighlightLift * 0.18
+        + visibleStructuralSpine * spineContrastLift * 0.08
+        - spineHighlightMute * 0.05);
+    visibleLocalRidge = saturate(visibleLocalRidge
+        + spineHighlightLift * 0.70
+        + visibleStructuralSpine * spineContrastLift * 0.16
+        - spineHighlightMute * 0.24);
     float thinkingRidgeGate = thinking * frontDepthGate * (0.30 + midBand * 0.70 + interior * 0.22);
     visibleLayerDensity = saturate(visibleLayerDensity * mix(1.0, 0.92, thinking) + visibleDenseSection * 0.07 * thinkingRidgeGate);
     visibleLocalRidge = saturate(visibleLocalRidge + (visibleStructuralSpine * 0.06 + visibleRidgeFlow * 0.10) * thinkingRidgeGate);
@@ -791,6 +812,11 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         surfaceLight,
         0.46 + wakeDetailGate * 0.54
     );
+    surfaceLight = saturate(surfaceLight
+        + spineHighlightLift * 0.46
+        + visibleStructuralSpine * spineContrastLift * 0.12
+        - spineContrastMask * spineContrastLift * 0.10
+        - spineHighlightMute * 0.18);
     surfaceLight = saturate(surfaceLight * mix(1.0, 0.82, error * (0.30 + errorInterrupt * 0.52))
         - errorDarkGap * (0.08 + frontDepthGate * 0.11));
     surfaceLight = saturate(surfaceLight * mix(1.0, 0.42, exitDim)
@@ -829,6 +855,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float depthVisibilitySize = mix(0.56, 1.22, frontParticleLift) * mix(1.0, 0.68, backParticleMute);
     float layeredPointSize = pointBase * sizeJitter * depthSize * depthVisibilitySize
         + ridgeSizeLift * (0.84 + frontParticleLift * 0.78);
+    layeredPointSize += spineHighlightLift * 2.70 + visibleStructuralSpine * spineContrastLift * 0.84 - spineHighlightMute * 0.72;
     float exitPointScale = mix(1.0, 0.56 + dustRelease * 0.16, exitDim);
     exitPointScale *= mix(1.0, 0.84, exitState * exitBreakAmount);
     out.pointSize = clamp(layeredPointSize, 1.70 + frontSizeLift * 0.24, pointCeiling + ridgeSizeLift * 1.12) * 1.24 * exitPointScale * tunePointSize;

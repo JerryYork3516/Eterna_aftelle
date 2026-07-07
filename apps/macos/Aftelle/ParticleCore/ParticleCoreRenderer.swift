@@ -38,6 +38,9 @@ struct ParticleCoreFrameUniforms {
     var spineLineStrength: Float
     var spineLineWidth: Float
     var spineLineDensity: Float
+    var spineLineHighlight: Float
+    var spineLineContrast: Float
+    var spineLineSharpness: Float
     var edgeDustAmount: Float
     var edgeFrayAmount: Float
     var surfaceDispersionStrength: Float
@@ -219,6 +222,9 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             spineLineStrength: Float(tuning.spineLineStrength),
             spineLineWidth: Float(tuning.spineLineWidth),
             spineLineDensity: Float(tuning.spineLineDensity),
+            spineLineHighlight: Float(tuning.spineLineHighlight),
+            spineLineContrast: Float(tuning.spineLineContrast),
+            spineLineSharpness: Float(tuning.spineLineSharpness),
             edgeDustAmount: Float(tuning.edgeDustAmount),
             edgeFrayAmount: Float(tuning.edgeFrayAmount),
             surfaceDispersionStrength: Float(tuning.surfaceDispersionStrength),
@@ -334,7 +340,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             interactionStrength: Double(smoothMouseInfluence)
         )
         debugMetricsHandler?(metrics)
-        print("[ParticleCore] snapshot fps=\(String(format: "%.1f", fps)) particleCount=\(model.particles.count) drawableSize=\(drawableSize) preferredFPS=\(view.preferredFramesPerSecond) visualState=\(visualState) previousVisualState=\(previousVisualState) stateElapsedTime=\(String(format: "%.2f", stateElapsedTime)) reason=\(lastTransitionReason) mouseInside=\(mouseActive) interactionStrength=\(String(format: "%.2f", smoothMouseInfluence)) rotationSpeed=\(String(format: "%.2f", tuning.rotationSpeed)) rotationDirection=\(String(format: "%.2f", tuning.rotationDirection)) shapeRoundness=\(String(format: "%.2f", tuning.shapeRoundness)) surfaceRelief=\(String(format: "%.2f", tuning.surfaceReliefStrength)) shapeSeed=\(String(format: "%.2f", tuning.shapeSeed)) spineStrength=\(String(format: "%.2f", tuning.spineLineStrength)) spineWidth=\(String(format: "%.2f", tuning.spineLineWidth)) spineDensity=\(String(format: "%.2f", tuning.spineLineDensity))")
+        print("[ParticleCore] snapshot fps=\(String(format: "%.1f", fps)) particleCount=\(model.particles.count) drawableSize=\(drawableSize) preferredFPS=\(view.preferredFramesPerSecond) visualState=\(visualState) previousVisualState=\(previousVisualState) stateElapsedTime=\(String(format: "%.2f", stateElapsedTime)) reason=\(lastTransitionReason) mouseInside=\(mouseActive) interactionStrength=\(String(format: "%.2f", smoothMouseInfluence)) rotationSpeed=\(String(format: "%.2f", tuning.rotationSpeed)) rotationDirection=\(String(format: "%.2f", tuning.rotationDirection)) shapeRoundness=\(String(format: "%.2f", tuning.shapeRoundness)) surfaceRelief=\(String(format: "%.2f", tuning.surfaceReliefStrength)) shapeSeed=\(String(format: "%.2f", tuning.shapeSeed)) spineStrength=\(String(format: "%.2f", tuning.spineLineStrength)) spineWidth=\(String(format: "%.2f", tuning.spineLineWidth)) spineDensity=\(String(format: "%.2f", tuning.spineLineDensity)) spineHighlight=\(String(format: "%.2f", tuning.spineLineHighlight)) spineContrast=\(String(format: "%.2f", tuning.spineLineContrast)) spineSharpness=\(String(format: "%.2f", tuning.spineLineSharpness))")
     }
 
     private func scaleAroundOne(_ value: Double, range: Float) -> Float {
