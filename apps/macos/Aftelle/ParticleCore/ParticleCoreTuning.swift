@@ -13,10 +13,50 @@ struct ParticleCoreTuning: Codable, Equatable {
     var flowSpeed: Double
     var rotationSpeed: Double
     var rotationDirection: Double
+    var shapeRoundness: Double
+    var surfaceReliefStrength: Double
     var edgeDustAmount: Double
     var edgeFrayAmount: Double
     var surfaceDispersionStrength: Double
     var surfaceLightStrength: Double
+
+    init(
+        globalScale: Double,
+        pointSizeScale: Double,
+        brightness: Double,
+        alphaScale: Double,
+        ridgeBrightness: Double,
+        breathingAmount: Double,
+        breathingSpeed: Double,
+        flowStrength: Double,
+        flowSpeed: Double,
+        rotationSpeed: Double,
+        rotationDirection: Double,
+        shapeRoundness: Double,
+        surfaceReliefStrength: Double,
+        edgeDustAmount: Double,
+        edgeFrayAmount: Double,
+        surfaceDispersionStrength: Double,
+        surfaceLightStrength: Double
+    ) {
+        self.globalScale = globalScale
+        self.pointSizeScale = pointSizeScale
+        self.brightness = brightness
+        self.alphaScale = alphaScale
+        self.ridgeBrightness = ridgeBrightness
+        self.breathingAmount = breathingAmount
+        self.breathingSpeed = breathingSpeed
+        self.flowStrength = flowStrength
+        self.flowSpeed = flowSpeed
+        self.rotationSpeed = rotationSpeed
+        self.rotationDirection = rotationDirection
+        self.shapeRoundness = shapeRoundness
+        self.surfaceReliefStrength = surfaceReliefStrength
+        self.edgeDustAmount = edgeDustAmount
+        self.edgeFrayAmount = edgeFrayAmount
+        self.surfaceDispersionStrength = surfaceDispersionStrength
+        self.surfaceLightStrength = surfaceLightStrength
+    }
 
     static let systemDefault = ParticleCoreTuning(
         globalScale: 0.5,
@@ -30,6 +70,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         flowSpeed: 0.5,
         rotationSpeed: 0.5,
         rotationDirection: 1.0,
+        shapeRoundness: 0.5,
+        surfaceReliefStrength: 0.5,
         edgeDustAmount: 0.5,
         edgeFrayAmount: 0.5,
         surfaceDispersionStrength: 0.5,
@@ -37,6 +79,49 @@ struct ParticleCoreTuning: Codable, Equatable {
     )
 
     static let storageKey = "ParticleCoreTuning.debug.v1"
+
+    private enum CodingKeys: String, CodingKey {
+        case globalScale
+        case pointSizeScale
+        case brightness
+        case alphaScale
+        case ridgeBrightness
+        case breathingAmount
+        case breathingSpeed
+        case flowStrength
+        case flowSpeed
+        case rotationSpeed
+        case rotationDirection
+        case shapeRoundness
+        case surfaceReliefStrength
+        case edgeDustAmount
+        case edgeFrayAmount
+        case surfaceDispersionStrength
+        case surfaceLightStrength
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            globalScale: try values.decodeIfPresent(Double.self, forKey: .globalScale) ?? 0.5,
+            pointSizeScale: try values.decodeIfPresent(Double.self, forKey: .pointSizeScale) ?? 0.5,
+            brightness: try values.decodeIfPresent(Double.self, forKey: .brightness) ?? 0.5,
+            alphaScale: try values.decodeIfPresent(Double.self, forKey: .alphaScale) ?? 0.5,
+            ridgeBrightness: try values.decodeIfPresent(Double.self, forKey: .ridgeBrightness) ?? 0.5,
+            breathingAmount: try values.decodeIfPresent(Double.self, forKey: .breathingAmount) ?? 0.5,
+            breathingSpeed: try values.decodeIfPresent(Double.self, forKey: .breathingSpeed) ?? 0.5,
+            flowStrength: try values.decodeIfPresent(Double.self, forKey: .flowStrength) ?? 0.5,
+            flowSpeed: try values.decodeIfPresent(Double.self, forKey: .flowSpeed) ?? 0.5,
+            rotationSpeed: try values.decodeIfPresent(Double.self, forKey: .rotationSpeed) ?? 0.5,
+            rotationDirection: try values.decodeIfPresent(Double.self, forKey: .rotationDirection) ?? 1.0,
+            shapeRoundness: try values.decodeIfPresent(Double.self, forKey: .shapeRoundness) ?? 0.5,
+            surfaceReliefStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceReliefStrength) ?? 0.5,
+            edgeDustAmount: try values.decodeIfPresent(Double.self, forKey: .edgeDustAmount) ?? 0.5,
+            edgeFrayAmount: try values.decodeIfPresent(Double.self, forKey: .edgeFrayAmount) ?? 0.5,
+            surfaceDispersionStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceDispersionStrength) ?? 0.5,
+            surfaceLightStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceLightStrength) ?? 0.5
+        )
+    }
 
     static func loadSaved() -> ParticleCoreTuning {
         guard let data = UserDefaults.standard.data(forKey: storageKey),
@@ -80,6 +165,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case flowSpeed
     case rotationSpeed
     case rotationDirection
+    case shapeRoundness
+    case surfaceReliefStrength
     case edgeDustAmount
     case edgeFrayAmount
     case surfaceDispersionStrength
@@ -115,6 +202,10 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.rotationSpeed
         case .rotationDirection:
             return \.rotationDirection
+        case .shapeRoundness:
+            return \.shapeRoundness
+        case .surfaceReliefStrength:
+            return \.surfaceReliefStrength
         case .edgeDustAmount:
             return \.edgeDustAmount
         case .edgeFrayAmount:

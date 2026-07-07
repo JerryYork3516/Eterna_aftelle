@@ -29,6 +29,8 @@ struct ParticleCoreFrameUniforms {
     float flowSpeed;
     float rotationSpeed;
     float rotationDirection;
+    float shapeRoundness;
+    float surfaceReliefStrength;
     float edgeDustAmount;
     float edgeFrayAmount;
     float surfaceDispersionStrength;
@@ -270,9 +272,16 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
                                    const device ParticleCoreFrameUniforms &uniforms [[buffer(1)]],
                                    uint vid [[vertex_id]]) {
     float4 particle = particles[vid];
-    float2 p = particle.xy;
+    float2 sourceParticlePosition = particle.xy;
+    float shapeAmount = scaleAroundOne(uniforms.shapeRoundness, 1.00);
+    float surfaceReliefAmount = scaleAroundOne(uniforms.surfaceReliefStrength, 1.00);
+    float reliefPresence = saturate(surfaceReliefAmount);
+    float2 sourceRadial = normalize(sourceParticlePosition + float2(0.001, 0.001));
+    float sourceEllipseRadius = length(float2(sourceParticlePosition.x / 0.62, sourceParticlePosition.y / 0.48));
+    float2 roundParticlePosition = sourceRadial * min(sourceEllipseRadius, 1.04) * 0.52;
+    float2 p = roundParticlePosition + (sourceParticlePosition - roundParticlePosition) * shapeAmount;
     float2 baseParticlePosition = p;
-    float ridge = saturate(particle.z);
+    float ridge = saturate(particle.z * surfaceReliefAmount);
     float depth = particle.w;
     float id = float(vid);
     float t = uniforms.time;
@@ -359,8 +368,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float midBand = 0.0;
     float2 globalAxis = globalDirection(fieldTime);
     float2 globalSide = float2(-globalAxis.y, globalAxis.x);
-    float globalWave = globalShapeWave(p, depth, fieldTime, globalAxis, globalSide);
-    float localMorph = morphField(angle, depth, fieldTime * 0.72, float(uniforms.seed) * 0.0017 + particleSeed * 0.41);
+    float globalWave = globalShapeWave(p, depth, fieldTime, globalAxis, globalSide) * surfaceReliefAmount;
+    float localMorph = morphField(angle, depth, fieldTime * 0.72, float(uniforms.seed) * 0.0017 + particleSeed * 0.41) * surfaceReliefAmount;
     float morph = globalWave * 0.74 + localMorph * 0.26;
     float edgeMorph = edge * edge * (0.022 + 0.056 * edge + 0.012 * particleSeed) * morph * edgeSettle * speakingEdgeLift;
     float surfaceMotion = smoothstep(0.24, 0.58, lengthP);
@@ -412,8 +421,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float activeInterior = interior * centerMotionGate;
     float3 materialFlow = materialFlowField(body, fieldTime, particleSeed, seedB, edge, activeInterior, midBand, globalWave, globalAxis, globalSide);
     float3 cloudFlow = volumetricCloudFlowField(body + materialFlow * 0.35, fieldTime, particleSeed, seedB, edge, activeInterior, midBand, globalWave, globalAxis, globalSide);
-    materialFlow *= tuneFlowStrength;
-    cloudFlow *= tuneFlowStrength;
+    materialFlow *= tuneFlowStrength * (0.24 + reliefPresence * 0.76);
+    cloudFlow *= tuneFlowStrength * surfaceReliefAmount;
     float3 materialBody = body
         + materialFlow * (0.92 + activeInterior * 0.18 + midBand * 0.42)
         + cloudFlow * (1.68 + activeInterior * 0.20 + midBand * 0.48);
@@ -440,8 +449,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float stretch = sin(fieldTime * 0.58 + globalWave * 0.65);
     float sail = cos(fieldTime * 0.46 + dot(p, turnedSide) * 2.8);
     float postSurfaceMotion = 0.42 + 0.58 * smoothstep(0.10, 0.58, length(p));
-    p += turnedAxis * dot(p, turnedSide) * stretch * (0.030 + midBand * 0.020 + edge * 0.016) * postSurfaceMotion;
-    p += turnedSide * dot(p, turnedAxis) * sail * (0.014 + midBand * 0.014 + edge * 0.010) * postSurfaceMotion;
+    p += turnedAxis * dot(p, turnedSide) * stretch * (0.030 + midBand * 0.020 + edge * 0.016) * postSurfaceMotion * surfaceReliefAmount;
+    p += turnedSide * dot(p, turnedAxis) * sail * (0.014 + midBand * 0.014 + edge * 0.010) * postSurfaceMotion * surfaceReliefAmount;
     float sheetTravel = dot(p, surfaceFlowAxis);
     float sheetCross = dot(p, surfaceFlowSide);
     float turnWakePhase = fieldTime * 0.66 + globalWave * 0.32;
@@ -464,7 +473,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float edgeFrayField = edge * smoothstep(0.34, 0.78, edgeFrayA * 0.56 + edgeFrayB * 0.34 + seedB * 0.10);
     float screenCloudRoll = sin(dot(p, turnedAxis) * 3.2 + body.z * 4.4 - fieldTime * 0.86 + globalWave);
     float screenCloudCurl = cos(dot(p, turnedSide) * 3.6 - body.z * 5.0 + fieldTime * 0.72 + phaseB * 0.10);
-    float screenCloudStrength = activeInterior * 0.006 + midBand * 0.018 * stateFocus + edge * 0.002 * edgeSettle;
+    float screenCloudStrength = (activeInterior * 0.006 + midBand * 0.018 * stateFocus + edge * 0.002 * edgeSettle) * surfaceReliefAmount;
     p += (turnedAxis * screenCloudCurl + turnedSide * screenCloudRoll) * screenCloudStrength;
     p += normalize(p + float2(0.001, 0.001)) * screenCloudRoll * (activeInterior * 0.003 + midBand * 0.012);
     p += (turnedAxis * sin(fieldTime * 0.33 + 0.4) * 0.018

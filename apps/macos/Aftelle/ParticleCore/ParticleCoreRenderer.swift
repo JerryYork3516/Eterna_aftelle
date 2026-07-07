@@ -32,6 +32,8 @@ struct ParticleCoreFrameUniforms {
     var flowSpeed: Float
     var rotationSpeed: Float
     var rotationDirection: Float
+    var shapeRoundness: Float
+    var surfaceReliefStrength: Float
     var edgeDustAmount: Float
     var edgeFrayAmount: Float
     var surfaceDispersionStrength: Float
@@ -207,6 +209,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             flowSpeed: Float(tuning.flowSpeed),
             rotationSpeed: Float(tuning.rotationSpeed),
             rotationDirection: Float(tuning.rotationDirection),
+            shapeRoundness: Float(tuning.shapeRoundness),
+            surfaceReliefStrength: Float(tuning.surfaceReliefStrength),
             edgeDustAmount: Float(tuning.edgeDustAmount),
             edgeFrayAmount: Float(tuning.edgeFrayAmount),
             surfaceDispersionStrength: Float(tuning.surfaceDispersionStrength),
