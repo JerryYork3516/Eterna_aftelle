@@ -511,11 +511,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float bodyDepth = depth * mix(0.34, 0.72, tuneMembraneFullness)
         + globalWave * (0.006 + midBand * 0.018 + edge * 0.018) * mix(0.78, 1.02, tuneMembraneFullness)
         + centerFollow * 0.010;
-    float projectionDepth = depth * 0.58
-        + globalWave * (0.006 + midBand * 0.018 + edge * 0.018) * 0.82
-        + centerFollow * 0.010;
     float3 body = float3(p.x, p.y, bodyDepth);
-    float3 projectionBody = float3(p.x, p.y, projectionDepth);
     float activeInterior = interior * centerMotionGate;
     float3 materialFlow = materialFlowField(body, fieldTime, particleSeed, seedB, edge, activeInterior, midBand, globalWave, globalAxis, globalSide);
     float3 cloudFlow = volumetricCloudFlowField(body + materialFlow * 0.35, fieldTime, particleSeed, seedB, edge, activeInterior, midBand, globalWave, globalAxis, globalSide);
@@ -528,11 +524,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + cloudFlow * (1.18 + activeInterior * 0.12 + midBand * 0.46);
     materialBody = rotateBody(materialBody, selfSpinAngles);
     body = rotateBody(body, selfSpinAngles);
-    projectionBody = rotateBody(projectionBody, selfSpinAngles);
     body = rotateBody(body, bodyAngles);
-    projectionBody = rotateBody(projectionBody, bodyAngles);
-    float perspective = clamp(1.0 / (1.0 - projectionBody.z * 0.26), 0.84, 1.22);
-    p = mix(p, projectionBody.xy * perspective, membraneFullnessValue * 0.16);
     float wholeTurn = globalTurnAngle(rotationPhaseTime * 0.36 + 6.4) * 0.10
         + sin(rotationPhaseTime * 0.19 + 1.7) * 0.035;
     p = rotate2(p, wholeTurn);
