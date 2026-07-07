@@ -54,7 +54,8 @@ struct ParticleCoreFrameUniforms {
     float edgeScatterDistance;
     float edgeDustAmount;
     float edgeFrayAmount;
-    float surfaceDispersionStrength;
+    float surfaceFlowDirection;
+    float surfaceFlowSeed;
     float surfaceLightStrength;
     float4 baseColor;
     float4 ridgeColor;
@@ -374,7 +375,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float edgeFrayControl = saturate(uniforms.edgeFrayAmount);
     float tuneEdgeDust = edgeDustControl * (0.25 + edgeDustControl * 3.95);
     float tuneEdgeFray = edgeFrayControl * (0.25 + edgeFrayControl * 3.95);
-    float tuneSurfaceDispersion = scaleAroundOne(uniforms.surfaceDispersionStrength, 1.80);
+    float surfaceFlowPhase = saturate(uniforms.surfaceFlowSeed) * 6.2831853;
+    float surfaceDirectionAngle = mix(3.1415927, 0.0, saturate(uniforms.surfaceFlowDirection));
+    float2 tuneSurfaceFlowAxis = float2(cos(surfaceDirectionAngle), sin(surfaceDirectionAngle));
     float tuneSurfaceLight = scaleAroundOne(uniforms.surfaceLightStrength, 1.50);
     float tuneMembraneMist = scaleAroundOne(uniforms.membraneMist, 1.60);
     float tuneMembraneGrain = scaleAroundOne(uniforms.membraneGrain, 1.60);
@@ -537,7 +540,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float3 axis3 = rotateBody(rotateBody(float3(globalAxis.x, globalAxis.y, 0.0), selfSpinAngles), bodyAngles);
     float2 turnedAxis = normalize(axis3.xy + float2(0.001, 0.001));
     float2 turnedSide = float2(-turnedAxis.y, turnedAxis.x);
-    float2 surfaceFlowAxis = globalDirection(fieldTime * 0.91 + 5.8);
+    float2 wanderingSurfaceAxis = globalDirection(fieldTime * 0.52 + surfaceFlowPhase + 5.8);
+    float2 surfaceFlowAxis = normalize(tuneSurfaceFlowAxis * 0.78 + wanderingSurfaceAxis * 0.22 + float2(0.001, 0.001));
     float2 surfaceFlowSide = float2(-surfaceFlowAxis.y, surfaceFlowAxis.x);
     float stretch = sin(fieldTime * 0.58 + globalWave * 0.65);
     float sail = cos(fieldTime * 0.46 + dot(p, turnedSide) * 2.8);
@@ -546,7 +550,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     p += turnedSide * dot(p, turnedAxis) * sail * (0.014 + midBand * 0.014 + edge * 0.010) * postSurfaceMotion * surfaceReliefAmount * 0.24;
     float sheetTravel = dot(p, surfaceFlowAxis);
     float sheetCross = dot(p, surfaceFlowSide);
-    float turnWakePhase = fieldTime * 0.66 + globalWave * 0.32;
+    float turnWakePhase = fieldTime * 0.66 + globalWave * 0.32 + surfaceFlowPhase * 0.35;
     float turnWakeA = sin(sheetTravel * 4.2 + sheetCross * 1.1 + body.z * 2.0 - turnWakePhase);
     float turnWakeB = sin(sheetTravel * 2.1 - sheetCross * 2.6 + body.z * 1.2 - turnWakePhase * 0.72 + 1.4);
     float turnWake = turnWakeA * 0.68 + turnWakeB * 0.22;
@@ -708,8 +712,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float edgeDustNoise = smoothstep(0.42, 0.90, edgeDustA * 0.36 + edgeDustB * 0.34 + hash11(particleSeed * 61.0 + seedB * 13.0) * 0.30);
     float edgeDustField = edgeCoverageBase * mix(0.62, 1.18, edgeDustNoise) * (1.0 - turnWakeEnergy * 0.24) * tuneEdgeDust;
     float surfaceFrayField = edgeCoverageBase * mix(0.70, 1.18, edgeFrayNoise) * tuneEdgeFray;
-    float surfaceDispersionField = edgeCoverageBase * tuneSurfaceDispersion * 0.18;
-    float surfaceScatterWobble = sin(angle * 3.4 + phaseB + fieldTime * 0.28);
+    float surfaceScatterWobble = sin(angle * 3.4 + phaseB + fieldTime * 0.28 + surfaceFlowPhase * 0.42);
     float edgeScatterSpread = mix(0.18, 0.72, edgeScatterReach);
     float edgeScatterSign = mix(-1.0, 1.0, step(0.5, hash11(id * 17.31 + seedB * 23.0)));
     float2 randomScatterDirection = normalize(screenNormal * (0.42 + 0.34 * seedB) + screenTangent * edgeScatterSign * edgeScatterSpread);
@@ -718,7 +721,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     p += surfaceScatterDirection * edgeScatterCoverage * edgeScatterDistance * edgeScatterTail;
     p += screenTangent * surfaceFrayField * edgeScatterDistance * surfaceScatterWobble * (0.24 + 0.12 * particleSeed);
     float edgeDustVisibility = saturate(edgeDustField * 0.62);
-    edgeFrayField = saturate(edgeFrayField * 0.22 * tuneEdgeFray + surfaceFrayField * 0.78 + edgeDustVisibility * 0.22 + surfaceDispersionField + exitBreakAmount * 0.42 + exitState * dustRelease * 0.24);
+    edgeFrayField = saturate(edgeFrayField * 0.22 * tuneEdgeFray + surfaceFrayField * 0.78 + edgeDustVisibility * 0.22 + exitBreakAmount * 0.42 + exitState * dustRelease * 0.24);
 
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);
     p *= tuneGlobalScale * (0.58 + saturate(uniforms.membraneScale) * 0.38);

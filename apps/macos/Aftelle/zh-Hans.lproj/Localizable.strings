@@ -91,7 +91,8 @@
 "particleDebug.parameter.edgeScatterDistance" = "边缘散射距离";
 "particleDebug.parameter.edgeDustAmount" = "边缘微尘";
 "particleDebug.parameter.edgeFrayAmount" = "边缘毛边";
-"particleDebug.parameter.surfaceDispersionStrength" = "发散强度";
+"particleDebug.parameter.surfaceFlowDirection" = "表面流动方向";
+"particleDebug.parameter.surfaceFlowSeed" = "表面流动 Seed";
 "particleDebug.parameter.surfaceLightStrength" = "表面光强";
 "particleDebug.parameter.resetOne" = "重置";
 "particleDebug.parameter.defaultBadge" = "默认";
@@ -206,9 +207,12 @@
 "particleDebug.parameter.edgeFrayAmount.caption" = "控制外轮廓破碎和粗糙程度。";
 "particleDebug.parameter.edgeFrayAmount.lowHint" = "更平滑";
 "particleDebug.parameter.edgeFrayAmount.highHint" = "更破碎";
-"particleDebug.parameter.surfaceDispersionStrength.caption" = "控制贴壳表面流散，避免向外爆开。";
-"particleDebug.parameter.surfaceDispersionStrength.lowHint" = "更贴壳";
-"particleDebug.parameter.surfaceDispersionStrength.highHint" = "流散更多";
+"particleDebug.parameter.surfaceFlowDirection.caption" = "控制表面粒子沿壳面滑动的主方向。";
+"particleDebug.parameter.surfaceFlowDirection.lowHint" = "方向 A";
+"particleDebug.parameter.surfaceFlowDirection.highHint" = "方向 B";
+"particleDebug.parameter.surfaceFlowSeed.caption" = "切换表面流动的纹理、聚散和波纹形态。";
+"particleDebug.parameter.surfaceFlowSeed.lowHint" = "Seed 0";
+"particleDebug.parameter.surfaceFlowSeed.highHint" = "Seed 1";
 "particleDebug.parameter.surfaceLightStrength.caption" = "控制壳面局部表面光贡献。";
 "particleDebug.parameter.surfaceLightStrength.lowHint" = "表面更暗";
 "particleDebug.parameter.surfaceLightStrength.highHint" = "表面更亮";

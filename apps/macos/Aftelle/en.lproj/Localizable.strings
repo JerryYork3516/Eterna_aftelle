@@ -91,7 +91,8 @@
 "particleDebug.parameter.edgeScatterDistance" = "Edge Scatter Distance";
 "particleDebug.parameter.edgeDustAmount" = "Edge Dust";
 "particleDebug.parameter.edgeFrayAmount" = "Edge Fray";
-"particleDebug.parameter.surfaceDispersionStrength" = "Surface Dispersion";
+"particleDebug.parameter.surfaceFlowDirection" = "Surface Flow Direction";
+"particleDebug.parameter.surfaceFlowSeed" = "Surface Flow Seed";
 "particleDebug.parameter.surfaceLightStrength" = "Surface Light";
 "particleDebug.parameter.resetOne" = "Reset";
 "particleDebug.parameter.defaultBadge" = "Default";
@@ -206,9 +207,12 @@
 "particleDebug.parameter.edgeFrayAmount.caption" = "Controls broken, rough, and irregular edge contour.";
 "particleDebug.parameter.edgeFrayAmount.lowHint" = "Smoother";
 "particleDebug.parameter.edgeFrayAmount.highHint" = "More frayed";
-"particleDebug.parameter.surfaceDispersionStrength.caption" = "Controls close-to-shell surface dispersion, kept away from outward burst behavior.";
-"particleDebug.parameter.surfaceDispersionStrength.lowHint" = "Held close";
-"particleDebug.parameter.surfaceDispersionStrength.highHint" = "More drift";
+"particleDebug.parameter.surfaceFlowDirection.caption" = "Controls the main direction of particle motion across the shell surface.";
+"particleDebug.parameter.surfaceFlowDirection.lowHint" = "Direction A";
+"particleDebug.parameter.surfaceFlowDirection.highHint" = "Direction B";
+"particleDebug.parameter.surfaceFlowSeed.caption" = "Changes the surface flow pattern, clustering, and wave layout.";
+"particleDebug.parameter.surfaceFlowSeed.lowHint" = "Seed 0";
+"particleDebug.parameter.surfaceFlowSeed.highHint" = "Seed 1";
 "particleDebug.parameter.surfaceLightStrength.caption" = "Controls localized shell surface light contribution.";
 "particleDebug.parameter.surfaceLightStrength.lowHint" = "Dim surface";
 "particleDebug.parameter.surfaceLightStrength.highHint" = "Lit surface";

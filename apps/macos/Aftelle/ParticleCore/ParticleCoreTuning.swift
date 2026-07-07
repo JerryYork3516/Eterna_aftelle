@@ -38,7 +38,8 @@ struct ParticleCoreTuning: Codable, Equatable {
     var edgeScatterDistance: Double
     var edgeDustAmount: Double
     var edgeFrayAmount: Double
-    var surfaceDispersionStrength: Double
+    var surfaceFlowDirection: Double
+    var surfaceFlowSeed: Double
     var surfaceLightStrength: Double
 
     init(
@@ -78,7 +79,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         edgeScatterDistance: Double,
         edgeDustAmount: Double,
         edgeFrayAmount: Double,
-        surfaceDispersionStrength: Double,
+        surfaceFlowDirection: Double,
+        surfaceFlowSeed: Double,
         surfaceLightStrength: Double
     ) {
         self.globalScale = globalScale
@@ -117,7 +119,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.edgeScatterDistance = edgeScatterDistance
         self.edgeDustAmount = edgeDustAmount
         self.edgeFrayAmount = edgeFrayAmount
-        self.surfaceDispersionStrength = surfaceDispersionStrength
+        self.surfaceFlowDirection = surfaceFlowDirection
+        self.surfaceFlowSeed = surfaceFlowSeed
         self.surfaceLightStrength = surfaceLightStrength
     }
 
@@ -158,7 +161,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         edgeScatterDistance: 0.34,
         edgeDustAmount: 0.32,
         edgeFrayAmount: 0.34,
-        surfaceDispersionStrength: 0.26,
+        surfaceFlowDirection: 1.0,
+        surfaceFlowSeed: 0.50,
         surfaceLightStrength: 0.92
     )
 
@@ -199,7 +203,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         edgeScatterDistance: 0.32,
         edgeDustAmount: 0.34,
         edgeFrayAmount: 0.34,
-        surfaceDispersionStrength: 0.34,
+        surfaceFlowDirection: 1.0,
+        surfaceFlowSeed: 0.50,
         surfaceLightStrength: 0.82
     )
 
@@ -242,7 +247,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         case edgeScatterDistance
         case edgeDustAmount
         case edgeFrayAmount
-        case surfaceDispersionStrength
+        case surfaceFlowDirection
+        case surfaceFlowSeed
         case surfaceLightStrength
     }
 
@@ -292,7 +298,8 @@ struct ParticleCoreTuning: Codable, Equatable {
             edgeScatterDistance: try values.decodeIfPresent(Double.self, forKey: .edgeScatterDistance) ?? Self.systemDefault.edgeScatterDistance,
             edgeDustAmount: try values.decodeIfPresent(Double.self, forKey: .edgeDustAmount) ?? Self.systemDefault.edgeDustAmount,
             edgeFrayAmount: try values.decodeIfPresent(Double.self, forKey: .edgeFrayAmount) ?? Self.systemDefault.edgeFrayAmount,
-            surfaceDispersionStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceDispersionStrength) ?? Self.systemDefault.surfaceDispersionStrength,
+            surfaceFlowDirection: try values.decodeIfPresent(Double.self, forKey: .surfaceFlowDirection) ?? Self.systemDefault.surfaceFlowDirection,
+            surfaceFlowSeed: try values.decodeIfPresent(Double.self, forKey: .surfaceFlowSeed) ?? Self.systemDefault.surfaceFlowSeed,
             surfaceLightStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceLightStrength) ?? Self.systemDefault.surfaceLightStrength
         )
     }
@@ -364,7 +371,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case edgeScatterDistance
     case edgeDustAmount
     case edgeFrayAmount
-    case surfaceDispersionStrength
+    case surfaceFlowDirection
+    case surfaceFlowSeed
     case surfaceLightStrength
 
     var id: String { rawValue }
@@ -393,15 +401,17 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return 0.05
         case .spineSeed:
             return 0.05
+        case .surfaceFlowSeed:
+            return 0.05
         case .globalScale, .pointSizeScale, .brightness, .alphaScale, .ridgeBrightness,
              .breathingSpeed, .flowSpeed, .rotationSpeed, .surfaceLightStrength,
              .shapeRoundness, .surfaceReliefStrength, .surfaceReliefDensity, .membraneAspect, .membraneScale,
              .membraneMist, .membraneGrain, .membraneLineStrength, .membraneLineWidth,
              .membraneStability, .membraneFullness, .sheetLightStrength, .flowLightStrength,
              .spineRadius, .spineLineStrength, .spineLineWidth, .spineLineDensity, .spineLineHighlight,
-             .spineLineContrast, .spineLineSharpness, .edgeScatterDistance:
+             .spineLineContrast, .spineLineSharpness, .edgeScatterDistance, .surfaceFlowDirection:
             return 0.01
-        case .breathingAmount, .flowStrength, .edgeDustAmount, .edgeFrayAmount, .surfaceDispersionStrength:
+        case .breathingAmount, .flowStrength, .edgeDustAmount, .edgeFrayAmount:
             return 0.02
         }
     }
@@ -484,8 +494,10 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.edgeDustAmount
         case .edgeFrayAmount:
             return \.edgeFrayAmount
-        case .surfaceDispersionStrength:
-            return \.surfaceDispersionStrength
+        case .surfaceFlowDirection:
+            return \.surfaceFlowDirection
+        case .surfaceFlowSeed:
+            return \.surfaceFlowSeed
         case .surfaceLightStrength:
             return \.surfaceLightStrength
         }
