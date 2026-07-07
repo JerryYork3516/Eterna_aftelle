@@ -42,6 +42,9 @@ struct ParticleCoreFrameUniforms {
     var membraneLineStrength: Float
     var membraneLineWidth: Float
     var membraneStability: Float
+    var membraneFullness: Float
+    var sheetLightStrength: Float
+    var flowLightStrength: Float
     var spineLineStrength: Float
     var spineLineWidth: Float
     var spineLineDensity: Float
@@ -233,6 +236,9 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             membraneLineStrength: Float(tuning.membraneLineStrength),
             membraneLineWidth: Float(tuning.membraneLineWidth),
             membraneStability: Float(tuning.membraneStability),
+            membraneFullness: Float(tuning.membraneFullness),
+            sheetLightStrength: Float(tuning.sheetLightStrength),
+            flowLightStrength: Float(tuning.flowLightStrength),
             spineLineStrength: Float(tuning.spineLineStrength),
             spineLineWidth: Float(tuning.spineLineWidth),
             spineLineDensity: Float(tuning.spineLineDensity),
@@ -354,7 +360,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             interactionStrength: Double(smoothMouseInfluence)
         )
         debugMetricsHandler?(metrics)
-        print("[ParticleCore] snapshot fps=\(String(format: "%.1f", fps)) particleCount=\(model.particles.count) drawableSize=\(drawableSize) preferredFPS=\(view.preferredFramesPerSecond) visualState=\(visualState) previousVisualState=\(previousVisualState) stateElapsedTime=\(String(format: "%.2f", stateElapsedTime)) reason=\(lastTransitionReason) mouseInside=\(mouseActive) interactionStrength=\(String(format: "%.2f", smoothMouseInfluence)) rotationSpeed=\(String(format: "%.2f", tuning.rotationSpeed)) rotationDirection=\(String(format: "%.2f", tuning.rotationDirection)) shapeRoundness=\(String(format: "%.2f", tuning.shapeRoundness)) surfaceRelief=\(String(format: "%.2f", tuning.surfaceReliefStrength)) shapeSeed=\(String(format: "%.2f", tuning.shapeSeed)) membraneAspect=\(String(format: "%.2f", tuning.membraneAspect)) membraneScale=\(String(format: "%.2f", tuning.membraneScale)) membraneMist=\(String(format: "%.2f", tuning.membraneMist)) membraneGrain=\(String(format: "%.2f", tuning.membraneGrain)) membraneLineStrength=\(String(format: "%.2f", tuning.membraneLineStrength)) membraneLineWidth=\(String(format: "%.2f", tuning.membraneLineWidth)) membraneStability=\(String(format: "%.2f", tuning.membraneStability)) spineStrength=\(String(format: "%.2f", tuning.spineLineStrength)) spineWidth=\(String(format: "%.2f", tuning.spineLineWidth)) spineDensity=\(String(format: "%.2f", tuning.spineLineDensity)) spineHighlight=\(String(format: "%.2f", tuning.spineLineHighlight)) spineContrast=\(String(format: "%.2f", tuning.spineLineContrast)) spineSharpness=\(String(format: "%.2f", tuning.spineLineSharpness))")
+        print("[ParticleCore] snapshot fps=\(String(format: "%.1f", fps)) particleCount=\(model.particles.count) drawableSize=\(drawableSize) preferredFPS=\(view.preferredFramesPerSecond) visualState=\(visualState) previousVisualState=\(previousVisualState) stateElapsedTime=\(String(format: "%.2f", stateElapsedTime)) reason=\(lastTransitionReason) mouseInside=\(mouseActive) interactionStrength=\(String(format: "%.2f", smoothMouseInfluence)) rotationSpeed=\(String(format: "%.2f", tuning.rotationSpeed)) rotationDirection=\(String(format: "%.2f", tuning.rotationDirection)) shapeRoundness=\(String(format: "%.2f", tuning.shapeRoundness)) surfaceRelief=\(String(format: "%.2f", tuning.surfaceReliefStrength)) shapeSeed=\(String(format: "%.2f", tuning.shapeSeed)) membraneAspect=\(String(format: "%.2f", tuning.membraneAspect)) membraneScale=\(String(format: "%.2f", tuning.membraneScale)) membraneMist=\(String(format: "%.2f", tuning.membraneMist)) membraneGrain=\(String(format: "%.2f", tuning.membraneGrain)) membraneFullness=\(String(format: "%.2f", tuning.membraneFullness)) sheetLight=\(String(format: "%.2f", tuning.sheetLightStrength)) flowLight=\(String(format: "%.2f", tuning.flowLightStrength)) membraneLineStrength=\(String(format: "%.2f", tuning.membraneLineStrength)) membraneLineWidth=\(String(format: "%.2f", tuning.membraneLineWidth)) membraneStability=\(String(format: "%.2f", tuning.membraneStability)) spineStrength=\(String(format: "%.2f", tuning.spineLineStrength)) spineWidth=\(String(format: "%.2f", tuning.spineLineWidth)) spineDensity=\(String(format: "%.2f", tuning.spineLineDensity)) spineHighlight=\(String(format: "%.2f", tuning.spineLineHighlight)) spineContrast=\(String(format: "%.2f", tuning.spineLineContrast)) spineSharpness=\(String(format: "%.2f", tuning.spineLineSharpness))")
     }
 
     private func scaleAroundOne(_ value: Double, range: Float) -> Float {

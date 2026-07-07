@@ -56,6 +56,9 @@
 "particleDebug.parameter.membraneLineStrength" = "参考线强度";
 "particleDebug.parameter.membraneLineWidth" = "参考线宽度";
 "particleDebug.parameter.membraneStability" = "稳定度";
+"particleDebug.parameter.membraneFullness" = "体积饱满度";
+"particleDebug.parameter.sheetLightStrength" = "片层明暗";
+"particleDebug.parameter.flowLightStrength" = "流动明暗";
 "particleDebug.parameter.spineLineStrength" = "背脊强度";
 "particleDebug.parameter.spineLineHighlight" = "背脊高光";
 "particleDebug.parameter.spineLineContrast" = "背脊对比";

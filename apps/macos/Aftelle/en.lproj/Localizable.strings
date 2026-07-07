@@ -56,6 +56,9 @@
 "particleDebug.parameter.membraneLineStrength" = "Reference Line Strength";
 "particleDebug.parameter.membraneLineWidth" = "Reference Line Width";
 "particleDebug.parameter.membraneStability" = "Stability";
+"particleDebug.parameter.membraneFullness" = "Volume Fullness";
+"particleDebug.parameter.sheetLightStrength" = "Sheet Light Contrast";
+"particleDebug.parameter.flowLightStrength" = "Flow Light Contrast";
 "particleDebug.parameter.spineLineStrength" = "Spine Strength";
 "particleDebug.parameter.spineLineHighlight" = "Spine Highlight";
 "particleDebug.parameter.spineLineContrast" = "Spine Contrast";

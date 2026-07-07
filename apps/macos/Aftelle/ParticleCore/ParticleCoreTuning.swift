@@ -23,6 +23,9 @@ struct ParticleCoreTuning: Codable, Equatable {
     var membraneLineStrength: Double
     var membraneLineWidth: Double
     var membraneStability: Double
+    var membraneFullness: Double
+    var sheetLightStrength: Double
+    var flowLightStrength: Double
     var spineLineStrength: Double
     var spineLineWidth: Double
     var spineLineDensity: Double
@@ -56,6 +59,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         membraneLineStrength: Double,
         membraneLineWidth: Double,
         membraneStability: Double,
+        membraneFullness: Double,
+        sheetLightStrength: Double,
+        flowLightStrength: Double,
         spineLineStrength: Double,
         spineLineWidth: Double,
         spineLineDensity: Double,
@@ -88,6 +94,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.membraneLineStrength = membraneLineStrength
         self.membraneLineWidth = membraneLineWidth
         self.membraneStability = membraneStability
+        self.membraneFullness = membraneFullness
+        self.sheetLightStrength = sheetLightStrength
+        self.flowLightStrength = flowLightStrength
         self.spineLineStrength = spineLineStrength
         self.spineLineWidth = spineLineWidth
         self.spineLineDensity = spineLineDensity
@@ -102,26 +111,29 @@ struct ParticleCoreTuning: Codable, Equatable {
 
     static let systemDefault = ParticleCoreTuning(
         globalScale: 0.58,
-        pointSizeScale: 0.50,
-        brightness: 0.66,
-        alphaScale: 0.82,
-        ridgeBrightness: 0.76,
+        pointSizeScale: 0.56,
+        brightness: 0.94,
+        alphaScale: 1.0,
+        ridgeBrightness: 0.78,
         breathingAmount: 0.38,
         breathingSpeed: 0.38,
         flowStrength: 0.36,
-        flowSpeed: 0.34,
-        rotationSpeed: 0.46,
+        flowSpeed: 0.30,
+        rotationSpeed: 0.42,
         rotationDirection: 1.0,
         shapeRoundness: 0.82,
         surfaceReliefStrength: 0.76,
         shapeSeed: 0.5,
         membraneAspect: 0.24,
         membraneScale: 0.54,
-        membraneMist: 0.82,
-        membraneGrain: 0.47,
+        membraneMist: 0.86,
+        membraneGrain: 0.48,
         membraneLineStrength: 0.88,
         membraneLineWidth: 0.50,
-        membraneStability: 0.88,
+        membraneStability: 0.96,
+        membraneFullness: 0.82,
+        sheetLightStrength: 0.94,
+        flowLightStrength: 0.90,
         spineLineStrength: 0.72,
         spineLineWidth: 0.54,
         spineLineDensity: 0.76,
@@ -131,10 +143,10 @@ struct ParticleCoreTuning: Codable, Equatable {
         edgeDustAmount: 0.32,
         edgeFrayAmount: 0.34,
         surfaceDispersionStrength: 0.26,
-        surfaceLightStrength: 0.72
+        surfaceLightStrength: 0.92
     )
 
-    static let storageKey = "ParticleCoreTuning.debug.v5"
+    static let storageKey = "ParticleCoreTuning.debug.v6"
 
     private enum CodingKeys: String, CodingKey {
         case globalScale
@@ -158,6 +170,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         case membraneLineStrength
         case membraneLineWidth
         case membraneStability
+        case membraneFullness
+        case sheetLightStrength
+        case flowLightStrength
         case spineLineStrength
         case spineLineWidth
         case spineLineDensity
@@ -194,6 +209,9 @@ struct ParticleCoreTuning: Codable, Equatable {
             membraneLineStrength: try values.decodeIfPresent(Double.self, forKey: .membraneLineStrength) ?? Self.systemDefault.membraneLineStrength,
             membraneLineWidth: try values.decodeIfPresent(Double.self, forKey: .membraneLineWidth) ?? Self.systemDefault.membraneLineWidth,
             membraneStability: try values.decodeIfPresent(Double.self, forKey: .membraneStability) ?? Self.systemDefault.membraneStability,
+            membraneFullness: try values.decodeIfPresent(Double.self, forKey: .membraneFullness) ?? Self.systemDefault.membraneFullness,
+            sheetLightStrength: try values.decodeIfPresent(Double.self, forKey: .sheetLightStrength) ?? Self.systemDefault.sheetLightStrength,
+            flowLightStrength: try values.decodeIfPresent(Double.self, forKey: .flowLightStrength) ?? Self.systemDefault.flowLightStrength,
             spineLineStrength: try values.decodeIfPresent(Double.self, forKey: .spineLineStrength) ?? Self.systemDefault.spineLineStrength,
             spineLineWidth: try values.decodeIfPresent(Double.self, forKey: .spineLineWidth) ?? Self.systemDefault.spineLineWidth,
             spineLineDensity: try values.decodeIfPresent(Double.self, forKey: .spineLineDensity) ?? Self.systemDefault.spineLineDensity,
@@ -259,6 +277,9 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case membraneLineStrength
     case membraneLineWidth
     case membraneStability
+    case membraneFullness
+    case sheetLightStrength
+    case flowLightStrength
     case spineLineStrength
     case spineLineWidth
     case spineLineDensity
@@ -320,6 +341,12 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.membraneLineWidth
         case .membraneStability:
             return \.membraneStability
+        case .membraneFullness:
+            return \.membraneFullness
+        case .sheetLightStrength:
+            return \.sheetLightStrength
+        case .flowLightStrength:
+            return \.flowLightStrength
         case .spineLineStrength:
             return \.spineLineStrength
         case .spineLineWidth:
