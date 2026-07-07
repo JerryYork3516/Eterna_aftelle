@@ -230,6 +230,46 @@ private enum ParticleDebugSection {
     case color
 }
 
+private enum ParticleTuningGroup: CaseIterable, Identifiable {
+    case basics
+    case shape
+    case motion
+    case scatter
+    case spine
+
+    var id: String { localizedKey }
+
+    var localizedKey: String {
+        switch self {
+        case .basics:
+            return "particleDebug.tuningGroup.basics"
+        case .shape:
+            return "particleDebug.tuningGroup.shape"
+        case .motion:
+            return "particleDebug.tuningGroup.motion"
+        case .scatter:
+            return "particleDebug.tuningGroup.scatter"
+        case .spine:
+            return "particleDebug.tuningGroup.spine"
+        }
+    }
+
+    var parameters: [ParticleCoreTuningParameter] {
+        switch self {
+        case .basics:
+            return [.globalScale, .pointSizeScale, .brightness, .alphaScale, .ridgeBrightness, .surfaceLightStrength]
+        case .shape:
+            return [.shapeRoundness, .surfaceReliefStrength, .shapeSeed]
+        case .motion:
+            return [.breathingAmount, .breathingSpeed, .flowStrength, .flowSpeed, .rotationSpeed, .rotationDirection]
+        case .scatter:
+            return [.edgeDustAmount, .edgeFrayAmount, .surfaceDispersionStrength]
+        case .spine:
+            return [.spineLineStrength, .spineLineWidth, .spineLineDensity]
+        }
+    }
+}
+
 private struct ParticleDebugPanel: View {
     let snapshot: ParticleDebugSnapshot
     let shellMode: ParticleShellMode
@@ -242,6 +282,7 @@ private struct ParticleDebugPanel: View {
     let refreshColorProfileSnapshot: () -> Void
     let importDR: () -> Void
     @State private var section: ParticleDebugSection = .diagnostics
+    @State private var tuningGroup: ParticleTuningGroup = .shape
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -299,11 +340,21 @@ private struct ParticleDebugPanel: View {
                             setRenderKind: setRenderKind
                         )
                     case .particle:
-                        ForEach(ParticleCoreTuningParameter.allCases) { parameter in
-                            if parameter == .rotationDirection {
-                                ParticleDirectionRow(tuning: $tuning)
-                            } else {
-                                ParticleParameterRow(parameter: parameter, tuning: $tuning)
+                        VStack(spacing: 8) {
+                            Picker("", selection: $tuningGroup) {
+                                ForEach(ParticleTuningGroup.allCases) { group in
+                                    Text(String(localized: String.LocalizationValue(group.localizedKey)))
+                                        .tag(group)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+
+                            ForEach(tuningGroup.parameters) { parameter in
+                                if parameter == .rotationDirection {
+                                    ParticleDirectionRow(tuning: $tuning)
+                                } else {
+                                    ParticleParameterRow(parameter: parameter, tuning: $tuning)
+                                }
                             }
                         }
                     case .color:

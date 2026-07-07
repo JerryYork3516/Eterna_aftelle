@@ -16,6 +16,9 @@ struct ParticleCoreTuning: Codable, Equatable {
     var shapeRoundness: Double
     var surfaceReliefStrength: Double
     var shapeSeed: Double
+    var spineLineStrength: Double
+    var spineLineWidth: Double
+    var spineLineDensity: Double
     var edgeDustAmount: Double
     var edgeFrayAmount: Double
     var surfaceDispersionStrength: Double
@@ -36,6 +39,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         shapeRoundness: Double,
         surfaceReliefStrength: Double,
         shapeSeed: Double,
+        spineLineStrength: Double,
+        spineLineWidth: Double,
+        spineLineDensity: Double,
         edgeDustAmount: Double,
         edgeFrayAmount: Double,
         surfaceDispersionStrength: Double,
@@ -55,6 +61,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.shapeRoundness = shapeRoundness
         self.surfaceReliefStrength = surfaceReliefStrength
         self.shapeSeed = shapeSeed
+        self.spineLineStrength = spineLineStrength
+        self.spineLineWidth = spineLineWidth
+        self.spineLineDensity = spineLineDensity
         self.edgeDustAmount = edgeDustAmount
         self.edgeFrayAmount = edgeFrayAmount
         self.surfaceDispersionStrength = surfaceDispersionStrength
@@ -73,16 +82,19 @@ struct ParticleCoreTuning: Codable, Equatable {
         flowSpeed: 0.5,
         rotationSpeed: 0.5,
         rotationDirection: 1.0,
-        shapeRoundness: 1.0,
+        shapeRoundness: 0.5,
         surfaceReliefStrength: 0.5,
         shapeSeed: 0.5,
+        spineLineStrength: 0.5,
+        spineLineWidth: 0.5,
+        spineLineDensity: 0.5,
         edgeDustAmount: 0.5,
         edgeFrayAmount: 0.5,
         surfaceDispersionStrength: 0.5,
         surfaceLightStrength: 0.5
     )
 
-    static let storageKey = "ParticleCoreTuning.debug.v2"
+    static let storageKey = "ParticleCoreTuning.debug.v3"
 
     private enum CodingKeys: String, CodingKey {
         case globalScale
@@ -99,6 +111,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         case shapeRoundness
         case surfaceReliefStrength
         case shapeSeed
+        case spineLineStrength
+        case spineLineWidth
+        case spineLineDensity
         case edgeDustAmount
         case edgeFrayAmount
         case surfaceDispersionStrength
@@ -119,9 +134,12 @@ struct ParticleCoreTuning: Codable, Equatable {
             flowSpeed: try values.decodeIfPresent(Double.self, forKey: .flowSpeed) ?? 0.5,
             rotationSpeed: try values.decodeIfPresent(Double.self, forKey: .rotationSpeed) ?? 0.5,
             rotationDirection: try values.decodeIfPresent(Double.self, forKey: .rotationDirection) ?? 1.0,
-            shapeRoundness: try values.decodeIfPresent(Double.self, forKey: .shapeRoundness) ?? 1.0,
+            shapeRoundness: try values.decodeIfPresent(Double.self, forKey: .shapeRoundness) ?? 0.5,
             surfaceReliefStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceReliefStrength) ?? 0.5,
             shapeSeed: try values.decodeIfPresent(Double.self, forKey: .shapeSeed) ?? 0.5,
+            spineLineStrength: try values.decodeIfPresent(Double.self, forKey: .spineLineStrength) ?? 0.5,
+            spineLineWidth: try values.decodeIfPresent(Double.self, forKey: .spineLineWidth) ?? 0.5,
+            spineLineDensity: try values.decodeIfPresent(Double.self, forKey: .spineLineDensity) ?? 0.5,
             edgeDustAmount: try values.decodeIfPresent(Double.self, forKey: .edgeDustAmount) ?? 0.5,
             edgeFrayAmount: try values.decodeIfPresent(Double.self, forKey: .edgeFrayAmount) ?? 0.5,
             surfaceDispersionStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceDispersionStrength) ?? 0.5,
@@ -174,6 +192,9 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case shapeRoundness
     case surfaceReliefStrength
     case shapeSeed
+    case spineLineStrength
+    case spineLineWidth
+    case spineLineDensity
     case edgeDustAmount
     case edgeFrayAmount
     case surfaceDispersionStrength
@@ -215,6 +236,12 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.surfaceReliefStrength
         case .shapeSeed:
             return \.shapeSeed
+        case .spineLineStrength:
+            return \.spineLineStrength
+        case .spineLineWidth:
+            return \.spineLineWidth
+        case .spineLineDensity:
+            return \.spineLineDensity
         case .edgeDustAmount:
             return \.edgeDustAmount
         case .edgeFrayAmount:

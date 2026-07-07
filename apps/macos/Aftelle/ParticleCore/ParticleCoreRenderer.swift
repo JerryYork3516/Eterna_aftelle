@@ -35,6 +35,9 @@ struct ParticleCoreFrameUniforms {
     var shapeRoundness: Float
     var surfaceReliefStrength: Float
     var shapeSeed: Float
+    var spineLineStrength: Float
+    var spineLineWidth: Float
+    var spineLineDensity: Float
     var edgeDustAmount: Float
     var edgeFrayAmount: Float
     var surfaceDispersionStrength: Float
@@ -177,8 +180,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         let speedPhaseRate: Float = 0.025
         let motionElapsed = 0.42 * elapsed + (0.08 / speedPhaseRate) * (1 - cos(elapsed * speedPhaseRate))
         let resolution = SIMD2<Float>(Float(drawableSize.width), Float(drawableSize.height))
-        let tunedBreathTime = motionElapsed * scaleAroundOne(tuning.breathingSpeed, range: 0.90)
-        let breathingAmount = scaleAroundOne(tuning.breathingAmount, range: 1.20)
+        let tunedBreathTime = motionElapsed * scaleAroundOne(tuning.breathingSpeed, range: 2.70)
+        let breathingAmount = scaleAroundOne(tuning.breathingAmount, range: 3.60)
         let breathing = (0.010 * sin(tunedBreathTime * 0.23) + 0.006 * sin(tunedBreathTime * 0.13 + 0.9)) * breathingAmount
         let edgeBreathing = (0.012 * sin(tunedBreathTime * 0.19 + 1.4) + 0.005 * sin(tunedBreathTime * 0.37 + 0.3)) * breathingAmount
         let coreStability = 1 - min(0.025, abs(breathing) * 0.16)
@@ -213,6 +216,9 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             shapeRoundness: Float(tuning.shapeRoundness),
             surfaceReliefStrength: Float(tuning.surfaceReliefStrength),
             shapeSeed: Float(tuning.shapeSeed),
+            spineLineStrength: Float(tuning.spineLineStrength),
+            spineLineWidth: Float(tuning.spineLineWidth),
+            spineLineDensity: Float(tuning.spineLineDensity),
             edgeDustAmount: Float(tuning.edgeDustAmount),
             edgeFrayAmount: Float(tuning.edgeFrayAmount),
             surfaceDispersionStrength: Float(tuning.surfaceDispersionStrength),
@@ -328,7 +334,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             interactionStrength: Double(smoothMouseInfluence)
         )
         debugMetricsHandler?(metrics)
-        print("[ParticleCore] snapshot fps=\(String(format: "%.1f", fps)) particleCount=\(model.particles.count) drawableSize=\(drawableSize) preferredFPS=\(view.preferredFramesPerSecond) visualState=\(visualState) previousVisualState=\(previousVisualState) stateElapsedTime=\(String(format: "%.2f", stateElapsedTime)) reason=\(lastTransitionReason) mouseInside=\(mouseActive) interactionStrength=\(String(format: "%.2f", smoothMouseInfluence)) rotationSpeed=\(String(format: "%.2f", tuning.rotationSpeed)) rotationDirection=\(String(format: "%.2f", tuning.rotationDirection)) shapeRoundness=\(String(format: "%.2f", tuning.shapeRoundness)) surfaceRelief=\(String(format: "%.2f", tuning.surfaceReliefStrength)) shapeSeed=\(String(format: "%.2f", tuning.shapeSeed))")
+        print("[ParticleCore] snapshot fps=\(String(format: "%.1f", fps)) particleCount=\(model.particles.count) drawableSize=\(drawableSize) preferredFPS=\(view.preferredFramesPerSecond) visualState=\(visualState) previousVisualState=\(previousVisualState) stateElapsedTime=\(String(format: "%.2f", stateElapsedTime)) reason=\(lastTransitionReason) mouseInside=\(mouseActive) interactionStrength=\(String(format: "%.2f", smoothMouseInfluence)) rotationSpeed=\(String(format: "%.2f", tuning.rotationSpeed)) rotationDirection=\(String(format: "%.2f", tuning.rotationDirection)) shapeRoundness=\(String(format: "%.2f", tuning.shapeRoundness)) surfaceRelief=\(String(format: "%.2f", tuning.surfaceReliefStrength)) shapeSeed=\(String(format: "%.2f", tuning.shapeSeed)) spineStrength=\(String(format: "%.2f", tuning.spineLineStrength)) spineWidth=\(String(format: "%.2f", tuning.spineLineWidth)) spineDensity=\(String(format: "%.2f", tuning.spineLineDensity))")
     }
 
     private func scaleAroundOne(_ value: Double, range: Float) -> Float {

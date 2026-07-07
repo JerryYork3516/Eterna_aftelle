@@ -29,6 +29,11 @@
 "particleDebug.importDR" = "导入 DR";
 "particleDebug.save" = "保存";
 "particleDebug.restoreDefault" = "恢复默认";
+"particleDebug.tuningGroup.basics" = "基础";
+"particleDebug.tuningGroup.shape" = "形态";
+"particleDebug.tuningGroup.motion" = "动效";
+"particleDebug.tuningGroup.scatter" = "发散";
+"particleDebug.tuningGroup.spine" = "背脊线条";
 "particleDebug.parameter.globalScale" = "整体尺寸";
 "particleDebug.parameter.pointSizeScale" = "粒子大小";
 "particleDebug.parameter.brightness" = "整体亮度";
@@ -43,6 +48,9 @@
 "particleDebug.parameter.shapeRoundness" = "圆润度";
 "particleDebug.parameter.surfaceReliefStrength" = "表面起伏";
 "particleDebug.parameter.shapeSeed" = "形态 Seed";
+"particleDebug.parameter.spineLineStrength" = "背脊强度";
+"particleDebug.parameter.spineLineWidth" = "背脊宽度";
+"particleDebug.parameter.spineLineDensity" = "背脊密度";
 "particleDebug.parameter.edgeDustAmount" = "边缘微尘";
 "particleDebug.parameter.edgeFrayAmount" = "边缘毛边";
 "particleDebug.parameter.surfaceDispersionStrength" = "发散强度";
