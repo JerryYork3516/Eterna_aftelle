@@ -309,11 +309,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float referenceFold = 1.0 + membraneEdge * (0.115 * lobeA + 0.070 * lobeB + 0.036 * lobeC);
     float membraneAspectX = mix(0.86, 1.34, saturate(uniforms.membraneAspect));
     float membraneAspectY = mix(0.84, 0.54, saturate(uniforms.membraneAspect));
-    float shapeFullness = saturate(uniforms.membraneFullness);
-    float2 referenceScale = float2(
-        membraneAspectX * mix(1.0, 0.92, shapeFullness),
-        membraneAspectY * mix(1.0, 1.16, shapeFullness)
-    );
+    float2 referenceScale = float2(membraneAspectX, membraneAspectY);
     float2 referenceSkew = float2(depth * 0.060, -depth * 0.020);
     float2 referenceTangent = float2(-sourceRadial.y, sourceRadial.x)
         * membraneEdge
@@ -371,7 +367,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneMembraneGrain = scaleAroundOne(uniforms.membraneGrain, 1.60);
     float tuneMembraneLineStrength = scaleAroundOne(uniforms.membraneLineStrength, 1.80);
     float tuneMembraneLineWidth = scaleAroundOne(uniforms.membraneLineWidth, 1.20);
-    float tuneMembraneFullness = scaleAroundOne(uniforms.membraneFullness, 1.20);
+    float tuneMembraneFullness = saturate(uniforms.membraneFullness);
     float tuneSheetLight = scaleAroundOne(uniforms.sheetLightStrength, 1.80);
     float tuneFlowLight = scaleAroundOne(uniforms.flowLightStrength, 1.80);
     float thinkingRaw = saturate(uniforms.thinkingStrength);
@@ -478,10 +474,14 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     );
     float3 stableLightNormal = normalize(rotateBody(rotateBody(float3(baseParticlePosition * 0.92, depth * 1.24), selfSpinAngles), bodyAngles) + float3(0.001, 0.001, 0.001));
     float directionalFrontLight = smoothstep(-0.24, 0.70, stableLightNormal.z);
-    float bodyDepth = depth * (0.48 + tuneMembraneFullness * 0.22)
-        + globalWave * (0.014 + midBand * 0.040 + edge * 0.040) * mix(0.86, 1.14, saturate(uniforms.membraneFullness))
+    float bodyDepth = depth * mix(0.34, 0.72, tuneMembraneFullness)
+        + globalWave * (0.014 + midBand * 0.040 + edge * 0.040) * mix(0.82, 1.08, tuneMembraneFullness)
+        + centerFollow * 0.010;
+    float projectionDepth = depth * 0.58
+        + globalWave * (0.014 + midBand * 0.040 + edge * 0.040) * 0.96
         + centerFollow * 0.010;
     float3 body = float3(p.x, p.y, bodyDepth);
+    float3 projectionBody = float3(p.x, p.y, projectionDepth);
     float activeInterior = interior * centerMotionGate;
     float3 materialFlow = materialFlowField(body, fieldTime, particleSeed, seedB, edge, activeInterior, midBand, globalWave, globalAxis, globalSide);
     float3 cloudFlow = volumetricCloudFlowField(body + materialFlow * 0.35, fieldTime, particleSeed, seedB, edge, activeInterior, midBand, globalWave, globalAxis, globalSide);
@@ -494,9 +494,11 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + cloudFlow * (1.18 + activeInterior * 0.12 + midBand * 0.46);
     materialBody = rotateBody(materialBody, selfSpinAngles);
     body = rotateBody(body, selfSpinAngles);
+    projectionBody = rotateBody(projectionBody, selfSpinAngles);
     body = rotateBody(body, bodyAngles);
-    float perspective = clamp(1.0 / (1.0 - body.z * (0.22 + tuneMembraneFullness * 0.045)), 0.84, 1.22);
-    p = body.xy * perspective;
+    projectionBody = rotateBody(projectionBody, bodyAngles);
+    float perspective = clamp(1.0 / (1.0 - projectionBody.z * 0.26), 0.84, 1.22);
+    p = projectionBody.xy * perspective;
     float wholeTurn = globalTurnAngle(rotationPhaseTime * 0.36 + 6.4) * 0.10
         + sin(rotationPhaseTime * 0.19 + 1.7) * 0.035;
     p = rotate2(p, wholeTurn);
@@ -804,6 +806,13 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float visibleIonCluster = ionCluster;
     float visibleStructuralSpine = structuralSpine;
     float visibleRidgeFlow = ridgeFlow;
+    float cavityGuard = smoothstep(0.18, 0.50, stableScreenRadius);
+    float rearVolumeLift = (1.0 - directionalFrontLight) * cavityGuard * tuneMembraneFullness;
+    float shellThicknessLift = (0.035 + shellLayer * 0.055 + midBand * 0.050) * cavityGuard * tuneMembraneFullness;
+    visibleCloudDensity = saturate(visibleCloudDensity * mix(0.64, 1.04, tuneMembraneFullness));
+    visibleLayerDensity = saturate(visibleLayerDensity * mix(0.66, 1.08, tuneMembraneFullness) + rearVolumeLift * 0.070 + shellThicknessLift);
+    visibleDenseSection = saturate(visibleDenseSection * mix(0.60, 1.06, tuneMembraneFullness) + rearVolumeLift * 0.050);
+    visibleSparseCavity = saturate(visibleSparseCavity * mix(1.14, 0.76, tuneMembraneFullness));
     float spineAggregation = saturate(visibleStructuralSpine * (0.64 + visibleLayerDensity * 0.82 + visibleDenseSection * 0.48) * tuneMembraneLineStrength);
     float edgeContour = edge * frontDepthGate * (0.38 + visibleCloudDensity * 0.22 + visibleStructuralSpine * 0.18);
     float normalSurfaceFlow = saturate(visibleRidgeFlow * 0.26 + turnWakeEnergy * 0.34 + visibleCloudDensity * 0.18)

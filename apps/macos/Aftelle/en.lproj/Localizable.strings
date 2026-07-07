@@ -157,8 +157,8 @@
 "particleDebug.parameter.membraneStability.caption" = "Controls how stable the shell surface remains.";
 "particleDebug.parameter.membraneStability.lowHint" = "Loose";
 "particleDebug.parameter.membraneStability.highHint" = "Stable";
-"particleDebug.parameter.membraneFullness.caption" = "Restores front-back volume without filling the core.";
-"particleDebug.parameter.membraneFullness.lowHint" = "Flatter";
+"particleDebug.parameter.membraneFullness.caption" = "Controls inner volume depth and shell thickness without changing the body aspect.";
+"particleDebug.parameter.membraneFullness.lowHint" = "More hollow";
 "particleDebug.parameter.membraneFullness.highHint" = "Thicker";
 "particleDebug.parameter.sheetLightStrength.caption" = "Controls broad shell sheet light contrast.";
 "particleDebug.parameter.sheetLightStrength.lowHint" = "Subtle sheet";

@@ -157,8 +157,8 @@
 "particleDebug.parameter.membraneStability.caption" = "控制壳面结构的稳定程度。";
 "particleDebug.parameter.membraneStability.lowHint" = "更松";
 "particleDebug.parameter.membraneStability.highHint" = "更稳";
-"particleDebug.parameter.membraneFullness.caption" = "恢复前后体积层次，但不填满中心。";
-"particleDebug.parameter.membraneFullness.lowHint" = "更扁";
+"particleDebug.parameter.membraneFullness.caption" = "控制内部体积层次和壳体厚度感，不改变整体比例。";
+"particleDebug.parameter.membraneFullness.lowHint" = "更空";
 "particleDebug.parameter.membraneFullness.highHint" = "更厚";
 "particleDebug.parameter.sheetLightStrength.caption" = "控制壳面片层的明暗对比。";
 "particleDebug.parameter.sheetLightStrength.lowHint" = "更柔";
