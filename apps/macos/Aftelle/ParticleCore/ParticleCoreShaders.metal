@@ -367,7 +367,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneMembraneGrain = scaleAroundOne(uniforms.membraneGrain, 1.60);
     float tuneMembraneLineStrength = scaleAroundOne(uniforms.membraneLineStrength, 1.80);
     float tuneMembraneLineWidth = scaleAroundOne(uniforms.membraneLineWidth, 1.20);
-    float tuneMembraneFullness = saturate(uniforms.membraneFullness);
+    float membraneFullnessValue = saturate(uniforms.membraneFullness);
+    float tuneMembraneFullness = membraneFullnessValue * 2.0;
     float tuneSheetLight = scaleAroundOne(uniforms.sheetLightStrength, 1.80);
     float tuneFlowLight = scaleAroundOne(uniforms.flowLightStrength, 1.80);
     float thinkingRaw = saturate(uniforms.thinkingStrength);
@@ -498,7 +499,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     body = rotateBody(body, bodyAngles);
     projectionBody = rotateBody(projectionBody, bodyAngles);
     float perspective = clamp(1.0 / (1.0 - projectionBody.z * 0.26), 0.84, 1.22);
-    p = projectionBody.xy * perspective;
+    p = mix(p, projectionBody.xy * perspective, membraneFullnessValue);
     float wholeTurn = globalTurnAngle(rotationPhaseTime * 0.36 + 6.4) * 0.10
         + sin(rotationPhaseTime * 0.19 + 1.7) * 0.035;
     p = rotate2(p, wholeTurn);
