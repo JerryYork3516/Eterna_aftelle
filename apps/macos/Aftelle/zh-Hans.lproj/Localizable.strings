@@ -127,11 +127,11 @@
 "particleDebug.parameter.rotationDirection.caption" = "选择整体旋转方向。";
 "particleDebug.parameter.rotationDirection.lowHint" = "轴向";
 "particleDebug.parameter.rotationDirection.highHint" = "方向";
-"particleDebug.parameter.shapeRoundness.caption" = "控制壳体表面粗糙 / 平滑程度，不改变整体形体。";
-"particleDebug.parameter.shapeRoundness.lowHint" = "更粗糙";
-"particleDebug.parameter.shapeRoundness.highHint" = "更平滑";
-"particleDebug.parameter.surfaceReliefStrength.caption" = "控制局部表面凹凸起伏。";
-"particleDebug.parameter.surfaceReliefStrength.lowHint" = "更平滑";
+"particleDebug.parameter.shapeRoundness.caption" = "从圆滑基础壳体开始增加表面颗粒粗糙度，不改变整体形体。";
+"particleDebug.parameter.shapeRoundness.lowHint" = "圆滑球体";
+"particleDebug.parameter.shapeRoundness.highHint" = "颗粒更强";
+"particleDebug.parameter.surfaceReliefStrength.caption" = "从圆滑基础壳体开始增加局部表面凹凸起伏。";
+"particleDebug.parameter.surfaceReliefStrength.lowHint" = "圆滑球体";
 "particleDebug.parameter.surfaceReliefStrength.highHint" = "起伏更强";
 "particleDebug.parameter.shapeSeed.caption" = "切换局部形态变化的随机种子。";
 "particleDebug.parameter.shapeSeed.lowHint" = "Seed 0";

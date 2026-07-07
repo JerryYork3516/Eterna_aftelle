@@ -127,11 +127,11 @@
 "particleDebug.parameter.rotationDirection.caption" = "Selects the whole-body rotation orientation.";
 "particleDebug.parameter.rotationDirection.lowHint" = "Axis";
 "particleDebug.parameter.rotationDirection.highHint" = "Direction";
-"particleDebug.parameter.shapeRoundness.caption" = "Controls surface roughness versus smoothness without changing the core body shape.";
-"particleDebug.parameter.shapeRoundness.lowHint" = "Rougher";
-"particleDebug.parameter.shapeRoundness.highHint" = "Smoother";
-"particleDebug.parameter.surfaceReliefStrength.caption" = "Controls local surface bumps and valleys.";
-"particleDebug.parameter.surfaceReliefStrength.lowHint" = "Smoother";
+"particleDebug.parameter.shapeRoundness.caption" = "Adds surface grain roughness from a smooth core shell without changing the body shape.";
+"particleDebug.parameter.shapeRoundness.lowHint" = "Smooth sphere";
+"particleDebug.parameter.shapeRoundness.highHint" = "More grain";
+"particleDebug.parameter.surfaceReliefStrength.caption" = "Adds local surface bumps and valleys from a smooth core shell.";
+"particleDebug.parameter.surfaceReliefStrength.lowHint" = "Smooth sphere";
 "particleDebug.parameter.surfaceReliefStrength.highHint" = "More relief";
 "particleDebug.parameter.shapeSeed.caption" = "Shifts the local shape variation pattern.";
 "particleDebug.parameter.shapeSeed.lowHint" = "Seed 0";

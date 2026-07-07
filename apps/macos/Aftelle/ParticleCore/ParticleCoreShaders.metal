@@ -292,10 +292,12 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 sourceParticlePosition = particle.xy;
     float depth = particle.w;
     float shapeRoundness = saturate(uniforms.shapeRoundness);
-    float shapeRoughness = pow(1.0 - shapeRoundness, 2.20);
-    float shapeAmount = 1.0;
-    float surfaceReliefAmount = scaleAroundOne(uniforms.surfaceReliefStrength, 2.25);
+    float shapeRoughness = smoothstep(0.82, 1.0, shapeRoundness) * 1.50;
+    float surfaceReliefValue = saturate(uniforms.surfaceReliefStrength);
+    float surfaceReliefHeadroom = smoothstep(0.76, 1.0, surfaceReliefValue);
+    float surfaceReliefAmount = scaleAroundOne(surfaceReliefValue, 2.25) * (1.0 + surfaceReliefHeadroom * 0.50);
     float reliefPresence = saturate(surfaceReliefAmount);
+    float shapeAmount = reliefPresence;
     float2 sourceRadial = normalize(sourceParticlePosition + float2(0.001, 0.001));
     float sourceRadius = length(sourceParticlePosition) / 0.52;
     float sourceAngle = atan2(sourceParticlePosition.y, sourceParticlePosition.x);
