@@ -31,7 +31,7 @@ struct ParticleCoreFrameUniforms {
     float rotationDirection;
     float shapeRoundness;
     float surfaceReliefStrength;
-    float surfaceReliefRadiusInfluence;
+    float surfaceReliefDensity;
     float shapeSeed;
     float membraneAspect;
     float membraneScale;
@@ -297,7 +297,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float surfaceReliefValue = saturate(uniforms.surfaceReliefStrength);
     float surfaceReliefHeadroom = smoothstep(0.76, 1.0, surfaceReliefValue);
     float surfaceReliefAmount = scaleAroundOne(surfaceReliefValue, 2.25) * (1.0 + surfaceReliefHeadroom * 0.50);
-    float surfaceReliefRadiusInfluence = saturate(uniforms.surfaceReliefRadiusInfluence);
+    float surfaceReliefDensity = saturate(uniforms.surfaceReliefDensity);
     float reliefPresence = saturate(surfaceReliefAmount);
     float shapeAmount = reliefPresence;
     float2 sourceRadial = normalize(sourceParticlePosition + float2(0.001, 0.001));
@@ -434,12 +434,14 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float morph = globalWave * 0.74 + localMorph * 0.26;
     float surfaceMotion = smoothstep(0.24, 0.58, lengthP);
     float normalizedRelief = localMorph / max(surfaceReliefAmount, 0.001);
-    float reliefDetail = sin(angle * 9.4 + depth * 3.1 + phaseB * 0.18 - fieldTime * 0.16) * 0.46
-        + cos(angle * 13.2 - depth * 2.7 + localPhase * 0.14 + fieldTime * 0.11) * 0.34
-        + sin(dot(p, globalAxis) * 9.8 + dot(p, globalSide) * 4.6 + seedB * 6.2831853) * 0.20;
-    float reliefSignal = clamp(normalizedRelief * 0.34 + reliefDetail * 0.66, -1.0, 1.0);
+    float reliefFrequency = mix(18.0, 5.2, surfaceReliefDensity);
+    float reliefCrossFrequency = mix(13.0, 3.8, surfaceReliefDensity);
+    float reliefDetail = sin(angle * reliefFrequency + depth * 3.1 + phaseB * 0.18 - fieldTime * 0.16) * 0.46
+        + cos(angle * reliefFrequency * 1.37 - depth * 2.7 + localPhase * 0.14 + fieldTime * 0.11) * 0.34
+        + sin(dot(p, globalAxis) * reliefCrossFrequency + dot(p, globalSide) * reliefCrossFrequency * 0.48 + seedB * 6.2831853) * 0.20;
+    float reliefSignal = clamp(normalizedRelief * 0.18 + reliefDetail * 0.82, -1.0, 1.0);
     float reliefRadiusGate = smoothstep(0.34, 0.72, lengthP) * (0.42 + edge * 0.36) * (0.54 + shellLayer * 0.34);
-    float reliefRadiusOffset = reliefSignal * surfaceReliefValue * surfaceReliefRadiusInfluence * reliefRadiusGate * (0.0020 + edge * 0.0028 + surfaceMotion * 0.0012);
+    float reliefRadiusOffset = reliefSignal * surfaceReliefValue * reliefRadiusGate * (0.0020 + edge * 0.0028 + surfaceMotion * 0.0012);
     float edgeMorph = edge * edge * (0.022 + 0.056 * edge + 0.012 * particleSeed) * morph * edgeSettle * speakingEdgeLift;
     float innerMorph = (interior * 0.20 * centerMotionGate + midBand * 0.88 * stateFocus) * (0.0100 + 0.0170 * seedB)
         * (globalWave * 0.78 + localMorph * 0.22);

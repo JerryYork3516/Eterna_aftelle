@@ -68,7 +68,7 @@
 "particleDebug.parameter.rotationDirection" = "整体旋转方向";
 "particleDebug.parameter.shapeRoundness" = "圆润度";
 "particleDebug.parameter.surfaceReliefStrength" = "表面起伏";
-"particleDebug.parameter.surfaceReliefRadiusInfluence" = "起伏半径映射";
+"particleDebug.parameter.surfaceReliefDensity" = "起伏密度";
 "particleDebug.parameter.shapeSeed" = "形态 Seed";
 "particleDebug.parameter.membraneAspect" = "膜比例";
 "particleDebug.parameter.membraneScale" = "膜缩放";
@@ -134,9 +134,9 @@
 "particleDebug.parameter.surfaceReliefStrength.caption" = "从圆滑基础壳体开始增加局部表面凹凸起伏。";
 "particleDebug.parameter.surfaceReliefStrength.lowHint" = "圆滑球体";
 "particleDebug.parameter.surfaceReliefStrength.highHint" = "起伏更强";
-"particleDebug.parameter.surfaceReliefRadiusInfluence.caption" = "控制表面起伏映射到壳体半径的程度，不改变整体尺寸。";
-"particleDebug.parameter.surfaceReliefRadiusInfluence.lowHint" = "偏纹理";
-"particleDebug.parameter.surfaceReliefRadiusInfluence.highHint" = "更凹凸";
+"particleDebug.parameter.surfaceReliefDensity.caption" = "控制表面起伏的大小和疏密；值越小起伏越多越细。";
+"particleDebug.parameter.surfaceReliefDensity.lowHint" = "更密";
+"particleDebug.parameter.surfaceReliefDensity.highHint" = "更疏";
 "particleDebug.parameter.shapeSeed.caption" = "切换局部形态变化的随机种子。";
 "particleDebug.parameter.shapeSeed.lowHint" = "Seed 0";
 "particleDebug.parameter.shapeSeed.highHint" = "Seed 1";

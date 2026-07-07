@@ -343,7 +343,7 @@ private enum ParticleTuningGroup: CaseIterable, Identifiable {
         case .basic:
             return [.globalScale, .pointSizeScale, .brightness, .alphaScale]
         case .shape:
-            return [.shapeRoundness, .surfaceReliefStrength, .surfaceReliefRadiusInfluence, .shapeSeed, .membraneAspect, .membraneScale, .membraneFullness]
+            return [.shapeRoundness, .surfaceReliefStrength, .surfaceReliefDensity, .shapeSeed, .membraneAspect, .membraneScale, .membraneFullness]
         case .surface:
             return [.membraneMist, .membraneGrain, .sheetLightStrength, .flowLightStrength, .surfaceLightStrength, .surfaceDispersionStrength]
         case .motion:
