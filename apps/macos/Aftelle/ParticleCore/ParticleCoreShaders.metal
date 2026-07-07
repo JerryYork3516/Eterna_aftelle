@@ -49,6 +49,7 @@ struct ParticleCoreFrameUniforms {
     float spineLineHighlight;
     float spineLineContrast;
     float spineLineSharpness;
+    float edgeScatterDistance;
     float edgeDustAmount;
     float edgeFrayAmount;
     float surfaceDispersionStrength;
@@ -360,6 +361,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneSpineHighlight = scaleAroundOne(uniforms.spineLineHighlight, 2.00);
     float tuneSpineContrast = scaleAroundOne(uniforms.spineLineContrast, 1.50);
     float tuneSpineSharpness = scaleAroundOne(uniforms.spineLineSharpness, 1.50);
+    float edgeScatterDistance = mix(0.004, 0.036, saturate(uniforms.edgeScatterDistance));
     float tuneEdgeDust = scaleAroundOne(uniforms.edgeDustAmount, 1.80);
     float tuneEdgeFray = scaleAroundOne(uniforms.edgeFrayAmount, 1.80);
     float tuneSurfaceDispersion = scaleAroundOne(uniforms.surfaceDispersionStrength, 1.80);
@@ -690,22 +692,19 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 screenTangent = float2(-screenNormal.y, screenNormal.x);
     float projectedSilhouette = screenEdge * (0.82 + 0.18 * smoothstep(0.56, 0.92, length(stableScreenPosition)));
     float centerFrayMute = smoothstep(0.30, 0.58, length(stableScreenPosition));
-    float surfaceScatterNoise = smoothstep(0.30, 0.86, edgeDustA * 0.42 + edgeDustB * 0.36 + hash11(seedB * 43.0 + particleSeed * 17.0) * 0.22);
-    float surfaceScatterCore = projectedSilhouette * centerFrayMute * surfaceScatterNoise * edgeSettle * speakingEdgeLift;
-    float surfaceDustField = surfaceScatterCore * tuneEdgeDust;
-    float surfaceFrayField = surfaceScatterCore * tuneEdgeFray;
-    float surfaceDispersionField = surfaceScatterCore * tuneSurfaceDispersion;
-    float surfaceScatterField = max(max(surfaceDustField * 0.54, surfaceFrayField), surfaceDispersionField * 0.82);
+    float edgeCoverageBase = projectedSilhouette * centerFrayMute * edgeSettle * speakingEdgeLift;
+    float edgeVariation = smoothstep(0.30, 0.86, edgeDustA * 0.42 + edgeDustB * 0.36 + hash11(seedB * 43.0 + particleSeed * 17.0) * 0.22);
+    float edgeScatterCoverage = edgeCoverageBase * mix(0.72, 1.12, edgeVariation);
+    float edgeFrayNoise = smoothstep(0.34, 0.86, edgeDustA * 0.44 + edgeDustB * 0.40 + seedB * 0.16);
+    float edgeDustNoise = smoothstep(0.42, 0.90, edgeDustA * 0.36 + edgeDustB * 0.34 + hash11(particleSeed * 61.0 + seedB * 13.0) * 0.30);
+    float edgeDustField = edgeCoverageBase * edgeDustNoise * (1.0 - turnWakeEnergy * 0.32) * tuneEdgeDust;
+    float surfaceFrayField = edgeCoverageBase * edgeFrayNoise * tuneEdgeFray;
+    float surfaceDispersionField = edgeCoverageBase * tuneSurfaceDispersion * 0.18;
     float surfaceScatterWobble = sin(angle * 3.4 + phaseB + fieldTime * 0.28);
-    float2 surfaceScatterDirection = normalize(screenNormal + screenTangent * surfaceScatterWobble * 0.10);
-    float edgeDustField = centerFrayMute
-        * max(edge * 0.10, projectedSilhouette * 0.34)
-        * smoothstep(0.28, 0.84, edgeDustA * 0.48 + edgeDustB * 0.36 + seedB * 0.16);
-    edgeDustField *= (1.0 - turnWakeEnergy * 0.42) * edgeSettle * speakingEdgeLift * tuneEdgeDust;
-    p += surfaceScatterDirection * surfaceScatterField * (0.018 + 0.036 * seedB);
-    p += surfaceScatterDirection * surfaceScatterField * surfaceScatterWobble * (0.004 + 0.010 * particleSeed);
-    p += surfaceScatterDirection * edgeDustField * (0.004 + 0.010 * seedB);
-    edgeFrayField = saturate(edgeFrayField * 0.08 * tuneEdgeFray + surfaceFrayField * 0.52 + surfaceDustField * 0.24 + surfaceDispersionField * 0.32 + edgeDustField * 0.16 + exitBreakAmount * 0.42 + exitState * dustRelease * 0.24);
+    float2 surfaceScatterDirection = normalize(screenNormal + screenTangent * surfaceScatterWobble * 0.05);
+    p += surfaceScatterDirection * edgeScatterCoverage * edgeScatterDistance * (0.84 + 0.16 * seedB);
+    p += screenTangent * surfaceFrayField * edgeScatterDistance * surfaceScatterWobble * (0.10 + 0.06 * particleSeed);
+    edgeFrayField = saturate(edgeFrayField * 0.18 * tuneEdgeFray + surfaceFrayField * 0.54 + edgeDustField * 0.26 + surfaceDispersionField + exitBreakAmount * 0.42 + exitState * dustRelease * 0.24);
 
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);
     p *= tuneGlobalScale * (0.58 + saturate(uniforms.membraneScale) * 0.38);

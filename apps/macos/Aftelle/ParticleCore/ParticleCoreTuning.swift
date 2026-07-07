@@ -33,6 +33,7 @@ struct ParticleCoreTuning: Codable, Equatable {
     var spineLineHighlight: Double
     var spineLineContrast: Double
     var spineLineSharpness: Double
+    var edgeScatterDistance: Double
     var edgeDustAmount: Double
     var edgeFrayAmount: Double
     var surfaceDispersionStrength: Double
@@ -70,6 +71,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         spineLineHighlight: Double,
         spineLineContrast: Double,
         spineLineSharpness: Double,
+        edgeScatterDistance: Double,
         edgeDustAmount: Double,
         edgeFrayAmount: Double,
         surfaceDispersionStrength: Double,
@@ -106,6 +108,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.spineLineHighlight = spineLineHighlight
         self.spineLineContrast = spineLineContrast
         self.spineLineSharpness = spineLineSharpness
+        self.edgeScatterDistance = edgeScatterDistance
         self.edgeDustAmount = edgeDustAmount
         self.edgeFrayAmount = edgeFrayAmount
         self.surfaceDispersionStrength = surfaceDispersionStrength
@@ -144,6 +147,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         spineLineHighlight: 0.72,
         spineLineContrast: 0.66,
         spineLineSharpness: 0.62,
+        edgeScatterDistance: 0.34,
         edgeDustAmount: 0.32,
         edgeFrayAmount: 0.34,
         surfaceDispersionStrength: 0.26,
@@ -182,6 +186,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         spineLineHighlight: 0.56,
         spineLineContrast: 0.56,
         spineLineSharpness: 0.54,
+        edgeScatterDistance: 0.32,
         edgeDustAmount: 0.34,
         edgeFrayAmount: 0.34,
         surfaceDispersionStrength: 0.34,
@@ -222,6 +227,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         case spineLineHighlight
         case spineLineContrast
         case spineLineSharpness
+        case edgeScatterDistance
         case edgeDustAmount
         case edgeFrayAmount
         case surfaceDispersionStrength
@@ -269,6 +275,7 @@ struct ParticleCoreTuning: Codable, Equatable {
             spineLineHighlight: try values.decodeIfPresent(Double.self, forKey: .spineLineHighlight) ?? Self.systemDefault.spineLineHighlight,
             spineLineContrast: try values.decodeIfPresent(Double.self, forKey: .spineLineContrast) ?? Self.systemDefault.spineLineContrast,
             spineLineSharpness: try values.decodeIfPresent(Double.self, forKey: .spineLineSharpness) ?? Self.systemDefault.spineLineSharpness,
+            edgeScatterDistance: try values.decodeIfPresent(Double.self, forKey: .edgeScatterDistance) ?? Self.systemDefault.edgeScatterDistance,
             edgeDustAmount: try values.decodeIfPresent(Double.self, forKey: .edgeDustAmount) ?? Self.systemDefault.edgeDustAmount,
             edgeFrayAmount: try values.decodeIfPresent(Double.self, forKey: .edgeFrayAmount) ?? Self.systemDefault.edgeFrayAmount,
             surfaceDispersionStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceDispersionStrength) ?? Self.systemDefault.surfaceDispersionStrength,
@@ -338,6 +345,7 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case spineLineHighlight
     case spineLineContrast
     case spineLineSharpness
+    case edgeScatterDistance
     case edgeDustAmount
     case edgeFrayAmount
     case surfaceDispersionStrength
@@ -373,7 +381,7 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
              .membraneMist, .membraneGrain, .membraneLineStrength, .membraneLineWidth,
              .membraneStability, .membraneFullness, .sheetLightStrength, .flowLightStrength,
              .spineLineStrength, .spineLineWidth, .spineLineDensity, .spineLineHighlight,
-             .spineLineContrast, .spineLineSharpness:
+             .spineLineContrast, .spineLineSharpness, .edgeScatterDistance:
             return 0.01
         case .breathingAmount, .flowStrength, .edgeDustAmount, .edgeFrayAmount, .surfaceDispersionStrength:
             return 0.02
@@ -448,6 +456,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.spineLineContrast
         case .spineLineSharpness:
             return \.spineLineSharpness
+        case .edgeScatterDistance:
+            return \.edgeScatterDistance
         case .edgeDustAmount:
             return \.edgeDustAmount
         case .edgeFrayAmount:

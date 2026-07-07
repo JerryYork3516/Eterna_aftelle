@@ -52,6 +52,7 @@ struct ParticleCoreFrameUniforms {
     var spineLineHighlight: Float
     var spineLineContrast: Float
     var spineLineSharpness: Float
+    var edgeScatterDistance: Float
     var edgeDustAmount: Float
     var edgeFrayAmount: Float
     var surfaceDispersionStrength: Float
@@ -247,6 +248,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             spineLineHighlight: Float(tuning.spineLineHighlight),
             spineLineContrast: Float(tuning.spineLineContrast),
             spineLineSharpness: Float(tuning.spineLineSharpness),
+            edgeScatterDistance: Float(tuning.edgeScatterDistance),
             edgeDustAmount: Float(tuning.edgeDustAmount),
             edgeFrayAmount: Float(tuning.edgeFrayAmount),
             surfaceDispersionStrength: Float(tuning.surfaceDispersionStrength),
