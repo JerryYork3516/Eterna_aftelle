@@ -299,7 +299,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 sourceParticlePosition = particle.xy;
     float depth = particle.w;
     float shapeRoundness = saturate(uniforms.shapeRoundness);
-    float shapeRoughness = smoothstep(0.82, 1.0, shapeRoundness) * 1.50;
+    float shapeSurfaceRoughness = pow(1.0 - shapeRoundness, 1.8);
     float surfaceReliefValue = saturate(uniforms.surfaceReliefStrength);
     float surfaceReliefAmount = surfaceReliefValue * (0.74 + surfaceReliefValue * 1.26);
     float surfaceReliefDensity = saturate(uniforms.surfaceReliefDensity);
@@ -330,7 +330,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float roundnessNoise = sin(sourceAngle * 13.0 + depth * 4.2 + shapePhase * 0.31) * 0.54
         + cos(sourceAngle * 19.0 - depth * 5.4 + shapePhase * 0.17) * 0.32
         + sin(sourceAngle * 29.0 + depth * 2.6 - shapePhase * 0.23) * 0.14;
-    p += sourceRadial * roundnessNoise * shapeRoughness * (0.0015 + surfaceRoughness * 0.0035 + silhouetteRoughness * 0.0085);
+    p += sourceRadial * roundnessNoise * shapeSurfaceRoughness * (0.0012 + surfaceRoughness * 0.0030 + silhouetteRoughness * 0.0068);
     float2 baseParticlePosition = p;
     float ridge = saturate(particle.z * surfaceReliefAmount);
     float id = float(vid);
