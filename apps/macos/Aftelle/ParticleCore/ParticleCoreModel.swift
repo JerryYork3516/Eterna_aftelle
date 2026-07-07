@@ -52,30 +52,18 @@ struct ParticleCoreModel {
             let z = Float(1 - 2 * v)
             let shell = sqrt(max(0, 1 - z * z))
             let depth = shell * sin(theta)
-            let fold = 1
-                + 0.14 * sin(theta * 3.0 + z * 4.7)
-                + 0.09 * sin(theta * 6.0 - z * 2.6)
-                + 0.05 * sin(theta * 11.0 + z * 5.1)
-            var x = (shell * cos(theta) * 0.58 + depth * 0.075) * fold
-            var y = (z * 0.44 + 0.035 * sin(theta * 2.0 + depth * 3.0)) * fold
-            let projectedRadius = sqrt(x * x / 0.62 / 0.62 + y * y / 0.48 / 0.48)
-            let outlineBand = max(0, min(1, (projectedRadius - 0.62) / 0.32))
-            let length = max(0.001, sqrt(x * x + y * y))
-            let outward = SIMD2<Float>(x / length, y / length)
-            let tangent = SIMD2<Float>(-outward.y, outward.x)
-            let strongScatter = generator.nextUnit() < 0.46
-            let radialScatter = outlineBand * (strongScatter ? 0.105 : 0.034) * pow(Float(generator.nextUnit()), 1.45)
-            let tangentialScatter = outlineBand * (Float(generator.nextUnit()) - 0.5) * 0.048
-            x += outward.x * radialScatter + tangent.x * tangentialScatter
-            y += outward.y * radialScatter + tangent.y * tangentialScatter
+            let x = shell * cos(theta) * 0.52
+            let y = z * 0.52
+            let projectedRadius = sqrt(x * x + y * y) / 0.52
+            let outlineBand = max(0, min(1, (projectedRadius - 0.66) / 0.26))
             let silhouette = max(0, min(1, 1 - abs(depth) * 1.85))
             let threadA = pow(max(0, 0.5 + 0.5 * sin(theta * 3.0 + z * 4.4 + depth * 2.6)), 4)
             let threadB = pow(max(0, 0.5 + 0.5 * sin(theta * 5.0 - z * 3.1)), 5)
             let grain = 0.5 + 0.5 * sin(theta * 13.0 + z * 8.7 + depth * 3.1)
             let thread = max(threadA, threadB)
-            let ridge = min(1, silhouette * 0.24 + thread * 0.08 + outlineBand * 0.22 + grain * 0.10)
-            let edgeWeight = max(0, min(1, 0.18 + abs(depth) * 0.72 + (1 - silhouette) * 0.34 + outlineBand * 0.16))
-            let ridgeKeep = 0.36 + Double(silhouette) * 0.10 + Double(outlineBand) * 0.24
+            let ridge = min(1, silhouette * 0.18 + thread * 0.08 + outlineBand * 0.12 + grain * 0.08)
+            let edgeWeight = max(0, min(1, 0.16 + abs(depth) * 0.68 + (1 - silhouette) * 0.28 + outlineBand * 0.12))
+            let ridgeKeep = 0.42 + Double(silhouette) * 0.14 + Double(outlineBand) * 0.10
             if generator.nextUnit() > ridgeKeep && candidateIndex < candidateCount * 3 {
                 continue
             }

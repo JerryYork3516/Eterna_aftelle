@@ -34,6 +34,7 @@ struct ParticleCoreFrameUniforms {
     var rotationDirection: Float
     var shapeRoundness: Float
     var surfaceReliefStrength: Float
+    var shapeSeed: Float
     var edgeDustAmount: Float
     var edgeFrayAmount: Float
     var surfaceDispersionStrength: Float
@@ -90,7 +91,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     var debugMetricsHandler: ((ParticleRenderMetrics) -> Void)?
 
     init?(device: MTLDevice, visualState: ParticleCoreVisualState = .idle) {
-        let launchSeed = UInt64.random(in: 1...UInt64.max)
+        let launchSeed: UInt64 = 0xA7F7E11E
         self.device = device
         self.model = ParticleCoreModel(seed: launchSeed)
         self.frameSeed = UInt32(truncatingIfNeeded: launchSeed ^ (launchSeed >> 32))
@@ -211,6 +212,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             rotationDirection: Float(tuning.rotationDirection),
             shapeRoundness: Float(tuning.shapeRoundness),
             surfaceReliefStrength: Float(tuning.surfaceReliefStrength),
+            shapeSeed: Float(tuning.shapeSeed),
             edgeDustAmount: Float(tuning.edgeDustAmount),
             edgeFrayAmount: Float(tuning.edgeFrayAmount),
             surfaceDispersionStrength: Float(tuning.surfaceDispersionStrength),
@@ -326,7 +328,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             interactionStrength: Double(smoothMouseInfluence)
         )
         debugMetricsHandler?(metrics)
-        print("[ParticleCore] snapshot fps=\(String(format: "%.1f", fps)) particleCount=\(model.particles.count) drawableSize=\(drawableSize) preferredFPS=\(view.preferredFramesPerSecond) visualState=\(visualState) previousVisualState=\(previousVisualState) stateElapsedTime=\(String(format: "%.2f", stateElapsedTime)) reason=\(lastTransitionReason) mouseInside=\(mouseActive) interactionStrength=\(String(format: "%.2f", smoothMouseInfluence)) rotationSpeed=\(String(format: "%.2f", tuning.rotationSpeed)) rotationDirection=\(String(format: "%.2f", tuning.rotationDirection))")
+        print("[ParticleCore] snapshot fps=\(String(format: "%.1f", fps)) particleCount=\(model.particles.count) drawableSize=\(drawableSize) preferredFPS=\(view.preferredFramesPerSecond) visualState=\(visualState) previousVisualState=\(previousVisualState) stateElapsedTime=\(String(format: "%.2f", stateElapsedTime)) reason=\(lastTransitionReason) mouseInside=\(mouseActive) interactionStrength=\(String(format: "%.2f", smoothMouseInfluence)) rotationSpeed=\(String(format: "%.2f", tuning.rotationSpeed)) rotationDirection=\(String(format: "%.2f", tuning.rotationDirection)) shapeRoundness=\(String(format: "%.2f", tuning.shapeRoundness)) surfaceRelief=\(String(format: "%.2f", tuning.surfaceReliefStrength)) shapeSeed=\(String(format: "%.2f", tuning.shapeSeed))")
     }
 
     private func scaleAroundOne(_ value: Double, range: Float) -> Float {

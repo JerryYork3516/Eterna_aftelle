@@ -31,6 +31,7 @@ struct ParticleCoreFrameUniforms {
     float rotationDirection;
     float shapeRoundness;
     float surfaceReliefStrength;
+    float shapeSeed;
     float edgeDustAmount;
     float edgeFrayAmount;
     float surfaceDispersionStrength;
@@ -273,16 +274,30 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
                                    uint vid [[vertex_id]]) {
     float4 particle = particles[vid];
     float2 sourceParticlePosition = particle.xy;
-    float shapeAmount = scaleAroundOne(uniforms.shapeRoundness, 1.00);
+    float depth = particle.w;
+    float shapeAmount = saturate(uniforms.shapeRoundness);
     float surfaceReliefAmount = scaleAroundOne(uniforms.surfaceReliefStrength, 1.00);
     float reliefPresence = saturate(surfaceReliefAmount);
     float2 sourceRadial = normalize(sourceParticlePosition + float2(0.001, 0.001));
-    float sourceEllipseRadius = length(float2(sourceParticlePosition.x / 0.62, sourceParticlePosition.y / 0.48));
-    float2 roundParticlePosition = sourceRadial * min(sourceEllipseRadius, 1.04) * 0.52;
-    float2 p = roundParticlePosition + (sourceParticlePosition - roundParticlePosition) * shapeAmount;
+    float sourceRadius = length(sourceParticlePosition) / 0.52;
+    float sourceAngle = atan2(sourceParticlePosition.y, sourceParticlePosition.x);
+    float shapePhase = uniforms.shapeSeed * 6.2831853;
+    float lobeA = sin(sourceAngle * 3.0 + depth * 2.6 + shapePhase * 0.7);
+    float lobeB = cos(sourceAngle * 5.0 - depth * 3.1 + shapePhase * 1.3);
+    float lobeC = sin(sourceAngle * 7.0 + depth * 4.4 - shapePhase * 0.5);
+    float membraneEdge = smoothstep(0.34, 0.92, sourceRadius);
+    float referenceFold = 1.0 + membraneEdge * (0.095 * lobeA + 0.055 * lobeB + 0.030 * lobeC);
+    float2 referenceScale = float2(1.10, 0.84);
+    float2 referenceSkew = float2(depth * 0.060, -depth * 0.020);
+    float2 referenceTangent = float2(-sourceRadial.y, sourceRadial.x)
+        * membraneEdge
+        * (0.026 * sin(sourceAngle * 4.0 + shapePhase) + 0.016 * cos(sourceAngle * 6.0 - shapePhase * 0.4));
+    float2 spherePosition = sourceRadial * min(sourceRadius, 1.0) * 0.52;
+    float2 referencePosition = (sourceRadial * min(sourceRadius, 1.05) * 0.52 * referenceFold + referenceTangent + referenceSkew * membraneEdge)
+        * referenceScale;
+    float2 p = spherePosition + (referencePosition - spherePosition) * shapeAmount;
     float2 baseParticlePosition = p;
     float ridge = saturate(particle.z * surfaceReliefAmount);
-    float depth = particle.w;
     float id = float(vid);
     float t = uniforms.time;
     float lengthP = length(p);
