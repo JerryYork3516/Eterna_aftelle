@@ -291,7 +291,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float4 particle = particles[vid];
     float2 sourceParticlePosition = particle.xy;
     float depth = particle.w;
-    float shapeAmount = scaleAroundOne(uniforms.shapeRoundness, 1.35);
+    float shapeRoundness = saturate(uniforms.shapeRoundness);
+    float shapeRoughness = pow(1.0 - shapeRoundness, 1.35);
+    float shapeAmount = scaleAroundOne(0.82, 1.35);
     float surfaceReliefAmount = scaleAroundOne(uniforms.surfaceReliefStrength, 2.25);
     float reliefPresence = saturate(surfaceReliefAmount);
     float2 sourceRadial = normalize(sourceParticlePosition + float2(0.001, 0.001));
@@ -318,6 +320,12 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 referencePosition = (sourceRadial * min(sourceRadius, 1.05) * 0.52 * referenceFold + referenceTangent + referenceSkew * membraneEdge)
         * referenceScale;
     float2 p = spherePosition + (referencePosition - spherePosition) * shapeAmount;
+    float silhouetteRoughness = smoothstep(0.40, 0.96, sourceRadius);
+    float surfaceRoughness = smoothstep(0.18, 0.88, sourceRadius);
+    float roundnessNoise = sin(sourceAngle * 13.0 + depth * 4.2 + shapePhase * 0.31) * 0.54
+        + cos(sourceAngle * 19.0 - depth * 5.4 + shapePhase * 0.17) * 0.32
+        + sin(sourceAngle * 29.0 + depth * 2.6 - shapePhase * 0.23) * 0.14;
+    p += sourceRadial * roundnessNoise * shapeRoughness * (0.002 + surfaceRoughness * 0.004 + silhouetteRoughness * 0.010);
     float2 baseParticlePosition = p;
     float ridge = saturate(particle.z * surfaceReliefAmount);
     float id = float(vid);

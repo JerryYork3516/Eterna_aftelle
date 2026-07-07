@@ -127,9 +127,9 @@
 "particleDebug.parameter.rotationDirection.caption" = "Selects the whole-body rotation orientation.";
 "particleDebug.parameter.rotationDirection.lowHint" = "Axis";
 "particleDebug.parameter.rotationDirection.highHint" = "Direction";
-"particleDebug.parameter.shapeRoundness.caption" = "Balances shell roundness against organic asymmetry.";
-"particleDebug.parameter.shapeRoundness.lowHint" = "Irregular";
-"particleDebug.parameter.shapeRoundness.highHint" = "Rounder";
+"particleDebug.parameter.shapeRoundness.caption" = "Controls surface roughness versus smoothness without changing the core body shape.";
+"particleDebug.parameter.shapeRoundness.lowHint" = "Rougher";
+"particleDebug.parameter.shapeRoundness.highHint" = "Smoother";
 "particleDebug.parameter.surfaceReliefStrength.caption" = "Controls local surface bumps and valleys.";
 "particleDebug.parameter.surfaceReliefStrength.lowHint" = "Smoother";
 "particleDebug.parameter.surfaceReliefStrength.highHint" = "More relief";

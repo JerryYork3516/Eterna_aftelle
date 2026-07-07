@@ -127,9 +127,9 @@
 "particleDebug.parameter.rotationDirection.caption" = "选择整体旋转方向。";
 "particleDebug.parameter.rotationDirection.lowHint" = "轴向";
 "particleDebug.parameter.rotationDirection.highHint" = "方向";
-"particleDebug.parameter.shapeRoundness.caption" = "控制壳体圆润度和有机不对称的平衡。";
-"particleDebug.parameter.shapeRoundness.lowHint" = "更不规则";
-"particleDebug.parameter.shapeRoundness.highHint" = "更圆润";
+"particleDebug.parameter.shapeRoundness.caption" = "控制壳体表面粗糙 / 平滑程度，不改变整体形体。";
+"particleDebug.parameter.shapeRoundness.lowHint" = "更粗糙";
+"particleDebug.parameter.shapeRoundness.highHint" = "更平滑";
 "particleDebug.parameter.surfaceReliefStrength.caption" = "控制局部表面凹凸起伏。";
 "particleDebug.parameter.surfaceReliefStrength.lowHint" = "更平滑";
 "particleDebug.parameter.surfaceReliefStrength.highHint" = "起伏更强";
