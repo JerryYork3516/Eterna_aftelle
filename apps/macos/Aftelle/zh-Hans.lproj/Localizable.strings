@@ -82,6 +82,7 @@
 "particleDebug.parameter.flowLightStrength" = "流动明暗";
 "particleDebug.parameter.spineRadius" = "背脊半径";
 "particleDebug.parameter.spineSeed" = "背脊 Seed";
+"particleDebug.parameter.spineFlowBinding" = "背脊流动绑定";
 "particleDebug.parameter.spineLineStrength" = "背脊强度";
 "particleDebug.parameter.spineLineHighlight" = "背脊高光";
 "particleDebug.parameter.spineLineContrast" = "背脊对比";
@@ -93,6 +94,7 @@
 "particleDebug.parameter.edgeFrayAmount" = "边缘毛边";
 "particleDebug.parameter.surfaceFlowDirection" = "表面流动方向";
 "particleDebug.parameter.surfaceFlowSeed" = "表面流动 Seed";
+"particleDebug.parameter.surfaceFlowLightSeed" = "流动明暗 Seed";
 "particleDebug.parameter.surfaceLightStrength" = "表面光强";
 "particleDebug.parameter.resetOne" = "重置";
 "particleDebug.parameter.defaultBadge" = "默认";
@@ -180,6 +182,9 @@
 "particleDebug.parameter.spineSeed.caption" = "切换背脊纹理布局和主线位置。";
 "particleDebug.parameter.spineSeed.lowHint" = "Seed 0";
 "particleDebug.parameter.spineSeed.highHint" = "Seed 1";
+"particleDebug.parameter.spineFlowBinding.caption" = "控制背脊跟随表面明暗流动的程度。";
+"particleDebug.parameter.spineFlowBinding.lowHint" = "更稳定";
+"particleDebug.parameter.spineFlowBinding.highHint" = "更随流";
 "particleDebug.parameter.spineLineStrength.caption" = "控制背脊整体存在感。";
 "particleDebug.parameter.spineLineStrength.lowHint" = "更弱";
 "particleDebug.parameter.spineLineStrength.highHint" = "更明显";
@@ -213,6 +218,9 @@
 "particleDebug.parameter.surfaceFlowSeed.caption" = "切换表面流动的纹理、聚散和波纹形态。";
 "particleDebug.parameter.surfaceFlowSeed.lowHint" = "Seed 0";
 "particleDebug.parameter.surfaceFlowSeed.highHint" = "Seed 1";
+"particleDebug.parameter.surfaceFlowLightSeed.caption" = "切换表面流动的亮暗分布和光带纹理。";
+"particleDebug.parameter.surfaceFlowLightSeed.lowHint" = "Seed 0";
+"particleDebug.parameter.surfaceFlowLightSeed.highHint" = "Seed 1";
 "particleDebug.parameter.surfaceLightStrength.caption" = "控制壳面局部表面光贡献。";
 "particleDebug.parameter.surfaceLightStrength.lowHint" = "表面更暗";
 "particleDebug.parameter.surfaceLightStrength.highHint" = "表面更亮";

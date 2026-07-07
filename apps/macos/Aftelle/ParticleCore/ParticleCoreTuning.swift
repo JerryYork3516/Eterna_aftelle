@@ -29,6 +29,7 @@ struct ParticleCoreTuning: Codable, Equatable {
     var flowLightStrength: Double
     var spineRadius: Double
     var spineSeed: Double
+    var spineFlowBinding: Double
     var spineLineStrength: Double
     var spineLineWidth: Double
     var spineLineDensity: Double
@@ -40,6 +41,7 @@ struct ParticleCoreTuning: Codable, Equatable {
     var edgeFrayAmount: Double
     var surfaceFlowDirection: Double
     var surfaceFlowSeed: Double
+    var surfaceFlowLightSeed: Double
     var surfaceLightStrength: Double
 
     init(
@@ -70,6 +72,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         flowLightStrength: Double,
         spineRadius: Double,
         spineSeed: Double,
+        spineFlowBinding: Double,
         spineLineStrength: Double,
         spineLineWidth: Double,
         spineLineDensity: Double,
@@ -81,6 +84,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         edgeFrayAmount: Double,
         surfaceFlowDirection: Double,
         surfaceFlowSeed: Double,
+        surfaceFlowLightSeed: Double,
         surfaceLightStrength: Double
     ) {
         self.globalScale = globalScale
@@ -110,6 +114,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.flowLightStrength = flowLightStrength
         self.spineRadius = spineRadius
         self.spineSeed = spineSeed
+        self.spineFlowBinding = spineFlowBinding
         self.spineLineStrength = spineLineStrength
         self.spineLineWidth = spineLineWidth
         self.spineLineDensity = spineLineDensity
@@ -121,6 +126,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.edgeFrayAmount = edgeFrayAmount
         self.surfaceFlowDirection = surfaceFlowDirection
         self.surfaceFlowSeed = surfaceFlowSeed
+        self.surfaceFlowLightSeed = surfaceFlowLightSeed
         self.surfaceLightStrength = surfaceLightStrength
     }
 
@@ -152,6 +158,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         flowLightStrength: 0.90,
         spineRadius: 0.55,
         spineSeed: 0.50,
+        spineFlowBinding: 0.40,
         spineLineStrength: 0.72,
         spineLineWidth: 0.54,
         spineLineDensity: 0.76,
@@ -163,6 +170,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         edgeFrayAmount: 0.34,
         surfaceFlowDirection: 1.0,
         surfaceFlowSeed: 0.50,
+        surfaceFlowLightSeed: 0.50,
         surfaceLightStrength: 0.92
     )
 
@@ -194,6 +202,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         flowLightStrength: 0.86,
         spineRadius: 0.55,
         spineSeed: 0.50,
+        spineFlowBinding: 0.40,
         spineLineStrength: 0.58,
         spineLineWidth: 0.50,
         spineLineDensity: 0.62,
@@ -205,6 +214,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         edgeFrayAmount: 0.34,
         surfaceFlowDirection: 1.0,
         surfaceFlowSeed: 0.50,
+        surfaceFlowLightSeed: 0.50,
         surfaceLightStrength: 0.82
     )
 
@@ -238,6 +248,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         case flowLightStrength
         case spineRadius
         case spineSeed
+        case spineFlowBinding
         case spineLineStrength
         case spineLineWidth
         case spineLineDensity
@@ -249,6 +260,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         case edgeFrayAmount
         case surfaceFlowDirection
         case surfaceFlowSeed
+        case surfaceFlowLightSeed
         case surfaceLightStrength
     }
 
@@ -289,6 +301,7 @@ struct ParticleCoreTuning: Codable, Equatable {
             flowLightStrength: try values.decodeIfPresent(Double.self, forKey: .flowLightStrength) ?? Self.systemDefault.flowLightStrength,
             spineRadius: try values.decodeIfPresent(Double.self, forKey: .spineRadius) ?? Self.systemDefault.spineRadius,
             spineSeed: try values.decodeIfPresent(Double.self, forKey: .spineSeed) ?? Self.systemDefault.spineSeed,
+            spineFlowBinding: try values.decodeIfPresent(Double.self, forKey: .spineFlowBinding) ?? Self.systemDefault.spineFlowBinding,
             spineLineStrength: try values.decodeIfPresent(Double.self, forKey: .spineLineStrength) ?? Self.systemDefault.spineLineStrength,
             spineLineWidth: try values.decodeIfPresent(Double.self, forKey: .spineLineWidth) ?? Self.systemDefault.spineLineWidth,
             spineLineDensity: try values.decodeIfPresent(Double.self, forKey: .spineLineDensity) ?? Self.systemDefault.spineLineDensity,
@@ -300,6 +313,7 @@ struct ParticleCoreTuning: Codable, Equatable {
             edgeFrayAmount: try values.decodeIfPresent(Double.self, forKey: .edgeFrayAmount) ?? Self.systemDefault.edgeFrayAmount,
             surfaceFlowDirection: try values.decodeIfPresent(Double.self, forKey: .surfaceFlowDirection) ?? Self.systemDefault.surfaceFlowDirection,
             surfaceFlowSeed: try values.decodeIfPresent(Double.self, forKey: .surfaceFlowSeed) ?? Self.systemDefault.surfaceFlowSeed,
+            surfaceFlowLightSeed: try values.decodeIfPresent(Double.self, forKey: .surfaceFlowLightSeed) ?? Self.systemDefault.surfaceFlowLightSeed,
             surfaceLightStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceLightStrength) ?? Self.systemDefault.surfaceLightStrength
         )
     }
@@ -362,6 +376,7 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case flowLightStrength
     case spineRadius
     case spineSeed
+    case spineFlowBinding
     case spineLineStrength
     case spineLineWidth
     case spineLineDensity
@@ -373,6 +388,7 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case edgeFrayAmount
     case surfaceFlowDirection
     case surfaceFlowSeed
+    case surfaceFlowLightSeed
     case surfaceLightStrength
 
     var id: String { rawValue }
@@ -401,14 +417,14 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return 0.05
         case .spineSeed:
             return 0.05
-        case .surfaceFlowSeed:
+        case .surfaceFlowSeed, .surfaceFlowLightSeed:
             return 0.05
         case .globalScale, .pointSizeScale, .brightness, .alphaScale, .ridgeBrightness,
              .breathingSpeed, .flowSpeed, .rotationSpeed, .surfaceLightStrength,
              .shapeRoundness, .surfaceReliefStrength, .surfaceReliefDensity, .membraneAspect, .membraneScale,
              .membraneMist, .membraneGrain, .membraneLineStrength, .membraneLineWidth,
              .membraneStability, .membraneFullness, .sheetLightStrength, .flowLightStrength,
-             .spineRadius, .spineLineStrength, .spineLineWidth, .spineLineDensity, .spineLineHighlight,
+             .spineRadius, .spineFlowBinding, .spineLineStrength, .spineLineWidth, .spineLineDensity, .spineLineHighlight,
              .spineLineContrast, .spineLineSharpness, .edgeScatterDistance, .surfaceFlowDirection:
             return 0.01
         case .breathingAmount, .flowStrength, .edgeDustAmount, .edgeFrayAmount:
@@ -476,6 +492,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.spineRadius
         case .spineSeed:
             return \.spineSeed
+        case .spineFlowBinding:
+            return \.spineFlowBinding
         case .spineLineStrength:
             return \.spineLineStrength
         case .spineLineWidth:
@@ -498,6 +516,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.surfaceFlowDirection
         case .surfaceFlowSeed:
             return \.surfaceFlowSeed
+        case .surfaceFlowLightSeed:
+            return \.surfaceFlowLightSeed
         case .surfaceLightStrength:
             return \.surfaceLightStrength
         }

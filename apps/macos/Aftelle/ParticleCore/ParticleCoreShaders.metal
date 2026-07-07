@@ -45,6 +45,7 @@ struct ParticleCoreFrameUniforms {
     float flowLightStrength;
     float spineRadius;
     float spineSeed;
+    float spineFlowBinding;
     float spineLineStrength;
     float spineLineWidth;
     float spineLineDensity;
@@ -56,6 +57,7 @@ struct ParticleCoreFrameUniforms {
     float edgeFrayAmount;
     float surfaceFlowDirection;
     float surfaceFlowSeed;
+    float surfaceFlowLightSeed;
     float surfaceLightStrength;
     float4 baseColor;
     float4 ridgeColor;
@@ -367,6 +369,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneSpineHighlight = scaleAroundOne(uniforms.spineLineHighlight, 2.00);
     float tuneSpineContrast = scaleAroundOne(uniforms.spineLineContrast, 1.50);
     float tuneSpineSharpness = scaleAroundOne(uniforms.spineLineSharpness, 1.50);
+    float tuneSpineFlowBinding = saturate(uniforms.spineFlowBinding);
     float edgeScatterControl = saturate(uniforms.edgeScatterDistance);
     float edgeScatterBase = mix(0.003, 0.024, min(edgeScatterControl, 0.34) / 0.34);
     float edgeScatterReach = smoothstep(0.30, 1.0, edgeScatterControl);
@@ -376,6 +379,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneEdgeDust = edgeDustControl * (0.25 + edgeDustControl * 3.95);
     float tuneEdgeFray = edgeFrayControl * (0.25 + edgeFrayControl * 3.95);
     float surfaceFlowPhase = saturate(uniforms.surfaceFlowSeed) * 6.2831853;
+    float surfaceLightPhase = saturate(uniforms.surfaceFlowLightSeed) * 6.2831853;
     float surfaceDirectionAngle = mix(3.1415927, 0.0, saturate(uniforms.surfaceFlowDirection));
     float2 tuneSurfaceFlowAxis = float2(cos(surfaceDirectionAngle), sin(surfaceDirectionAngle));
     float tuneSurfaceLight = scaleAroundOne(uniforms.surfaceLightStrength, 1.50);
@@ -796,7 +800,18 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float edgeSpine = (spineBandA * 0.58 + spineBandB * 0.42) * ridgePick * spineSurfaceGate;
     float spineRaw = saturate(max(max(edgeSpine, frontSpine), referenceRidge));
     float structuralSpine = saturate(pow(spineRaw, max(0.34, 1.0 + (tuneSpineSharpness - 1.0) * 0.50)) * tuneSpineStrength);
-    float ridgeFlow = structuralSpine * smoothstep(0.34, 0.88, 0.5 + 0.5 * sin(animatedTravel * 7.4 + flowedBody.z * 3.8 - visualTime * 0.58 + phaseB * 0.18));
+    float surfaceLightTravel = animatedTravel * (2.85 + 0.42 * sin(surfaceLightPhase))
+        - animatedCross * (1.42 + 0.34 * cos(surfaceLightPhase * 0.7));
+    float surfaceLightCross = animatedCross * (3.22 + 0.36 * cos(surfaceLightPhase))
+        + animatedTravel * (1.08 + 0.26 * sin(surfaceLightPhase * 0.5));
+    float surfaceFlowLightA = smoothstep(0.50, 0.86, 0.5 + 0.5 * sin(surfaceLightTravel + flowedBody.z * 2.7 - visualTime * 0.48 + morph + surfaceLightPhase));
+    float surfaceFlowLightB = smoothstep(0.54, 0.90, 0.5 + 0.5 * cos(surfaceLightCross - flowedBody.z * 2.2 + visualTime * 0.34 + phaseB * 0.10 - surfaceLightPhase * 0.62));
+    float surfaceFlowShadowA = smoothstep(0.50, 0.86, 0.5 + 0.5 * sin(animatedTravel * 2.10 + animatedCross * 2.45 + flowedBody.z * 2.1 - visualTime * 0.38 + phaseB * 0.06 + surfaceLightPhase * 0.44));
+    float surfaceFlowShadowB = smoothstep(0.56, 0.90, 0.5 + 0.5 * cos(animatedCross * 2.35 - animatedTravel * 1.70 + flowedBody.z * 2.6 - visualTime * 0.30 + morph * 0.60 - surfaceLightPhase * 0.52));
+    float surfaceLightFlowPattern = saturate(surfaceFlowLightA * 0.46 + surfaceFlowLightB * 0.36 - surfaceFlowShadowA * 0.18 - surfaceFlowShadowB * 0.14 + 0.22);
+    float spineSelfFlow = smoothstep(0.34, 0.88, 0.5 + 0.5 * sin(animatedTravel * 7.4 + flowedBody.z * 3.8 - visualTime * 0.58 + phaseB * 0.18));
+    float boundSpineFlow = saturate(spineSelfFlow * 0.58 + surfaceLightFlowPattern * 0.42);
+    float ridgeFlow = structuralSpine * mix(spineSelfFlow, boundSpineFlow, tuneSpineFlowBinding);
     float densityFlow = smoothstep(0.42, 0.91, 0.5 + 0.5 * sin(animatedTravel * 7.1 - animatedCross * 2.5 + flowedBody.z * 3.6 - visualTime * 0.78 + globalWave));
     float densitySheet = 0.5 + 0.5 * cos(animatedCross * 4.2 - animatedTravel * 1.1 + flowedBody.z * 3.2 + visualTime * 0.48 + globalWave * 0.7);
     float dynamicDensity = saturate(densityFlow * 0.14
@@ -845,8 +860,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float visibleDenseSection = denseSection;
     float visibleSparseCavity = sparseCavity;
     float visibleIonCluster = ionCluster;
-    float visibleStructuralSpine = structuralSpine;
-    float visibleRidgeFlow = ridgeFlow;
+    float spineFlowLightGain = mix(1.0, 0.84 + surfaceLightFlowPattern * 0.32, tuneSpineFlowBinding);
+    float visibleStructuralSpine = saturate(structuralSpine * spineFlowLightGain);
+    float visibleRidgeFlow = saturate(ridgeFlow * mix(1.0, 0.90 + surfaceLightFlowPattern * 0.22, tuneSpineFlowBinding));
     float cavityGuard = smoothstep(0.18, 0.50, stableScreenRadius);
     float rearVolumeLift = (1.0 - directionalFrontLight) * cavityGuard * tuneMembraneFullness;
     float shellThicknessLift = (0.035 + shellLayer * 0.055 + midBand * 0.050) * cavityGuard * tuneMembraneFullness;
@@ -914,10 +930,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float3 fillDirection = normalize(float3(-turnedSide * 0.42 + turnedAxis * 0.34, 0.50));
     float rollingLight = smoothstep(-0.24, 0.66, dot(surfaceNormal, keyDirection));
     float fillLight = smoothstep(-0.18, 0.62, dot(surfaceNormal, fillDirection));
-    float localLightA = smoothstep(0.50, 0.86, 0.5 + 0.5 * sin(animatedTravel * 3.25 - animatedCross * 1.55 + flowedBody.z * 2.7 - visualTime * 0.48 + morph));
-    float localLightB = smoothstep(0.54, 0.90, 0.5 + 0.5 * cos(animatedCross * 3.55 + animatedTravel * 1.15 - flowedBody.z * 2.2 + visualTime * 0.34 + phaseB * 0.10));
-    float localShadowA = smoothstep(0.50, 0.86, 0.5 + 0.5 * sin(animatedTravel * 2.10 + animatedCross * 2.45 + flowedBody.z * 2.1 - visualTime * 0.38 + phaseB * 0.06));
-    float localShadowB = smoothstep(0.56, 0.90, 0.5 + 0.5 * cos(animatedCross * 2.35 - animatedTravel * 1.70 + flowedBody.z * 2.6 - visualTime * 0.30 + morph * 0.60));
+    float localLightA = surfaceFlowLightA;
+    float localLightB = surfaceFlowLightB;
+    float localShadowA = surfaceFlowShadowA;
+    float localShadowB = surfaceFlowShadowB;
     float sheetLight = saturate(rollingLight * 0.36 + fillLight * 0.16 + localLightA * 0.24 + localLightB * 0.18 - localShadowA * 0.20 - localShadowB * 0.18);
     float flowSheetLight = saturate(normalSurfaceFlow * 0.44 + turnWakeEnergy * 0.40 + visibleRidgeFlow * 0.24 + visibleCloudDensity * 0.12);
     float surfaceLight = saturate(0.18

@@ -48,6 +48,7 @@ struct ParticleCoreFrameUniforms {
     var flowLightStrength: Float
     var spineRadius: Float
     var spineSeed: Float
+    var spineFlowBinding: Float
     var spineLineStrength: Float
     var spineLineWidth: Float
     var spineLineDensity: Float
@@ -59,6 +60,7 @@ struct ParticleCoreFrameUniforms {
     var edgeFrayAmount: Float
     var surfaceFlowDirection: Float
     var surfaceFlowSeed: Float
+    var surfaceFlowLightSeed: Float
     var surfaceLightStrength: Float
     var baseColor: SIMD4<Float>
     var ridgeColor: SIMD4<Float>
@@ -247,6 +249,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             flowLightStrength: Float(tuning.flowLightStrength),
             spineRadius: Float(tuning.spineRadius),
             spineSeed: Float(tuning.spineSeed),
+            spineFlowBinding: Float(tuning.spineFlowBinding),
             spineLineStrength: Float(tuning.spineLineStrength),
             spineLineWidth: Float(tuning.spineLineWidth),
             spineLineDensity: Float(tuning.spineLineDensity),
@@ -258,6 +261,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             edgeFrayAmount: Float(tuning.edgeFrayAmount),
             surfaceFlowDirection: Float(tuning.surfaceFlowDirection),
             surfaceFlowSeed: Float(tuning.surfaceFlowSeed),
+            surfaceFlowLightSeed: Float(tuning.surfaceFlowLightSeed),
             surfaceLightStrength: Float(tuning.surfaceLightStrength),
             baseColor: colorProfile.baseVector,
             ridgeColor: colorProfile.ridgeVector,

@@ -82,6 +82,7 @@
 "particleDebug.parameter.flowLightStrength" = "Flow Light Contrast";
 "particleDebug.parameter.spineRadius" = "Spine Radius";
 "particleDebug.parameter.spineSeed" = "Spine Seed";
+"particleDebug.parameter.spineFlowBinding" = "Spine Flow Binding";
 "particleDebug.parameter.spineLineStrength" = "Spine Strength";
 "particleDebug.parameter.spineLineHighlight" = "Spine Highlight";
 "particleDebug.parameter.spineLineContrast" = "Spine Contrast";
@@ -93,6 +94,7 @@
 "particleDebug.parameter.edgeFrayAmount" = "Edge Fray";
 "particleDebug.parameter.surfaceFlowDirection" = "Surface Flow Direction";
 "particleDebug.parameter.surfaceFlowSeed" = "Surface Flow Seed";
+"particleDebug.parameter.surfaceFlowLightSeed" = "Surface Flow Light Seed";
 "particleDebug.parameter.surfaceLightStrength" = "Surface Light";
 "particleDebug.parameter.resetOne" = "Reset";
 "particleDebug.parameter.defaultBadge" = "Default";
@@ -180,6 +182,9 @@
 "particleDebug.parameter.spineSeed.caption" = "Changes the spine pattern layout and main ridge placement.";
 "particleDebug.parameter.spineSeed.lowHint" = "Seed 0";
 "particleDebug.parameter.spineSeed.highHint" = "Seed 1";
+"particleDebug.parameter.spineFlowBinding.caption" = "Controls how strongly the spine follows the surface light flow.";
+"particleDebug.parameter.spineFlowBinding.lowHint" = "More stable";
+"particleDebug.parameter.spineFlowBinding.highHint" = "More flow-bound";
 "particleDebug.parameter.spineLineStrength.caption" = "Controls the overall presence of the spine structure.";
 "particleDebug.parameter.spineLineStrength.lowHint" = "Weaker";
 "particleDebug.parameter.spineLineStrength.highHint" = "Stronger";
@@ -213,6 +218,9 @@
 "particleDebug.parameter.surfaceFlowSeed.caption" = "Changes the surface flow pattern, clustering, and wave layout.";
 "particleDebug.parameter.surfaceFlowSeed.lowHint" = "Seed 0";
 "particleDebug.parameter.surfaceFlowSeed.highHint" = "Seed 1";
+"particleDebug.parameter.surfaceFlowLightSeed.caption" = "Changes the light and shadow pattern of the surface flow.";
+"particleDebug.parameter.surfaceFlowLightSeed.lowHint" = "Seed 0";
+"particleDebug.parameter.surfaceFlowLightSeed.highHint" = "Seed 1";
 "particleDebug.parameter.surfaceLightStrength.caption" = "Controls localized shell surface light contribution.";
 "particleDebug.parameter.surfaceLightStrength.lowHint" = "Dim surface";
 "particleDebug.parameter.surfaceLightStrength.highHint" = "Lit surface";
