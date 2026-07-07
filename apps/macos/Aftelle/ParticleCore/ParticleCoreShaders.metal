@@ -433,8 +433,13 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float localMorph = morphField(angle, depth, fieldTime * 0.72, float(uniforms.seed) * 0.0017 + particleSeed * 0.41) * surfaceReliefAmount;
     float morph = globalWave * 0.74 + localMorph * 0.26;
     float surfaceMotion = smoothstep(0.24, 0.58, lengthP);
-    float reliefRadiusGate = smoothstep(0.30, 0.78, lengthP) * (0.44 + edge * 0.56) * (0.58 + shellLayer * 0.42);
-    float reliefRadiusOffset = morph * surfaceReliefRadiusInfluence * reliefRadiusGate * (0.005 + edge * 0.011 + surfaceMotion * 0.006);
+    float normalizedRelief = localMorph / max(surfaceReliefAmount, 0.001);
+    float reliefDetail = sin(angle * 9.4 + depth * 3.1 + phaseB * 0.18 - fieldTime * 0.16) * 0.46
+        + cos(angle * 13.2 - depth * 2.7 + localPhase * 0.14 + fieldTime * 0.11) * 0.34
+        + sin(dot(p, globalAxis) * 9.8 + dot(p, globalSide) * 4.6 + seedB * 6.2831853) * 0.20;
+    float reliefSignal = clamp(normalizedRelief * 0.34 + reliefDetail * 0.66, -1.0, 1.0);
+    float reliefRadiusGate = smoothstep(0.34, 0.72, lengthP) * (0.42 + edge * 0.36) * (0.54 + shellLayer * 0.34);
+    float reliefRadiusOffset = reliefSignal * surfaceReliefValue * surfaceReliefRadiusInfluence * reliefRadiusGate * (0.0020 + edge * 0.0028 + surfaceMotion * 0.0012);
     float edgeMorph = edge * edge * (0.022 + 0.056 * edge + 0.012 * particleSeed) * morph * edgeSettle * speakingEdgeLift;
     float innerMorph = (interior * 0.20 * centerMotionGate + midBand * 0.88 * stateFocus) * (0.0100 + 0.0170 * seedB)
         * (globalWave * 0.78 + localMorph * 0.22);
