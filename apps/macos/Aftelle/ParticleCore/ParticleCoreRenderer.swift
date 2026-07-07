@@ -46,6 +46,8 @@ struct ParticleCoreFrameUniforms {
     var membraneFullness: Float
     var sheetLightStrength: Float
     var flowLightStrength: Float
+    var spineRadius: Float
+    var spineSeed: Float
     var spineLineStrength: Float
     var spineLineWidth: Float
     var spineLineDensity: Float
@@ -242,6 +244,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             membraneFullness: Float(tuning.membraneFullness),
             sheetLightStrength: Float(tuning.sheetLightStrength),
             flowLightStrength: Float(tuning.flowLightStrength),
+            spineRadius: Float(tuning.spineRadius),
+            spineSeed: Float(tuning.spineSeed),
             spineLineStrength: Float(tuning.spineLineStrength),
             spineLineWidth: Float(tuning.spineLineWidth),
             spineLineDensity: Float(tuning.spineLineDensity),

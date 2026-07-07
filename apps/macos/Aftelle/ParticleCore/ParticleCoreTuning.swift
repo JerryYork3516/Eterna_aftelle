@@ -27,6 +27,8 @@ struct ParticleCoreTuning: Codable, Equatable {
     var membraneFullness: Double
     var sheetLightStrength: Double
     var flowLightStrength: Double
+    var spineRadius: Double
+    var spineSeed: Double
     var spineLineStrength: Double
     var spineLineWidth: Double
     var spineLineDensity: Double
@@ -65,6 +67,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         membraneFullness: Double,
         sheetLightStrength: Double,
         flowLightStrength: Double,
+        spineRadius: Double,
+        spineSeed: Double,
         spineLineStrength: Double,
         spineLineWidth: Double,
         spineLineDensity: Double,
@@ -102,6 +106,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.membraneFullness = membraneFullness
         self.sheetLightStrength = sheetLightStrength
         self.flowLightStrength = flowLightStrength
+        self.spineRadius = spineRadius
+        self.spineSeed = spineSeed
         self.spineLineStrength = spineLineStrength
         self.spineLineWidth = spineLineWidth
         self.spineLineDensity = spineLineDensity
@@ -141,6 +147,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         membraneFullness: 0.82,
         sheetLightStrength: 0.94,
         flowLightStrength: 0.90,
+        spineRadius: 0.55,
+        spineSeed: 0.50,
         spineLineStrength: 0.72,
         spineLineWidth: 0.54,
         spineLineDensity: 0.76,
@@ -180,6 +188,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         membraneFullness: 0.82,
         sheetLightStrength: 0.82,
         flowLightStrength: 0.86,
+        spineRadius: 0.55,
+        spineSeed: 0.50,
         spineLineStrength: 0.58,
         spineLineWidth: 0.50,
         spineLineDensity: 0.62,
@@ -221,6 +231,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         case membraneFullness
         case sheetLightStrength
         case flowLightStrength
+        case spineRadius
+        case spineSeed
         case spineLineStrength
         case spineLineWidth
         case spineLineDensity
@@ -269,6 +281,8 @@ struct ParticleCoreTuning: Codable, Equatable {
             membraneFullness: try values.decodeIfPresent(Double.self, forKey: .membraneFullness) ?? Self.systemDefault.membraneFullness,
             sheetLightStrength: try values.decodeIfPresent(Double.self, forKey: .sheetLightStrength) ?? Self.systemDefault.sheetLightStrength,
             flowLightStrength: try values.decodeIfPresent(Double.self, forKey: .flowLightStrength) ?? Self.systemDefault.flowLightStrength,
+            spineRadius: try values.decodeIfPresent(Double.self, forKey: .spineRadius) ?? Self.systemDefault.spineRadius,
+            spineSeed: try values.decodeIfPresent(Double.self, forKey: .spineSeed) ?? Self.systemDefault.spineSeed,
             spineLineStrength: try values.decodeIfPresent(Double.self, forKey: .spineLineStrength) ?? Self.systemDefault.spineLineStrength,
             spineLineWidth: try values.decodeIfPresent(Double.self, forKey: .spineLineWidth) ?? Self.systemDefault.spineLineWidth,
             spineLineDensity: try values.decodeIfPresent(Double.self, forKey: .spineLineDensity) ?? Self.systemDefault.spineLineDensity,
@@ -339,6 +353,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case membraneFullness
     case sheetLightStrength
     case flowLightStrength
+    case spineRadius
+    case spineSeed
     case spineLineStrength
     case spineLineWidth
     case spineLineDensity
@@ -375,12 +391,14 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return 1.0 / 3.0
         case .shapeSeed:
             return 0.05
+        case .spineSeed:
+            return 0.05
         case .globalScale, .pointSizeScale, .brightness, .alphaScale, .ridgeBrightness,
              .breathingSpeed, .flowSpeed, .rotationSpeed, .surfaceLightStrength,
              .shapeRoundness, .surfaceReliefStrength, .surfaceReliefDensity, .membraneAspect, .membraneScale,
              .membraneMist, .membraneGrain, .membraneLineStrength, .membraneLineWidth,
              .membraneStability, .membraneFullness, .sheetLightStrength, .flowLightStrength,
-             .spineLineStrength, .spineLineWidth, .spineLineDensity, .spineLineHighlight,
+             .spineRadius, .spineLineStrength, .spineLineWidth, .spineLineDensity, .spineLineHighlight,
              .spineLineContrast, .spineLineSharpness, .edgeScatterDistance:
             return 0.01
         case .breathingAmount, .flowStrength, .edgeDustAmount, .edgeFrayAmount, .surfaceDispersionStrength:
@@ -444,6 +462,10 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.sheetLightStrength
         case .flowLightStrength:
             return \.flowLightStrength
+        case .spineRadius:
+            return \.spineRadius
+        case .spineSeed:
+            return \.spineSeed
         case .spineLineStrength:
             return \.spineLineStrength
         case .spineLineWidth:
