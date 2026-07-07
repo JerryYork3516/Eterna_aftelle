@@ -270,6 +270,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
                                    uint vid [[vertex_id]]) {
     float4 particle = particles[vid];
     float2 p = particle.xy;
+    float2 baseParticlePosition = p;
     float ridge = saturate(particle.z);
     float depth = particle.w;
     float id = float(vid);
@@ -386,18 +387,25 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * sin(dot(p, globalAxis) * 3.8 + dot(p, globalSide) * 2.6 - fieldTime * 0.74 + localPhase);
     p += (globalAxis * centerFollow + globalSide * centerFollow * 0.45) * (0.006 + midBand * 0.014);
 
-    float rotationTime = fieldTime * tuneRotationSpeed;
-    float rotationPhaseTime = rotationTime + tuneRotationPhase;
+    float rotationTime = t * (0.28 + tuneRotationSpeed * 0.72);
+    float postureTime = fieldTime * 0.24;
+    float rotationPhaseTime = postureTime + tuneRotationPhase;
     float turnAngle = globalTurnAngle(rotationPhaseTime);
     float turnChangePulse = globalTurnChangePulse(rotationPhaseTime);
-    float wholeSpinSign = dot(tuneRotationDirection, float2(1.0, 1.0)) >= 0.0 ? 1.0 : -1.0;
-    float directedWholeSpin = rotationTime * 0.34 * wholeSpinSign + tuneRotationPhase;
-    float3 bodyAngles = float3(
-        sin(rotationPhaseTime * 0.31 + 1.1) * 0.30 + sin(rotationPhaseTime * 0.14 + 2.2) * 0.12 + turnChangePulse * 0.08,
-        turnAngle * 0.72 + sin(rotationPhaseTime * 0.24 + 0.6) * 0.18,
-        sin(rotationPhaseTime * 0.19 + 0.8) * 0.16 + sin(rotationPhaseTime * 0.11 + 2.4) * 0.08 - turnChangePulse * 0.06
+    float spinAngle = rotationTime + tuneRotationPhase;
+    float3 selfSpinAngles = float3(
+        -tuneRotationDirection.y * spinAngle,
+        tuneRotationDirection.x * spinAngle,
+        0.0
     );
-    float bodyDepth = depth * 0.46 + globalWave * (0.018 + midBand * 0.052 + edge * 0.050) + centerFollow * 0.012;
+    float3 bodyAngles = float3(
+        sin(rotationPhaseTime * 0.31 + 1.1) * 0.12 + sin(rotationPhaseTime * 0.14 + 2.2) * 0.05 + turnChangePulse * 0.03,
+        turnAngle * 0.22 + sin(rotationPhaseTime * 0.24 + 0.6) * 0.07,
+        sin(rotationPhaseTime * 0.19 + 0.8) * 0.07 + sin(rotationPhaseTime * 0.11 + 2.4) * 0.03 - turnChangePulse * 0.02
+    );
+    float3 stableLightNormal = normalize(rotateBody(rotateBody(float3(baseParticlePosition * 0.92, depth * 1.24), selfSpinAngles), bodyAngles) + float3(0.001, 0.001, 0.001));
+    float directionalFrontLight = smoothstep(-0.24, 0.70, stableLightNormal.z);
+    float bodyDepth = depth * 0.60 + globalWave * (0.018 + midBand * 0.052 + edge * 0.050) + centerFollow * 0.012;
     float3 body = float3(p.x, p.y, bodyDepth);
     float activeInterior = interior * centerMotionGate;
     float3 materialFlow = materialFlowField(body, fieldTime, particleSeed, seedB, edge, activeInterior, midBand, globalWave, globalAxis, globalSide);
@@ -409,18 +417,20 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + cloudFlow * (1.68 + activeInterior * 0.20 + midBand * 0.48);
     body += materialFlow * (0.62 + activeInterior * 0.08 + midBand * 0.28)
         + cloudFlow * (1.22 + activeInterior * 0.14 + midBand * 0.50);
+    materialBody = rotateBody(materialBody, selfSpinAngles);
+    body = rotateBody(body, selfSpinAngles);
     body = rotateBody(body, bodyAngles);
     float perspective = clamp(1.0 / (1.0 - body.z * 0.30), 0.84, 1.20);
     p = body.xy * perspective;
     float wholeTurn = globalTurnAngle(rotationPhaseTime * 0.36 + 6.4) * 0.22
         + sin(rotationPhaseTime * 0.19 + 1.7) * 0.08;
-    p = rotate2(p, wholeTurn + directedWholeSpin);
+    p = rotate2(p, wholeTurn);
     float2 rotationOrbitAxis = rotate2(tuneRotationDirection, rotationTime * 0.22);
     float rotationOrbitGate = smoothstep(0.10, 0.72, lengthP) * (1.0 - smoothstep(0.94, 1.20, lengthP));
     p += rotationOrbitAxis * rotationOrbitGate * tuneRotationDelta * tuneRotationSpeed * 0.010;
     float2 stableScreenPosition = p;
     float stableRadius = length(stableScreenPosition);
-    float3 axis3 = rotateBody(float3(globalAxis.x, globalAxis.y, 0.0), bodyAngles);
+    float3 axis3 = rotateBody(rotateBody(float3(globalAxis.x, globalAxis.y, 0.0), selfSpinAngles), bodyAngles);
     float2 turnedAxis = normalize(axis3.xy + float2(0.001, 0.001));
     float2 turnedSide = float2(-turnedAxis.y, turnedAxis.x);
     float2 surfaceFlowAxis = globalDirection(fieldTime * 0.91 + 5.8);
@@ -585,22 +595,23 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float mouseSwirl = clamp(dot(uniforms.mouseVelocity, mouseTangent) * 0.18, -1.0, 1.0);
     p += mouseRadial * radialMouseField * 0.035;
     p += mouseTangent * swirlMouseField * mouseSwirl * 0.018;
-    float screenEdge = smoothstep(0.34, 0.66, length(p));
+    float screenRadius = length(p);
+    float screenEdge = smoothstep(0.30, 0.60, screenRadius);
     float edgeDustA = 0.5 + 0.5 * sin(angle * 17.0 + depth * 6.4 + particleSeed * 9.7 - fieldTime * 0.20);
     float edgeDustB = 0.5 + 0.5 * cos(angle * 23.0 - depth * 5.1 + seedB * 8.3 + fieldTime * 0.18);
     float2 screenNormal = normalize(p + float2(0.001, 0.001));
-    float sideSilhouette = smoothstep(0.08, 0.66, abs(dot(screenNormal, turnedSide)));
-    float depthSilhouette = 0.50 + 0.50 * (1.0 - smoothstep(0.64, 1.00, abs(body.z * 1.55)));
-    float sideSilhouetteBoost = screenEdge * sideSilhouette * depthSilhouette;
-    float centerFrayMute = smoothstep(0.34, 0.64, length(stableScreenPosition));
+    float projectedSilhouette = screenEdge * (0.82 + 0.18 * smoothstep(0.56, 0.92, length(stableScreenPosition)));
+    float centerFrayMute = smoothstep(0.30, 0.58, length(stableScreenPosition));
+    float surfaceFrayNoise = smoothstep(0.30, 0.86, edgeDustA * 0.42 + edgeDustB * 0.36 + hash11(seedB * 43.0 + particleSeed * 17.0) * 0.22);
+    float surfaceFrayField = projectedSilhouette * centerFrayMute * surfaceFrayNoise * edgeSettle * speakingEdgeLift * tuneEdgeFray;
     float edgeDustField = centerFrayMute
-        * screenEdge
-        * max(edge * 0.08, sideSilhouetteBoost * 0.22)
+        * max(edge * 0.10, projectedSilhouette * 0.34)
         * smoothstep(0.28, 0.84, edgeDustA * 0.48 + edgeDustB * 0.36 + seedB * 0.16);
     edgeDustField *= (1.0 - turnWakeEnergy * 0.42) * edgeSettle * speakingEdgeLift * tuneEdgeDust;
+    p += screenNormal * surfaceFrayField * (0.018 + 0.036 * seedB);
+    p += screenNormal * surfaceFrayField * sin(angle * 3.4 + phaseB + fieldTime * 0.28) * (0.004 + 0.010 * particleSeed);
     p += screenNormal * edgeDustField * (0.006 + 0.016 * seedB);
-    p += turnedSide * edgeDustField * sin(angle * 3.4 + phaseB + fieldTime * 0.28) * (0.002 + 0.005 * particleSeed);
-    edgeFrayField = saturate(edgeFrayField * 0.26 * tuneEdgeFray + edgeDustField * 0.20 + exitBreakAmount * 0.42 + exitState * dustRelease * 0.24);
+    edgeFrayField = saturate(edgeFrayField * 0.12 * tuneEdgeFray + surfaceFrayField * 0.52 + edgeDustField * 0.28 + projectedSilhouette * 0.08 + exitBreakAmount * 0.42 + exitState * dustRelease * 0.24);
 
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);
     p *= tuneGlobalScale;
@@ -725,9 +736,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float localLightB = smoothstep(0.54, 0.90, 0.5 + 0.5 * cos(animatedCross * 3.55 + animatedTravel * 1.15 - flowedBody.z * 2.2 + fieldTime * 0.34 + phaseB * 0.10));
     float localShadowA = smoothstep(0.50, 0.86, 0.5 + 0.5 * sin(animatedTravel * 2.10 + animatedCross * 2.45 + flowedBody.z * 2.1 - fieldTime * 0.38 + phaseB * 0.06));
     float localShadowB = smoothstep(0.56, 0.90, 0.5 + 0.5 * cos(animatedCross * 2.35 - animatedTravel * 1.70 + flowedBody.z * 2.6 - fieldTime * 0.30 + morph * 0.60));
-    float surfaceLight = saturate(0.34
-        + rollingLight * 0.18
-        + fillLight * 0.12
+    float surfaceLight = saturate(0.24
+        + directionalFrontLight * 0.46
+        + rollingLight * 0.08
+        + fillLight * 0.06
         + localLightA * 0.14
         + localLightB * 0.09
         + turnWakeEnergy * 0.18
@@ -736,9 +748,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + visibleIonCluster * 0.18
         - localShadowA * 0.22
         - localShadowB * 0.16
-        - visibleSparseCavity * 0.10);
+        - visibleSparseCavity * 0.10
+        - (1.0 - directionalFrontLight) * 0.16);
     surfaceLight = mix(
-        saturate(0.34 + rollingLight * 0.08 + fillLight * 0.08 + localLightA * 0.12 - localShadowA * 0.10),
+        saturate(0.24 + directionalFrontLight * 0.44 + rollingLight * 0.04 + fillLight * 0.04 + localLightA * 0.08 - localShadowA * 0.06),
         surfaceLight,
         0.46 + wakeDetailGate * 0.54
     );
@@ -749,7 +762,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         - exitBreakAmount * 0.040);
     surfaceLight = saturate(surfaceLight * tuneSurfaceLight);
     float ionPresence = saturate(visibleIonCluster * 0.82 + visibleStructuralSpine * 0.86 + visibleLayerDensity * 0.24);
-    float baseDepthGate = smoothstep(-0.48, 0.46, depth);
+    float baseDepthGate = directionalFrontLight;
     float frontSizeLift = baseDepthGate * 0.34
         + smoothstep(0.72, 0.10, stableScreenRadius) * 0.08;
     float stableSizeRidge = saturate(ridge * 0.58
@@ -761,7 +774,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float sizeJitter = mix(0.92, 1.10, hash11(particleSeed * 137.0 + seedB * 41.0));
     float sizeScatter = mix(-0.12, 0.24, hash11(particleSeed * 311.0 + phaseB * 0.17))
         * 0.42;
-    float backAggregationMute = mix(0.68, 1.0, baseDepthGate);
+    float backAggregationMute = mix(0.68, 1.0, directionalFrontLight);
     float structureScale = mix(0.88, 1.12, stableSizeRidge);
     structureScale *= mix(1.0, 0.88, stableSparsePresence);
     float pointBase = (mix(1.82, 4.82, stableSizeRidge)
@@ -771,13 +784,13 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + hash11(seedB * 67.0 + particleSeed * 23.0) * 0.18
         + frontSizeLift
         + sizeScatter) * structureScale * mix(1.0, 0.74, stableSparsePresence) * mix(1.0, 0.84, thinking * edge) * mix(1.0, 0.94, loading * edge) * mix(1.0, 1.06, speaking * edge) * mix(1.0, 0.96, previewPlaceholder * edge);
-    float depthSize = mix(0.94, 1.20, smoothstep(-0.65, 0.75, depth));
-    float frontParticleLift = smoothstep(-0.26, 0.42, depth);
-    float backParticleMute = 1.0 - smoothstep(-0.72, -0.02, depth);
+    float depthSize = mix(0.92, 1.16, directionalFrontLight);
+    float frontParticleLift = directionalFrontLight;
+    float backParticleMute = 1.0 - directionalFrontLight;
     float ridgeSizeLift = saturate(stableSizeRidge * 0.86 + ridge * 0.18);
     float visualSizeGate = saturate(max(frontParticleLift * 0.82, ridgeSizeLift * 0.96));
     float pointCeiling = mix(3.20, 10.80, visualSizeGate) + stableSizeRidge * 1.45;
-    float depthVisibilitySize = mix(0.42, 1.34, frontParticleLift) * mix(1.0, 0.58, backParticleMute);
+    float depthVisibilitySize = mix(0.56, 1.22, frontParticleLift) * mix(1.0, 0.68, backParticleMute);
     float layeredPointSize = pointBase * sizeJitter * depthSize * depthVisibilitySize
         + ridgeSizeLift * (0.84 + frontParticleLift * 0.78);
     float exitPointScale = mix(1.0, 0.56 + dustRelease * 0.16, exitDim);
@@ -789,7 +802,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float dynamicFlow = saturate(visibleRidgeFlow * 0.20 + visibleLayerDensity * 0.48 + visibleIonCluster * 0.58 + visibleCloudDensity * 0.30 + visibleStructuralSpine * 0.66 + edgeFrayField * 0.12 + turnWakeEnergy * 0.48);
     out.flow = dynamicFlow;
     out.density = saturate(visibleLayerDensity * 0.76 + visibleDenseSection * 0.16 + visibleStructuralSpine * 0.28 + bodyEnvelope * 0.24 + turnWakeEnergy * 0.18 - visibleSparseCavity * 0.055);
-    out.frontness = saturate(smoothstep(-0.50, 0.24, visibleDepth) * 0.86);
+    out.frontness = saturate(directionalFrontLight * 0.90 + smoothstep(-0.50, 0.24, visibleDepth) * 0.10);
     out.surfaceLight = surfaceLight;
     out.surfaceWake = turnWakeEnergy;
     out.thinking = thinking;
