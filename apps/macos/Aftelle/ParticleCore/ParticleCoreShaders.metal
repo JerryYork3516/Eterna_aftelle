@@ -31,6 +31,7 @@ struct ParticleCoreFrameUniforms {
     float rotationDirection;
     float edgeDustAmount;
     float edgeFrayAmount;
+    float surfaceDispersionStrength;
     float surfaceLightStrength;
     float4 baseColor;
     float4 ridgeColor;
@@ -300,6 +301,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneRotationDelta = abs(saturate(uniforms.rotationSpeed) - 0.5) * 2.0;
     float tuneEdgeDust = scaleAroundOne(uniforms.edgeDustAmount, 1.20);
     float tuneEdgeFray = scaleAroundOne(uniforms.edgeFrayAmount, 1.20);
+    float tuneSurfaceDispersion = scaleAroundOne(uniforms.surfaceDispersionStrength, 1.20);
     float tuneSurfaceLight = scaleAroundOne(uniforms.surfaceLightStrength, 1.00);
     float thinkingRaw = saturate(uniforms.thinkingStrength);
     float thinking = smoothstep(0.0, 1.0, thinkingRaw);
@@ -460,11 +462,6 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float edgeFrayA = 0.5 + 0.5 * sin(angle * 7.2 + depth * 4.4 - fieldTime * 0.34 + particleSeed * 6.2831853);
     float edgeFrayB = 0.5 + 0.5 * cos(angle * 11.6 - depth * 3.6 + fieldTime * 0.26 + phaseB);
     float edgeFrayField = edge * smoothstep(0.34, 0.78, edgeFrayA * 0.56 + edgeFrayB * 0.34 + seedB * 0.10);
-    float3 edgeNormal3 = rotateBody(float3(radial.x, radial.y, depth * 0.20), bodyAngles);
-    float2 edgeNormal = normalize(edgeNormal3.xy + normalize(p + float2(0.001, 0.001)) * 0.35);
-    float edgeFrayAmount = edgeFrayField * (0.006 + 0.016 * seedB) * (0.76 + 0.24 * abs(globalWave)) * edgeSettle * speakingEdgeLift * tuneEdgeFray;
-    p += edgeNormal * edgeFrayAmount;
-    p += turnedSide * edgeFrayField * sin(fieldTime * 0.41 + phaseB + angle * 2.0) * (0.001 + 0.004 * particleSeed) * edgeSettle * speakingEdgeLift;
     float screenCloudRoll = sin(dot(p, turnedAxis) * 3.2 + body.z * 4.4 - fieldTime * 0.86 + globalWave);
     float screenCloudCurl = cos(dot(p, turnedSide) * 3.6 - body.z * 5.0 + fieldTime * 0.72 + phaseB * 0.10);
     float screenCloudStrength = activeInterior * 0.006 + midBand * 0.018 * stateFocus + edge * 0.002 * edgeSettle;
@@ -600,18 +597,25 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float edgeDustA = 0.5 + 0.5 * sin(angle * 17.0 + depth * 6.4 + particleSeed * 9.7 - fieldTime * 0.20);
     float edgeDustB = 0.5 + 0.5 * cos(angle * 23.0 - depth * 5.1 + seedB * 8.3 + fieldTime * 0.18);
     float2 screenNormal = normalize(p + float2(0.001, 0.001));
+    float2 screenTangent = float2(-screenNormal.y, screenNormal.x);
     float projectedSilhouette = screenEdge * (0.82 + 0.18 * smoothstep(0.56, 0.92, length(stableScreenPosition)));
     float centerFrayMute = smoothstep(0.30, 0.58, length(stableScreenPosition));
-    float surfaceFrayNoise = smoothstep(0.30, 0.86, edgeDustA * 0.42 + edgeDustB * 0.36 + hash11(seedB * 43.0 + particleSeed * 17.0) * 0.22);
-    float surfaceFrayField = projectedSilhouette * centerFrayMute * surfaceFrayNoise * edgeSettle * speakingEdgeLift * tuneEdgeFray;
+    float surfaceScatterNoise = smoothstep(0.30, 0.86, edgeDustA * 0.42 + edgeDustB * 0.36 + hash11(seedB * 43.0 + particleSeed * 17.0) * 0.22);
+    float surfaceScatterCore = projectedSilhouette * centerFrayMute * surfaceScatterNoise * edgeSettle * speakingEdgeLift;
+    float surfaceDustField = surfaceScatterCore * tuneEdgeDust;
+    float surfaceFrayField = surfaceScatterCore * tuneEdgeFray;
+    float surfaceDispersionField = surfaceScatterCore * tuneSurfaceDispersion;
+    float surfaceScatterField = max(max(surfaceDustField * 0.54, surfaceFrayField), surfaceDispersionField * 0.82);
+    float surfaceScatterWobble = sin(angle * 3.4 + phaseB + fieldTime * 0.28);
+    float2 surfaceScatterDirection = normalize(screenNormal + screenTangent * surfaceScatterWobble * 0.10);
     float edgeDustField = centerFrayMute
         * max(edge * 0.10, projectedSilhouette * 0.34)
         * smoothstep(0.28, 0.84, edgeDustA * 0.48 + edgeDustB * 0.36 + seedB * 0.16);
     edgeDustField *= (1.0 - turnWakeEnergy * 0.42) * edgeSettle * speakingEdgeLift * tuneEdgeDust;
-    p += screenNormal * surfaceFrayField * (0.018 + 0.036 * seedB);
-    p += screenNormal * surfaceFrayField * sin(angle * 3.4 + phaseB + fieldTime * 0.28) * (0.004 + 0.010 * particleSeed);
-    p += screenNormal * edgeDustField * (0.006 + 0.016 * seedB);
-    edgeFrayField = saturate(edgeFrayField * 0.12 * tuneEdgeFray + surfaceFrayField * 0.52 + edgeDustField * 0.28 + projectedSilhouette * 0.08 + exitBreakAmount * 0.42 + exitState * dustRelease * 0.24);
+    p += surfaceScatterDirection * surfaceScatterField * (0.018 + 0.036 * seedB);
+    p += surfaceScatterDirection * surfaceScatterField * surfaceScatterWobble * (0.004 + 0.010 * particleSeed);
+    p += surfaceScatterDirection * edgeDustField * (0.004 + 0.010 * seedB);
+    edgeFrayField = saturate(edgeFrayField * 0.08 * tuneEdgeFray + surfaceFrayField * 0.52 + surfaceDustField * 0.24 + surfaceDispersionField * 0.32 + edgeDustField * 0.16 + exitBreakAmount * 0.42 + exitState * dustRelease * 0.24);
 
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);
     p *= tuneGlobalScale;

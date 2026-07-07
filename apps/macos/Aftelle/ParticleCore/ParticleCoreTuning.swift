@@ -15,6 +15,7 @@ struct ParticleCoreTuning: Codable, Equatable {
     var rotationDirection: Double
     var edgeDustAmount: Double
     var edgeFrayAmount: Double
+    var surfaceDispersionStrength: Double
     var surfaceLightStrength: Double
 
     static let systemDefault = ParticleCoreTuning(
@@ -31,6 +32,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         rotationDirection: 1.0,
         edgeDustAmount: 0.5,
         edgeFrayAmount: 0.5,
+        surfaceDispersionStrength: 0.5,
         surfaceLightStrength: 0.5
     )
 
@@ -80,6 +82,7 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case rotationDirection
     case edgeDustAmount
     case edgeFrayAmount
+    case surfaceDispersionStrength
     case surfaceLightStrength
 
     var id: String { rawValue }
@@ -116,6 +119,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.edgeDustAmount
         case .edgeFrayAmount:
             return \.edgeFrayAmount
+        case .surfaceDispersionStrength:
+            return \.surfaceDispersionStrength
         case .surfaceLightStrength:
             return \.surfaceLightStrength
         }

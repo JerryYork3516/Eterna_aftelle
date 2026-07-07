@@ -34,6 +34,7 @@ struct ParticleCoreFrameUniforms {
     var rotationDirection: Float
     var edgeDustAmount: Float
     var edgeFrayAmount: Float
+    var surfaceDispersionStrength: Float
     var surfaceLightStrength: Float
     var baseColor: SIMD4<Float>
     var ridgeColor: SIMD4<Float>
@@ -208,6 +209,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             rotationDirection: Float(tuning.rotationDirection),
             edgeDustAmount: Float(tuning.edgeDustAmount),
             edgeFrayAmount: Float(tuning.edgeFrayAmount),
+            surfaceDispersionStrength: Float(tuning.surfaceDispersionStrength),
             surfaceLightStrength: Float(tuning.surfaceLightStrength),
             baseColor: colorProfile.baseVector,
             ridgeColor: colorProfile.ridgeVector,
