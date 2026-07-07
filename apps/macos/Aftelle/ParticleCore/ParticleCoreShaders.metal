@@ -292,8 +292,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 sourceParticlePosition = particle.xy;
     float depth = particle.w;
     float shapeRoundness = saturate(uniforms.shapeRoundness);
-    float shapeRoughness = pow(1.0 - shapeRoundness, 1.35);
-    float shapeAmount = scaleAroundOne(0.82, 1.35);
+    float shapeRoughness = pow(1.0 - shapeRoundness, 2.20);
+    float shapeAmount = 1.0;
     float surfaceReliefAmount = scaleAroundOne(uniforms.surfaceReliefStrength, 2.25);
     float reliefPresence = saturate(surfaceReliefAmount);
     float2 sourceRadial = normalize(sourceParticlePosition + float2(0.001, 0.001));
@@ -325,7 +325,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float roundnessNoise = sin(sourceAngle * 13.0 + depth * 4.2 + shapePhase * 0.31) * 0.54
         + cos(sourceAngle * 19.0 - depth * 5.4 + shapePhase * 0.17) * 0.32
         + sin(sourceAngle * 29.0 + depth * 2.6 - shapePhase * 0.23) * 0.14;
-    p += sourceRadial * roundnessNoise * shapeRoughness * (0.002 + surfaceRoughness * 0.004 + silhouetteRoughness * 0.010);
+    p += sourceRadial * roundnessNoise * shapeRoughness * (0.0015 + surfaceRoughness * 0.0035 + silhouetteRoughness * 0.0085);
     float2 baseParticlePosition = p;
     float ridge = saturate(particle.z * surfaceReliefAmount);
     float id = float(vid);
@@ -343,8 +343,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 radial = normalize(p + float2(0.001, 0.001));
     float2 tangent = float2(-radial.y, radial.x);
     float tuneGlobalScale = scaleAroundOne(uniforms.globalScale, 1.04);
-    float tunePointSize = scaleAroundOne(uniforms.pointSizeScale, 1.23);
-    float tuneBrightness = scaleAroundOne(uniforms.brightness, 1.35);
+    float pointSizeHeadroom = smoothstep(0.56, 1.0, saturate(uniforms.pointSizeScale));
+    float brightnessHeadroom = smoothstep(0.94, 1.0, saturate(uniforms.brightness));
+    float tunePointSize = scaleAroundOne(uniforms.pointSizeScale, 1.23) * (1.0 + pointSizeHeadroom * 0.50);
+    float tuneBrightness = scaleAroundOne(uniforms.brightness, 1.35) * (1.0 + brightnessHeadroom * 0.50);
     float tuneAlpha = scaleAroundOne(uniforms.alphaScale, 1.35);
     float tuneRidgeBrightness = scaleAroundOne(uniforms.ridgeBrightness, 1.65);
     float tuneFlowStrength = scaleAroundOne(uniforms.flowStrength, 1.65);
