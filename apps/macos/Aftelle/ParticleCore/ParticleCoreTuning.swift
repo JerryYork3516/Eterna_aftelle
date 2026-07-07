@@ -112,38 +112,38 @@ struct ParticleCoreTuning: Codable, Equatable {
     static let systemDefault = ParticleCoreTuning(
         globalScale: 0.58,
         pointSizeScale: 0.56,
-        brightness: 0.94,
-        alphaScale: 1.0,
-        ridgeBrightness: 0.78,
-        breathingAmount: 0.38,
-        breathingSpeed: 0.38,
-        flowStrength: 0.36,
-        flowSpeed: 0.30,
-        rotationSpeed: 0.42,
+        brightness: 0.82,
+        alphaScale: 0.84,
+        ridgeBrightness: 0.56,
+        breathingAmount: 0.34,
+        breathingSpeed: 0.34,
+        flowStrength: 0.32,
+        flowSpeed: 0.28,
+        rotationSpeed: 0.40,
         rotationDirection: 1.0,
         shapeRoundness: 0.82,
-        surfaceReliefStrength: 0.76,
+        surfaceReliefStrength: 0.66,
         shapeSeed: 0.5,
         membraneAspect: 0.24,
         membraneScale: 0.54,
-        membraneMist: 0.86,
-        membraneGrain: 0.48,
-        membraneLineStrength: 0.88,
-        membraneLineWidth: 0.50,
+        membraneMist: 0.78,
+        membraneGrain: 0.46,
+        membraneLineStrength: 0.46,
+        membraneLineWidth: 0.48,
         membraneStability: 0.96,
-        membraneFullness: 0.82,
-        sheetLightStrength: 0.94,
-        flowLightStrength: 0.90,
-        spineLineStrength: 0.72,
-        spineLineWidth: 0.54,
-        spineLineDensity: 0.76,
-        spineLineHighlight: 0.72,
-        spineLineContrast: 0.66,
-        spineLineSharpness: 0.62,
-        edgeDustAmount: 0.32,
-        edgeFrayAmount: 0.34,
-        surfaceDispersionStrength: 0.26,
-        surfaceLightStrength: 0.92
+        membraneFullness: 0.74,
+        sheetLightStrength: 0.62,
+        flowLightStrength: 0.58,
+        spineLineStrength: 0.42,
+        spineLineWidth: 0.46,
+        spineLineDensity: 0.42,
+        spineLineHighlight: 0.38,
+        spineLineContrast: 0.44,
+        spineLineSharpness: 0.44,
+        edgeDustAmount: 0.30,
+        edgeFrayAmount: 0.30,
+        surfaceDispersionStrength: 0.30,
+        surfaceLightStrength: 0.74
     )
 
     static let storageKey = "ParticleCoreTuning.debug.v6"
@@ -426,19 +426,19 @@ struct ParticleCoreColorProfile: Codable, Equatable {
     var alphaScale: Double
 
     static let systemDefault = ParticleCoreColorProfile(
-        baseRed: 0.82,
-        baseGreen: 0.84,
-        baseBlue: 0.88,
-        ridgeRed: 0.95,
-        ridgeGreen: 0.96,
-        ridgeBlue: 0.98,
-        dimRed: 0.40,
-        dimGreen: 0.42,
-        dimBlue: 0.46,
-        highlightRed: 0.98,
-        highlightGreen: 0.985,
-        highlightBlue: 1.0,
-        alphaScale: 1.0
+        baseRed: 0.74,
+        baseGreen: 0.76,
+        baseBlue: 0.80,
+        ridgeRed: 0.82,
+        ridgeGreen: 0.84,
+        ridgeBlue: 0.88,
+        dimRed: 0.27,
+        dimGreen: 0.29,
+        dimBlue: 0.33,
+        highlightRed: 0.88,
+        highlightGreen: 0.90,
+        highlightBlue: 0.94,
+        alphaScale: 0.90
     )
 
     static let storageKey = "ParticleCoreColorProfile.debug.v1"
@@ -472,10 +472,10 @@ struct ParticleCoreColorProfile: Codable, Equatable {
             return systemDefault
         }
 
-        let base = subtleColor(from: color, target: 0.82, chroma: 0.34)
-        let ridge = subtleColor(from: color, target: 0.92, chroma: 0.28)
-        let dim = subtleColor(from: color, target: 0.39, chroma: 0.30)
-        let highlight = subtleColor(from: color, target: 0.965, chroma: 0.14)
+        let base = subtleColor(from: color, target: 0.76, chroma: 0.18)
+        let ridge = subtleColor(from: color, target: 0.84, chroma: 0.14)
+        let dim = subtleColor(from: color, target: 0.30, chroma: 0.18)
+        let highlight = subtleColor(from: color, target: 0.90, chroma: 0.08)
 
         return ParticleCoreColorProfile(
             baseRed: Double(base.x),
