@@ -382,15 +382,15 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float surfaceLightPhase = saturate(uniforms.surfaceFlowLightSeed) * 6.2831853;
     float surfaceDirectionAngle = mix(3.1415927, 0.0, saturate(uniforms.surfaceFlowDirection));
     float2 tuneSurfaceFlowAxis = float2(cos(surfaceDirectionAngle), sin(surfaceDirectionAngle));
-    float tuneSurfaceLight = scaleAroundOne(uniforms.surfaceLightStrength, 1.50);
+    float tuneSurfaceLight = saturate(uniforms.surfaceLightStrength);
     float tuneMembraneMist = scaleAroundOne(uniforms.membraneMist, 1.60);
     float tuneMembraneGrain = scaleAroundOne(uniforms.membraneGrain, 1.60);
     float tuneMembraneLineStrength = scaleAroundOne(uniforms.membraneLineStrength, 1.80);
     float tuneMembraneLineWidth = scaleAroundOne(uniforms.membraneLineWidth, 1.20);
     float membraneFullnessValue = saturate(uniforms.membraneFullness);
     float tuneMembraneFullness = membraneFullnessValue * 2.0;
-    float tuneSheetLight = scaleAroundOne(uniforms.sheetLightStrength, 1.80);
-    float tuneFlowLight = scaleAroundOne(uniforms.flowLightStrength, 1.80);
+    float tuneSheetLight = saturate(uniforms.sheetLightStrength);
+    float tuneFlowLight = saturate(uniforms.flowLightStrength);
     float thinkingRaw = saturate(uniforms.thinkingStrength);
     float thinking = smoothstep(0.0, 1.0, thinkingRaw);
     float speakingRaw = saturate(uniforms.speakingStrength);
@@ -922,37 +922,32 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float3 fillDirection = normalize(float3(-turnedSide * 0.42 + turnedAxis * 0.34, 0.50));
     float rollingLight = smoothstep(-0.24, 0.66, dot(surfaceNormal, keyDirection));
     float fillLight = smoothstep(-0.18, 0.62, dot(surfaceNormal, fillDirection));
-    float localLightA = surfaceFlowLightA;
-    float localLightB = surfaceFlowLightB;
-    float localShadowA = surfaceFlowShadowA;
-    float localShadowB = surfaceFlowShadowB;
-    float sheetLight = saturate(rollingLight * 0.36 + fillLight * 0.16 + localLightA * 0.24 + localLightB * 0.18 - localShadowA * 0.20 - localShadowB * 0.18);
-    float flowSheetLight = saturate(normalSurfaceFlow * 0.44 + turnWakeEnergy * 0.40 + visibleRidgeFlow * 0.24 + visibleCloudDensity * 0.12);
-    float surfaceLight = saturate(0.18
-        + directionalFrontLight * 0.42
-        + rollingLight * 0.06
-        + fillLight * 0.045
-        + localLightA * 0.070
-        + localLightB * 0.050
-        + normalSurfaceFlow * 0.09
-        + turnWakeEnergy * 0.07
-        + cloudPatchA * 0.035 * tuneMembraneMist
-        + visibleStructuralSpine * 0.52
-        + spineAggregation * 0.96
-        + edgeContour * 0.44
-        + visibleIonCluster * 0.16
-        + sheetLight * 0.18 * tuneSheetLight
-        + flowSheetLight * 0.20 * tuneFlowLight
-        - localShadowA * 0.24
-        - localShadowB * 0.23
-        - visibleSparseCavity * 0.22
-        - rearShade * 0.12
-        - (1.0 - directionalFrontLight) * 0.12);
-    surfaceLight = mix(
-        saturate(0.24 + directionalFrontLight * 0.44 + rollingLight * 0.04 + fillLight * 0.04 + localLightA * 0.08 - localShadowA * 0.06),
-        surfaceLight,
-        0.46 + wakeDetailGate * 0.54
-    );
+    float depthContrast = mix(0.20, 0.58, tuneSheetLight);
+    float sheetLight = saturate(0.52
+        + (directionalFrontLight - 0.52) * depthContrast
+        + (rollingLight - 0.50) * 0.16 * tuneSheetLight
+        + (visibleLayerDensity - visibleSparseCavity) * 0.10 * tuneSheetLight
+        - rearShade * 0.08 * tuneSheetLight);
+    float flowSheetLight = saturate(normalSurfaceFlow * 0.36 + turnWakeEnergy * 0.32 + visibleRidgeFlow * 0.18);
+    float flowPatternLight = (surfaceLightFlowPattern - 0.50) * 0.24 * tuneFlowLight
+        + flowSheetLight * 0.12 * tuneFlowLight
+        - (surfaceFlowShadowA + surfaceFlowShadowB) * 0.035 * tuneFlowLight;
+    float surfaceMaterialLight = saturate(0.12
+        + rollingLight * 0.17
+        + fillLight * 0.08
+        + directionalFrontLight * 0.12
+        + cloudPatchA * 0.030 * tuneMembraneMist
+        + visibleStructuralSpine * 0.36
+        + spineAggregation * 0.66
+        + edgeContour * 0.34
+        + visibleIonCluster * 0.12);
+    surfaceMaterialLight *= mix(0.58, 1.18, tuneSurfaceLight);
+    float depthLayerLight = saturate(0.20 + sheetLight * 0.42 - visibleSparseCavity * 0.14);
+    float surfaceLight = saturate(depthLayerLight
+        + surfaceMaterialLight * (0.54 + wakeDetailGate * 0.18)
+        + flowPatternLight
+        - rearShade * 0.055
+        - (1.0 - directionalFrontLight) * 0.050);
     surfaceLight = saturate(surfaceLight
         + spineHighlightLift * 0.58
         + visibleStructuralSpine * spineContrastLift * 0.14
@@ -966,7 +961,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     surfaceLight = saturate(surfaceLight * mix(1.0, 0.42, exitDim)
         + exitState * exitContract * frontDepthGate * 0.040
         - exitBreakAmount * 0.040);
-    surfaceLight = saturate((surfaceLight + (tuneMembraneMist - 1.0) * frontDepthGate * 0.055) * tuneSurfaceLight);
+    surfaceLight = saturate(surfaceLight + (tuneMembraneMist - 1.0) * frontDepthGate * 0.030);
     float baseDepthGate = directionalFrontLight;
     float frontSizeLift = baseDepthGate * 0.16
         + smoothstep(0.72, 0.10, stableScreenRadius) * 0.04;
