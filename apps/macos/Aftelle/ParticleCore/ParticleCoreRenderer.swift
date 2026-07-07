@@ -34,6 +34,7 @@ struct ParticleCoreFrameUniforms {
     var rotationDirection: Float
     var shapeRoundness: Float
     var surfaceReliefStrength: Float
+    var surfaceReliefRadiusInfluence: Float
     var shapeSeed: Float
     var membraneAspect: Float
     var membraneScale: Float
@@ -228,6 +229,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             rotationDirection: Float(tuning.rotationDirection),
             shapeRoundness: Float(tuning.shapeRoundness),
             surfaceReliefStrength: Float(tuning.surfaceReliefStrength),
+            surfaceReliefRadiusInfluence: Float(tuning.surfaceReliefRadiusInfluence),
             shapeSeed: Float(tuning.shapeSeed),
             membraneAspect: Float(tuning.membraneAspect),
             membraneScale: Float(tuning.membraneScale),

@@ -15,6 +15,7 @@ struct ParticleCoreTuning: Codable, Equatable {
     var rotationDirection: Double
     var shapeRoundness: Double
     var surfaceReliefStrength: Double
+    var surfaceReliefRadiusInfluence: Double
     var shapeSeed: Double
     var membraneAspect: Double
     var membraneScale: Double
@@ -51,6 +52,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         rotationDirection: Double,
         shapeRoundness: Double,
         surfaceReliefStrength: Double,
+        surfaceReliefRadiusInfluence: Double,
         shapeSeed: Double,
         membraneAspect: Double,
         membraneScale: Double,
@@ -86,6 +88,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.rotationDirection = rotationDirection
         self.shapeRoundness = shapeRoundness
         self.surfaceReliefStrength = surfaceReliefStrength
+        self.surfaceReliefRadiusInfluence = surfaceReliefRadiusInfluence
         self.shapeSeed = shapeSeed
         self.membraneAspect = membraneAspect
         self.membraneScale = membraneScale
@@ -123,6 +126,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         rotationDirection: 1.0,
         shapeRoundness: 0.82,
         surfaceReliefStrength: 0.76,
+        surfaceReliefRadiusInfluence: 0.35,
         shapeSeed: 0.5,
         membraneAspect: 0.24,
         membraneScale: 0.54,
@@ -160,6 +164,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         rotationDirection: 1.0,
         shapeRoundness: 0.82,
         surfaceReliefStrength: 0.72,
+        surfaceReliefRadiusInfluence: 0.35,
         shapeSeed: 0.5,
         membraneAspect: 0.24,
         membraneScale: 0.54,
@@ -199,6 +204,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         case rotationDirection
         case shapeRoundness
         case surfaceReliefStrength
+        case surfaceReliefRadiusInfluence
         case shapeSeed
         case membraneAspect
         case membraneScale
@@ -238,6 +244,7 @@ struct ParticleCoreTuning: Codable, Equatable {
             rotationDirection: try values.decodeIfPresent(Double.self, forKey: .rotationDirection) ?? 1.0,
             shapeRoundness: try values.decodeIfPresent(Double.self, forKey: .shapeRoundness) ?? Self.systemDefault.shapeRoundness,
             surfaceReliefStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceReliefStrength) ?? Self.systemDefault.surfaceReliefStrength,
+            surfaceReliefRadiusInfluence: try values.decodeIfPresent(Double.self, forKey: .surfaceReliefRadiusInfluence) ?? Self.systemDefault.surfaceReliefRadiusInfluence,
             shapeSeed: try values.decodeIfPresent(Double.self, forKey: .shapeSeed) ?? 0.5,
             membraneAspect: try values.decodeIfPresent(Double.self, forKey: .membraneAspect) ?? Self.systemDefault.membraneAspect,
             membraneScale: try values.decodeIfPresent(Double.self, forKey: .membraneScale) ?? Self.systemDefault.membraneScale,
@@ -306,6 +313,7 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case rotationDirection
     case shapeRoundness
     case surfaceReliefStrength
+    case surfaceReliefRadiusInfluence
     case shapeSeed
     case membraneAspect
     case membraneScale
@@ -354,7 +362,7 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return 0.05
         case .globalScale, .pointSizeScale, .brightness, .alphaScale, .ridgeBrightness,
              .breathingSpeed, .flowSpeed, .rotationSpeed, .surfaceLightStrength,
-             .shapeRoundness, .surfaceReliefStrength, .membraneAspect, .membraneScale,
+             .shapeRoundness, .surfaceReliefStrength, .surfaceReliefRadiusInfluence, .membraneAspect, .membraneScale,
              .membraneMist, .membraneGrain, .membraneLineStrength, .membraneLineWidth,
              .membraneStability, .membraneFullness, .sheetLightStrength, .flowLightStrength,
              .spineLineStrength, .spineLineWidth, .spineLineDensity, .spineLineHighlight,
@@ -397,6 +405,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.shapeRoundness
         case .surfaceReliefStrength:
             return \.surfaceReliefStrength
+        case .surfaceReliefRadiusInfluence:
+            return \.surfaceReliefRadiusInfluence
         case .shapeSeed:
             return \.shapeSeed
         case .membraneAspect:

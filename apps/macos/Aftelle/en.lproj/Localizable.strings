@@ -68,6 +68,7 @@
 "particleDebug.parameter.rotationDirection" = "Global Rotation Direction";
 "particleDebug.parameter.shapeRoundness" = "Roundness";
 "particleDebug.parameter.surfaceReliefStrength" = "Surface Relief";
+"particleDebug.parameter.surfaceReliefRadiusInfluence" = "Relief Radius Influence";
 "particleDebug.parameter.shapeSeed" = "Shape Seed";
 "particleDebug.parameter.membraneAspect" = "Membrane Aspect";
 "particleDebug.parameter.membraneScale" = "Membrane Scale";
@@ -133,6 +134,9 @@
 "particleDebug.parameter.surfaceReliefStrength.caption" = "Adds local surface bumps and valleys from a smooth core shell.";
 "particleDebug.parameter.surfaceReliefStrength.lowHint" = "Smooth sphere";
 "particleDebug.parameter.surfaceReliefStrength.highHint" = "More relief";
+"particleDebug.parameter.surfaceReliefRadiusInfluence.caption" = "Controls how much surface relief affects shell radius without changing the overall size.";
+"particleDebug.parameter.surfaceReliefRadiusInfluence.lowHint" = "More texture";
+"particleDebug.parameter.surfaceReliefRadiusInfluence.highHint" = "More contour";
 "particleDebug.parameter.shapeSeed.caption" = "Shifts the local shape variation pattern.";
 "particleDebug.parameter.shapeSeed.lowHint" = "Seed 0";
 "particleDebug.parameter.shapeSeed.highHint" = "Seed 1";

@@ -31,6 +31,7 @@ struct ParticleCoreFrameUniforms {
     float rotationDirection;
     float shapeRoundness;
     float surfaceReliefStrength;
+    float surfaceReliefRadiusInfluence;
     float shapeSeed;
     float membraneAspect;
     float membraneScale;
@@ -296,6 +297,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float surfaceReliefValue = saturate(uniforms.surfaceReliefStrength);
     float surfaceReliefHeadroom = smoothstep(0.76, 1.0, surfaceReliefValue);
     float surfaceReliefAmount = scaleAroundOne(surfaceReliefValue, 2.25) * (1.0 + surfaceReliefHeadroom * 0.50);
+    float surfaceReliefRadiusInfluence = saturate(uniforms.surfaceReliefRadiusInfluence);
     float reliefPresence = saturate(surfaceReliefAmount);
     float shapeAmount = reliefPresence;
     float2 sourceRadial = normalize(sourceParticlePosition + float2(0.001, 0.001));
@@ -430,8 +432,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float globalWave = globalShapeWave(p, depth, fieldTime, globalAxis, globalSide) * surfaceReliefAmount;
     float localMorph = morphField(angle, depth, fieldTime * 0.72, float(uniforms.seed) * 0.0017 + particleSeed * 0.41) * surfaceReliefAmount;
     float morph = globalWave * 0.74 + localMorph * 0.26;
-    float edgeMorph = edge * edge * (0.022 + 0.056 * edge + 0.012 * particleSeed) * morph * edgeSettle * speakingEdgeLift;
     float surfaceMotion = smoothstep(0.24, 0.58, lengthP);
+    float reliefRadiusGate = smoothstep(0.30, 0.78, lengthP) * (0.44 + edge * 0.56) * (0.58 + shellLayer * 0.42);
+    float reliefRadiusOffset = morph * surfaceReliefRadiusInfluence * reliefRadiusGate * (0.005 + edge * 0.011 + surfaceMotion * 0.006);
+    float edgeMorph = edge * edge * (0.022 + 0.056 * edge + 0.012 * particleSeed) * morph * edgeSettle * speakingEdgeLift;
     float innerMorph = (interior * 0.20 * centerMotionGate + midBand * 0.88 * stateFocus) * (0.0100 + 0.0170 * seedB)
         * (globalWave * 0.78 + localMorph * 0.22);
     float membraneRoll = edge * (0.010 + 0.018 * seedB)
@@ -440,6 +444,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 directionWarp = coherentDirectionField(p, lengthP, depth, fieldTime, edge, interior, midBand, globalAxis, globalSide, globalWave);
     float2 localWarp = localNoiseField(p, depth, fieldTime, particleSeed, seedB, edge, interior, midBand, globalAxis, globalSide, globalWave);
     p += radial * radialDrift;
+    p += radial * reliefRadiusOffset;
     p += radial * edgeMorph;
     p += tangent * tangentialDrift;
     p += tangent * membraneRoll;
