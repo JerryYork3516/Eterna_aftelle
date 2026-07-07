@@ -16,6 +16,13 @@ struct ParticleCoreTuning: Codable, Equatable {
     var shapeRoundness: Double
     var surfaceReliefStrength: Double
     var shapeSeed: Double
+    var membraneAspect: Double
+    var membraneScale: Double
+    var membraneMist: Double
+    var membraneGrain: Double
+    var membraneLineStrength: Double
+    var membraneLineWidth: Double
+    var membraneStability: Double
     var spineLineStrength: Double
     var spineLineWidth: Double
     var spineLineDensity: Double
@@ -42,6 +49,13 @@ struct ParticleCoreTuning: Codable, Equatable {
         shapeRoundness: Double,
         surfaceReliefStrength: Double,
         shapeSeed: Double,
+        membraneAspect: Double,
+        membraneScale: Double,
+        membraneMist: Double,
+        membraneGrain: Double,
+        membraneLineStrength: Double,
+        membraneLineWidth: Double,
+        membraneStability: Double,
         spineLineStrength: Double,
         spineLineWidth: Double,
         spineLineDensity: Double,
@@ -67,6 +81,13 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.shapeRoundness = shapeRoundness
         self.surfaceReliefStrength = surfaceReliefStrength
         self.shapeSeed = shapeSeed
+        self.membraneAspect = membraneAspect
+        self.membraneScale = membraneScale
+        self.membraneMist = membraneMist
+        self.membraneGrain = membraneGrain
+        self.membraneLineStrength = membraneLineStrength
+        self.membraneLineWidth = membraneLineWidth
+        self.membraneStability = membraneStability
         self.spineLineStrength = spineLineStrength
         self.spineLineWidth = spineLineWidth
         self.spineLineDensity = spineLineDensity
@@ -80,33 +101,40 @@ struct ParticleCoreTuning: Codable, Equatable {
     }
 
     static let systemDefault = ParticleCoreTuning(
-        globalScale: 0.5,
-        pointSizeScale: 0.5,
-        brightness: 0.5,
-        alphaScale: 0.5,
-        ridgeBrightness: 0.5,
-        breathingAmount: 0.5,
-        breathingSpeed: 0.5,
-        flowStrength: 0.5,
-        flowSpeed: 0.5,
-        rotationSpeed: 0.5,
+        globalScale: 0.58,
+        pointSizeScale: 0.50,
+        brightness: 0.66,
+        alphaScale: 0.82,
+        ridgeBrightness: 0.76,
+        breathingAmount: 0.38,
+        breathingSpeed: 0.38,
+        flowStrength: 0.36,
+        flowSpeed: 0.34,
+        rotationSpeed: 0.46,
         rotationDirection: 1.0,
-        shapeRoundness: 0.5,
-        surfaceReliefStrength: 0.5,
+        shapeRoundness: 0.82,
+        surfaceReliefStrength: 0.76,
         shapeSeed: 0.5,
-        spineLineStrength: 0.5,
-        spineLineWidth: 0.5,
-        spineLineDensity: 0.5,
-        spineLineHighlight: 0.5,
-        spineLineContrast: 0.5,
-        spineLineSharpness: 0.5,
-        edgeDustAmount: 0.5,
-        edgeFrayAmount: 0.5,
-        surfaceDispersionStrength: 0.5,
-        surfaceLightStrength: 0.5
+        membraneAspect: 0.24,
+        membraneScale: 0.54,
+        membraneMist: 0.82,
+        membraneGrain: 0.47,
+        membraneLineStrength: 0.88,
+        membraneLineWidth: 0.50,
+        membraneStability: 0.88,
+        spineLineStrength: 0.72,
+        spineLineWidth: 0.54,
+        spineLineDensity: 0.76,
+        spineLineHighlight: 0.72,
+        spineLineContrast: 0.66,
+        spineLineSharpness: 0.62,
+        edgeDustAmount: 0.32,
+        edgeFrayAmount: 0.34,
+        surfaceDispersionStrength: 0.26,
+        surfaceLightStrength: 0.72
     )
 
-    static let storageKey = "ParticleCoreTuning.debug.v4"
+    static let storageKey = "ParticleCoreTuning.debug.v5"
 
     private enum CodingKeys: String, CodingKey {
         case globalScale
@@ -123,6 +151,13 @@ struct ParticleCoreTuning: Codable, Equatable {
         case shapeRoundness
         case surfaceReliefStrength
         case shapeSeed
+        case membraneAspect
+        case membraneScale
+        case membraneMist
+        case membraneGrain
+        case membraneLineStrength
+        case membraneLineWidth
+        case membraneStability
         case spineLineStrength
         case spineLineWidth
         case spineLineDensity
@@ -149,19 +184,26 @@ struct ParticleCoreTuning: Codable, Equatable {
             flowSpeed: try values.decodeIfPresent(Double.self, forKey: .flowSpeed) ?? 0.5,
             rotationSpeed: try values.decodeIfPresent(Double.self, forKey: .rotationSpeed) ?? 0.5,
             rotationDirection: try values.decodeIfPresent(Double.self, forKey: .rotationDirection) ?? 1.0,
-            shapeRoundness: try values.decodeIfPresent(Double.self, forKey: .shapeRoundness) ?? 0.5,
-            surfaceReliefStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceReliefStrength) ?? 0.5,
+            shapeRoundness: try values.decodeIfPresent(Double.self, forKey: .shapeRoundness) ?? Self.systemDefault.shapeRoundness,
+            surfaceReliefStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceReliefStrength) ?? Self.systemDefault.surfaceReliefStrength,
             shapeSeed: try values.decodeIfPresent(Double.self, forKey: .shapeSeed) ?? 0.5,
-            spineLineStrength: try values.decodeIfPresent(Double.self, forKey: .spineLineStrength) ?? 0.5,
-            spineLineWidth: try values.decodeIfPresent(Double.self, forKey: .spineLineWidth) ?? 0.5,
-            spineLineDensity: try values.decodeIfPresent(Double.self, forKey: .spineLineDensity) ?? 0.5,
-            spineLineHighlight: try values.decodeIfPresent(Double.self, forKey: .spineLineHighlight) ?? 0.5,
-            spineLineContrast: try values.decodeIfPresent(Double.self, forKey: .spineLineContrast) ?? 0.5,
-            spineLineSharpness: try values.decodeIfPresent(Double.self, forKey: .spineLineSharpness) ?? 0.5,
-            edgeDustAmount: try values.decodeIfPresent(Double.self, forKey: .edgeDustAmount) ?? 0.5,
-            edgeFrayAmount: try values.decodeIfPresent(Double.self, forKey: .edgeFrayAmount) ?? 0.5,
-            surfaceDispersionStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceDispersionStrength) ?? 0.5,
-            surfaceLightStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceLightStrength) ?? 0.5
+            membraneAspect: try values.decodeIfPresent(Double.self, forKey: .membraneAspect) ?? Self.systemDefault.membraneAspect,
+            membraneScale: try values.decodeIfPresent(Double.self, forKey: .membraneScale) ?? Self.systemDefault.membraneScale,
+            membraneMist: try values.decodeIfPresent(Double.self, forKey: .membraneMist) ?? Self.systemDefault.membraneMist,
+            membraneGrain: try values.decodeIfPresent(Double.self, forKey: .membraneGrain) ?? Self.systemDefault.membraneGrain,
+            membraneLineStrength: try values.decodeIfPresent(Double.self, forKey: .membraneLineStrength) ?? Self.systemDefault.membraneLineStrength,
+            membraneLineWidth: try values.decodeIfPresent(Double.self, forKey: .membraneLineWidth) ?? Self.systemDefault.membraneLineWidth,
+            membraneStability: try values.decodeIfPresent(Double.self, forKey: .membraneStability) ?? Self.systemDefault.membraneStability,
+            spineLineStrength: try values.decodeIfPresent(Double.self, forKey: .spineLineStrength) ?? Self.systemDefault.spineLineStrength,
+            spineLineWidth: try values.decodeIfPresent(Double.self, forKey: .spineLineWidth) ?? Self.systemDefault.spineLineWidth,
+            spineLineDensity: try values.decodeIfPresent(Double.self, forKey: .spineLineDensity) ?? Self.systemDefault.spineLineDensity,
+            spineLineHighlight: try values.decodeIfPresent(Double.self, forKey: .spineLineHighlight) ?? Self.systemDefault.spineLineHighlight,
+            spineLineContrast: try values.decodeIfPresent(Double.self, forKey: .spineLineContrast) ?? Self.systemDefault.spineLineContrast,
+            spineLineSharpness: try values.decodeIfPresent(Double.self, forKey: .spineLineSharpness) ?? Self.systemDefault.spineLineSharpness,
+            edgeDustAmount: try values.decodeIfPresent(Double.self, forKey: .edgeDustAmount) ?? Self.systemDefault.edgeDustAmount,
+            edgeFrayAmount: try values.decodeIfPresent(Double.self, forKey: .edgeFrayAmount) ?? Self.systemDefault.edgeFrayAmount,
+            surfaceDispersionStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceDispersionStrength) ?? Self.systemDefault.surfaceDispersionStrength,
+            surfaceLightStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceLightStrength) ?? Self.systemDefault.surfaceLightStrength
         )
     }
 
@@ -210,6 +252,13 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case shapeRoundness
     case surfaceReliefStrength
     case shapeSeed
+    case membraneAspect
+    case membraneScale
+    case membraneMist
+    case membraneGrain
+    case membraneLineStrength
+    case membraneLineWidth
+    case membraneStability
     case spineLineStrength
     case spineLineWidth
     case spineLineDensity
@@ -257,6 +306,20 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.surfaceReliefStrength
         case .shapeSeed:
             return \.shapeSeed
+        case .membraneAspect:
+            return \.membraneAspect
+        case .membraneScale:
+            return \.membraneScale
+        case .membraneMist:
+            return \.membraneMist
+        case .membraneGrain:
+            return \.membraneGrain
+        case .membraneLineStrength:
+            return \.membraneLineStrength
+        case .membraneLineWidth:
+            return \.membraneLineWidth
+        case .membraneStability:
+            return \.membraneStability
         case .spineLineStrength:
             return \.spineLineStrength
         case .spineLineWidth:

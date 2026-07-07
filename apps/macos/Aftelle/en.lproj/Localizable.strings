@@ -31,6 +31,7 @@
 "particleDebug.restoreDefault" = "Restore Default";
 "particleDebug.tuningGroup.basics" = "Basics";
 "particleDebug.tuningGroup.shape" = "Shape";
+"particleDebug.tuningGroup.membrane" = "Membrane";
 "particleDebug.tuningGroup.motion" = "Motion";
 "particleDebug.tuningGroup.scatter" = "Scatter";
 "particleDebug.tuningGroup.spine" = "Spine Lines";
@@ -48,6 +49,13 @@
 "particleDebug.parameter.shapeRoundness" = "Roundness";
 "particleDebug.parameter.surfaceReliefStrength" = "Surface Relief";
 "particleDebug.parameter.shapeSeed" = "Shape Seed";
+"particleDebug.parameter.membraneAspect" = "Membrane Aspect";
+"particleDebug.parameter.membraneScale" = "Membrane Scale";
+"particleDebug.parameter.membraneMist" = "Membrane Mist";
+"particleDebug.parameter.membraneGrain" = "Fine Grain Size";
+"particleDebug.parameter.membraneLineStrength" = "Reference Line Strength";
+"particleDebug.parameter.membraneLineWidth" = "Reference Line Width";
+"particleDebug.parameter.membraneStability" = "Stability";
 "particleDebug.parameter.spineLineStrength" = "Spine Strength";
 "particleDebug.parameter.spineLineHighlight" = "Spine Highlight";
 "particleDebug.parameter.spineLineContrast" = "Spine Contrast";

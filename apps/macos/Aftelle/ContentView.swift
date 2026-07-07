@@ -233,6 +233,7 @@ private enum ParticleDebugSection {
 private enum ParticleTuningGroup: CaseIterable, Identifiable {
     case basics
     case shape
+    case membrane
     case motion
     case scatter
     case spine
@@ -245,6 +246,8 @@ private enum ParticleTuningGroup: CaseIterable, Identifiable {
             return "particleDebug.tuningGroup.basics"
         case .shape:
             return "particleDebug.tuningGroup.shape"
+        case .membrane:
+            return "particleDebug.tuningGroup.membrane"
         case .motion:
             return "particleDebug.tuningGroup.motion"
         case .scatter:
@@ -260,6 +263,8 @@ private enum ParticleTuningGroup: CaseIterable, Identifiable {
             return [.globalScale, .pointSizeScale, .brightness, .alphaScale, .ridgeBrightness, .surfaceLightStrength]
         case .shape:
             return [.shapeRoundness, .surfaceReliefStrength, .shapeSeed]
+        case .membrane:
+            return [.membraneAspect, .membraneScale, .membraneMist, .membraneGrain, .membraneLineStrength, .membraneLineWidth, .membraneStability]
         case .motion:
             return [.breathingAmount, .breathingSpeed, .flowStrength, .flowSpeed, .rotationSpeed, .rotationDirection]
         case .scatter:

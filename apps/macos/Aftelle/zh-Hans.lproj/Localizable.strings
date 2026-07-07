@@ -31,6 +31,7 @@
 "particleDebug.restoreDefault" = "恢复默认";
 "particleDebug.tuningGroup.basics" = "基础";
 "particleDebug.tuningGroup.shape" = "形态";
+"particleDebug.tuningGroup.membrane" = "膜形态";
 "particleDebug.tuningGroup.motion" = "动效";
 "particleDebug.tuningGroup.scatter" = "发散";
 "particleDebug.tuningGroup.spine" = "背脊线条";
@@ -48,6 +49,13 @@
 "particleDebug.parameter.shapeRoundness" = "圆润度";
 "particleDebug.parameter.surfaceReliefStrength" = "表面起伏";
 "particleDebug.parameter.shapeSeed" = "形态 Seed";
+"particleDebug.parameter.membraneAspect" = "膜比例";
+"particleDebug.parameter.membraneScale" = "膜缩放";
+"particleDebug.parameter.membraneMist" = "膜雾强度";
+"particleDebug.parameter.membraneGrain" = "细尘大小";
+"particleDebug.parameter.membraneLineStrength" = "参考线强度";
+"particleDebug.parameter.membraneLineWidth" = "参考线宽度";
+"particleDebug.parameter.membraneStability" = "稳定度";
 "particleDebug.parameter.spineLineStrength" = "背脊强度";
 "particleDebug.parameter.spineLineHighlight" = "背脊高光";
 "particleDebug.parameter.spineLineContrast" = "背脊对比";
