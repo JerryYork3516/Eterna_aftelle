@@ -507,7 +507,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float rotationPhaseTime = postureTime + tuneRotationPhase;
     float turnAngle = globalTurnAngle(rotationPhaseTime);
     float turnChangePulse = globalTurnChangePulse(rotationPhaseTime);
-    float spinAngle = rotationTime + tuneRotationPhase;
+    float spinAngle = rotationTime;
     float3 selfSpinAngles = float3(
         -tuneRotationDirection.y * spinAngle,
         tuneRotationDirection.x * spinAngle,
