@@ -385,8 +385,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneSurfaceLight = saturate(uniforms.surfaceLightStrength);
     float tuneMembraneMist = scaleAroundOne(uniforms.membraneMist, 1.60);
     float tuneMembraneGrain = scaleAroundOne(uniforms.membraneGrain, 1.60);
-    float tuneMembraneLineStrength = scaleAroundOne(uniforms.membraneLineStrength, 1.80);
-    float tuneMembraneLineWidth = scaleAroundOne(uniforms.membraneLineWidth, 1.20);
+    float membraneLineControl = saturate(uniforms.membraneLineStrength);
+    float tuneMembraneLineStrength = membraneLineControl * membraneLineControl * membraneLineControl * 1.25;
+    float tuneMembraneLineWidth = mix(0.56, 1.18, saturate(uniforms.membraneLineWidth));
     float membraneFullnessValue = saturate(uniforms.membraneFullness);
     float tuneMembraneFullness = membraneFullnessValue * 2.0;
     float tuneSheetLight = saturate(uniforms.sheetLightStrength);
@@ -746,7 +747,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float denseSection = smoothstep(0.46, 0.84, sectionA * 0.36 + sectionB * 0.30 + cloudDensity * 0.50);
     float sparseCavity = smoothstep(0.62, 0.94, (1.0 - sectionC) * 0.46 + (1.0 - cloudDensity) * 0.38)
         * (interior * 0.20 + midBand * 0.16);
-    float membraneLineWidth = max(0.24, tuneMembraneLineWidth);
+    float spineReferenceWidth = max(0.24, tuneSpineWidth);
+    float membraneReferenceBand = mix(0.06, 0.18, saturate(uniforms.membraneLineWidth));
     float spineWidthShift = (tuneSpineWidth - 1.0) * 0.125;
     float spineDensityShift = (tuneSpineDensity - 1.0) * 0.170;
     float spineSharpShift = (tuneSpineSharpness - 1.0) * 0.060;
@@ -760,23 +762,29 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float spineRadiusGate = smoothstep(spineRadiusTarget - spineRadiusBand, spineRadiusTarget, flowedRadius)
         * (1.0 - smoothstep(spineRadiusTarget + spineRadiusBand * 0.72, spineRadiusTarget + spineRadiusBand * 1.42, flowedRadius));
     float spineShellGate = 0.24 + spineRadiusGate * 0.76;
-    float mainRidge = (1.0 - smoothstep(0.010, (0.038 - spineWidthShift * 0.16) * membraneLineWidth, abs(ridgeY - (ridgeX * 0.42 + 0.055 * sin(ridgeX * 8.0 + spineFlowPhase + animatedTravel * 0.42) + 0.02))))
+    float mainRidge = (1.0 - smoothstep(0.010, (0.038 - spineWidthShift * 0.16) * spineReferenceWidth, abs(ridgeY - (ridgeX * 0.42 + 0.055 * sin(ridgeX * 8.0 + spineFlowPhase + animatedTravel * 0.42) + 0.02))))
         * smoothstep(-0.34, -0.06, ridgeX)
         * (1.0 - smoothstep(0.38, 0.56, ridgeX));
-    float topRidge = (1.0 - smoothstep(0.012, (0.044 - spineWidthShift * 0.16) * membraneLineWidth, abs(ridgeY - (0.25 + 0.050 * sin(ridgeX * 9.0 - spineFlowPhase * 0.4 + animatedCross * 0.28)))))
+    float topRidge = (1.0 - smoothstep(0.012, (0.044 - spineWidthShift * 0.16) * spineReferenceWidth, abs(ridgeY - (0.25 + 0.050 * sin(ridgeX * 9.0 - spineFlowPhase * 0.4 + animatedCross * 0.28)))))
         * smoothstep(-0.44, -0.10, ridgeX)
         * (1.0 - smoothstep(0.42, 0.58, ridgeX));
-    float lowerRidge = (1.0 - smoothstep(0.012, (0.044 - spineWidthShift * 0.16) * membraneLineWidth, abs(ridgeY - (-0.26 + 0.070 * cos(ridgeX * 7.2 + spineFlowPhase * 0.3 - animatedTravel * 0.24)))))
+    float lowerRidge = (1.0 - smoothstep(0.012, (0.044 - spineWidthShift * 0.16) * spineReferenceWidth, abs(ridgeY - (-0.26 + 0.070 * cos(ridgeX * 7.2 + spineFlowPhase * 0.3 - animatedTravel * 0.24)))))
         * smoothstep(-0.44, -0.16, ridgeX)
         * (1.0 - smoothstep(0.36, 0.54, ridgeX));
-    float leftFold = (1.0 - smoothstep(0.014, (0.048 - spineWidthShift * 0.14) * membraneLineWidth, abs(ridgeX + 0.34 + 0.045 * sin(ridgeY * 7.0 + spineFlowPhase))))
+    float leftFold = (1.0 - smoothstep(0.014, (0.048 - spineWidthShift * 0.14) * spineReferenceWidth, abs(ridgeX + 0.34 + 0.045 * sin(ridgeY * 7.0 + spineFlowPhase))))
         * smoothstep(-0.42, -0.12, ridgeY)
         * (1.0 - smoothstep(0.36, 0.52, ridgeY));
     float referenceRidge = saturate(max(max(mainRidge, topRidge * 0.70), max(lowerRidge * 0.64, leftFold * 0.54)))
         * frontIonGate
         * (0.58 + interior * 0.34 + edge * 0.18)
-        * spineShellGate
-        * tuneMembraneLineStrength;
+        * spineShellGate;
+    float membraneReferenceA = smoothstep(0.86 - membraneReferenceBand, 0.96 - membraneReferenceBand * 0.15, 0.5 + 0.5 * sin(cloudTravel * 2.15 + flowedBody.z * 1.35 + visualTime * 0.12 + morph * 0.24));
+    float membraneReferenceB = smoothstep(0.88 - membraneReferenceBand, 0.97 - membraneReferenceBand * 0.12, 0.5 + 0.5 * cos(cloudCross * 2.55 - cloudTravel * 0.58 + flowedBody.z * 1.15 - visualTime * 0.10 + phaseB * 0.10));
+    float membraneReferenceLine = saturate((membraneReferenceA * 0.55 + membraneReferenceB * 0.45)
+        * tuneMembraneLineStrength
+        * frontIonGate
+        * (0.20 + interior * 0.22 + edge * 0.10)
+        * (1.0 - referenceRidge * 0.42));
     float ridgePick = smoothstep(0.64 - spineDensityShift * 0.55 + spineSharpShift, 0.92 - spineDensityShift * 0.35 + spineSharpShift * 0.45, 0.5 + 0.5 * sin(structureAngle * 5.1 + animatedTravel * 2.2 + flowedBody.z * 2.4 + particleSeed * 19.0 + seedB * 7.0 + spinePhase));
     float spineBandA = smoothstep(0.70 - spineWidthShift - spineDensityShift + spineSharpShift, 0.98 - spineDensityShift * 0.45 + spineSharpShift * 0.42, 0.5 + 0.5 * sin(animatedTravel * 5.0 - animatedCross * 1.7 + flowedBody.z * 4.2 - visualTime * 0.18 + particleSeed * 2.0 + spinePhase));
     float spineBandB = smoothstep(0.76 - spineWidthShift - spineDensityShift + spineSharpShift, 0.99 - spineDensityShift * 0.45 + spineSharpShift * 0.42, 0.5 + 0.5 * cos(animatedCross * 5.8 + animatedTravel * 1.6 - flowedBody.z * 3.6 + visualTime * 0.14 + phaseB * 0.22 - spinePhase * 0.6));
@@ -862,7 +870,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     visibleLayerDensity = saturate(visibleLayerDensity * mix(0.66, 1.08, tuneMembraneFullness) + rearVolumeLift * 0.070 + shellThicknessLift);
     visibleDenseSection = saturate(visibleDenseSection * mix(0.60, 1.06, tuneMembraneFullness) + rearVolumeLift * 0.050);
     visibleSparseCavity = saturate(visibleSparseCavity * mix(1.14, 0.76, tuneMembraneFullness));
-    float spineAggregation = saturate(visibleStructuralSpine * (0.64 + visibleLayerDensity * 0.82 + visibleDenseSection * 0.48) * tuneMembraneLineStrength);
+    visibleLayerDensity = saturate(visibleLayerDensity + membraneReferenceLine * 0.24);
+    visibleLocalRidge = saturate(visibleLocalRidge + membraneReferenceLine * 0.13);
+    float spineAggregation = saturate(visibleStructuralSpine * (0.64 + visibleLayerDensity * 0.82 + visibleDenseSection * 0.48) * (0.82 + tuneSpineStrength * 0.32));
     float edgeContour = edge * frontDepthGate * (0.38 + visibleCloudDensity * 0.22 + visibleStructuralSpine * 0.18 + edgeFrayField * 0.22 + edgeDustVisibility * 0.30);
     float normalSurfaceFlow = saturate(visibleRidgeFlow * 0.26 + turnWakeEnergy * 0.34 + visibleCloudDensity * 0.18)
         * frontDepthGate
