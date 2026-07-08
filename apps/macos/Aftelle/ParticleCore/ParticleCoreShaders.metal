@@ -370,7 +370,6 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneRotationSpeed = rotationControl * 1.85;
     float2 tuneRotationDirection = cardinalDirection(uniforms.rotationDirection);
     float tuneRotationPhase = atan2(tuneRotationDirection.y, tuneRotationDirection.x);
-    float tuneRotationDelta = abs(saturate(uniforms.rotationSpeed) - 0.5) * 2.0;
     float spineStrengthControl = saturate(uniforms.spineLineStrength);
     float spineWidthControl = saturate(uniforms.spineLineWidth);
     float spineDensityControl = saturate(uniforms.spineLineDensity);
@@ -519,7 +518,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         turnAngle * 0.14 + sin(rotationPhaseTime * 0.24 + 0.6) * 0.045,
         sin(rotationPhaseTime * 0.19 + 0.8) * 0.045 + sin(rotationPhaseTime * 0.11 + 2.4) * 0.020 - turnChangePulse * 0.015
     );
-    float3 stableLightNormal = normalize(rotateBody(rotateBody(float3(baseParticlePosition * 0.92, depth * 1.24), selfSpinAngles), bodyAngles) + float3(0.001, 0.001, 0.001));
+    float wholeTurn = globalTurnAngle(rotationPhaseTime * 0.36 + 6.4) * 0.10
+        + sin(rotationPhaseTime * 0.19 + 1.7) * 0.035;
+    float3 viewAngles = selfSpinAngles + bodyAngles + float3(uniforms.manualRotationX, uniforms.manualRotationY, wholeTurn);
+    float3 stableLightNormal = normalize(rotateBody(float3(baseParticlePosition * 0.92, depth * 1.24), viewAngles) + float3(0.001, 0.001, 0.001));
     float directionalFrontLight = smoothstep(-0.24, 0.70, stableLightNormal.z);
     float reliefDepthOffset = broadDensityShape * reliefPresence * reliefRadiusGate * (0.020 + shellLayer * 0.028);
     float bodyDepth = depth * 0.52 * axisScale.z
@@ -538,22 +540,14 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + cloudFlow * (1.58 + activeInterior * 0.18 + midBand * 0.44);
     body += materialFlow * (0.72 + activeInterior * 0.10 + midBand * 0.32)
         + cloudFlow * (1.18 + activeInterior * 0.12 + midBand * 0.46);
-    materialBody = rotateBody(materialBody, selfSpinAngles);
-    body = rotateBody(body, selfSpinAngles);
-    body = rotateBody(body, bodyAngles);
-    float3 viewBody = rotateBody(shapeBody, selfSpinAngles + bodyAngles + float3(uniforms.manualRotationX, uniforms.manualRotationY, 0.0));
+    materialBody = rotateBody(materialBody, viewAngles);
+    body = rotateBody(body, viewAngles);
+    float3 viewBody = rotateBody(shapeBody, viewAngles);
     float viewPerspective = 1.0 / max(0.72, 1.0 + viewBody.z * 0.10);
-    float viewRotationGate = 0.42 + smoothstep(0.14, 0.78, shellLayer) * 0.58;
-    p = mix(shapeBody.xy, viewBody.xy * viewPerspective, viewRotationGate);
-    float wholeTurn = globalTurnAngle(rotationPhaseTime * 0.36 + 6.4) * 0.10
-        + sin(rotationPhaseTime * 0.19 + 1.7) * 0.035;
-    p = rotate2(p, wholeTurn);
-    float2 rotationOrbitAxis = rotate2(tuneRotationDirection, rotationTime * 0.22);
-    float rotationOrbitGate = smoothstep(0.10, 0.72, lengthP) * (1.0 - smoothstep(0.94, 1.20, lengthP));
-    p += rotationOrbitAxis * rotationOrbitGate * tuneRotationDelta * tuneRotationSpeed * 0.010;
+    p = viewBody.xy * viewPerspective;
     float2 stableScreenPosition = p;
     float stableRadius = length(stableScreenPosition);
-    float3 axis3 = rotateBody(rotateBody(float3(globalAxis.x, globalAxis.y, 0.0), selfSpinAngles), bodyAngles);
+    float3 axis3 = rotateBody(float3(globalAxis.x, globalAxis.y, 0.0), viewAngles);
     float2 turnedAxis = normalize(axis3.xy + float2(0.001, 0.001));
     float2 turnedSide = float2(-turnedAxis.y, turnedAxis.x);
     float2 wanderingSurfaceAxis = globalDirection(fieldTime * 0.52 + surfaceFlowPhase + 5.8);
