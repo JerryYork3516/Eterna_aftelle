@@ -356,13 +356,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     }
 
     func rotateLight(deltaX: Float, deltaY: Float) {
-        lightRotation.x = wrappedAngle(lightRotation.x + deltaY * 0.010)
-        lightRotation.y = wrappedAngle(lightRotation.y + deltaX * 0.010)
-    }
-
-    private func wrappedAngle(_ angle: Float) -> Float {
-        let period = Float.pi * 2
-        return angle - floor((angle + Float.pi) / period) * period
+        lightRotation.x += deltaY * 0.010
+        lightRotation.y += deltaX * 0.010
     }
 
     func setVisualState(_ visualState: ParticleCoreVisualState, reason: String = "appMapping") {

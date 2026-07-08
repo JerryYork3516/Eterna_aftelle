@@ -397,7 +397,6 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 tuneSurfaceFlowAxis = float2(cos(surfaceDirectionAngle), sin(surfaceDirectionAngle));
     float tuneSurfaceLight = saturate(uniforms.surfaceLightStrength);
     float tuneMembraneMist = scaleAroundOne(uniforms.membraneMist, 1.60);
-    float tuneMembraneGrain = scaleAroundOne(uniforms.membraneGrain, 1.60);
     float membraneLineControl = saturate(uniforms.membraneLineStrength);
     float tuneMembraneLineStrength = membraneLineControl * membraneLineControl * membraneLineControl * 1.25;
     float membraneFullnessValue = saturate(uniforms.membraneFullness);
@@ -1045,7 +1044,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     layeredPointSize += stableSizeRidge * 0.24 + spineHighlightLift * 0.08 - spineHighlightMute * 0.05;
     float exitPointScale = mix(1.0, 0.56 + dustRelease * 0.16, exitDim);
     exitPointScale *= mix(1.0, 0.84, exitState * exitBreakAmount);
-    out.pointSize = clamp(layeredPointSize, 0.74 + frontSizeLift * 0.10, pointCeiling + ridgeSizeLift * 0.36) * 0.94 * exitPointScale * tunePointSize * tuneMembraneGrain;
+    out.pointSize = clamp(layeredPointSize, 0.74 + frontSizeLift * 0.10, pointCeiling + ridgeSizeLift * 0.36) * 0.94 * exitPointScale * tunePointSize;
     out.ridge = saturate((ridge * 0.18 + visibleStructuralSpine * 0.58 + spineAggregation * 0.34 + visibleRidgeFlow * 0.12) * tuneRidgeBrightness);
     out.depth = visibleDepth;
     float visibleStructureInfluence = saturate(max(max(spineStrengthControl, membraneLineControl), max(max(edgeDustControl, edgeFrayControl), reliefPresence)));
