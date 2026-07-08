@@ -1017,7 +1017,16 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     surfaceLight = saturate(surfaceLight
         + (directionalFrontLight - 0.52) * 0.34 * sheetHighRange
         - rearShade * cavityGuard * 0.080 * sheetHighRange);
-    float sphericalLight = saturate(rollingLight * 0.78 + fillLight * 0.18 + directionalFrontLight * 0.04);
+    float sphereRadius = 0.78;
+    float2 normalizedSpherePosition = stableScreenPosition / sphereRadius;
+    float normalizedSphereRadius = max(1.0, length(normalizedSpherePosition));
+    float2 cappedSpherePosition = normalizedSpherePosition / normalizedSphereRadius;
+    float cleanSphereZ = sqrt(max(0.0, 1.0 - dot(cappedSpherePosition, cappedSpherePosition)));
+    float3 sizeLightNormal = normalize(float3(cappedSpherePosition, cleanSphereZ) + float3(0.0, 0.0, 0.001));
+    float sizeKeyLight = smoothstep(-0.18, 0.82, dot(sizeLightNormal, keyDirection));
+    float sizeFillLight = smoothstep(-0.12, 0.70, dot(sizeLightNormal, fillDirection));
+    float sphericalLight = saturate(sizeKeyLight * 0.84 + sizeFillLight * 0.12 + cleanSphereZ * 0.04);
+    surfaceLight = saturate(surfaceLight * 0.76 + sphericalLight * 0.24);
     float lightSize = mix(0.72, 1.58, smoothstep(0.10, 0.92, sphericalLight));
     float baseDepthGate = saturate(directionalFrontLight * 0.72 + sphericalLight * 0.28);
     float frontSizeLift = baseDepthGate * 0.08;
