@@ -1026,7 +1026,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float sizeKeyLight = smoothstep(-0.18, 0.82, dot(sizeLightNormal, keyDirection));
     float sizeFillLight = smoothstep(-0.12, 0.70, dot(sizeLightNormal, fillDirection));
     float sphericalLight = saturate(sizeKeyLight * 0.84 + sizeFillLight * 0.12 + cleanSphereZ * 0.04);
-    surfaceLight = saturate(surfaceLight * 0.76 + sphericalLight * 0.24);
+    surfaceLight = saturate(surfaceLight * 0.55 + sphericalLight * 0.45);
     float lightSize = mix(0.72, 1.58, smoothstep(0.10, 0.92, sphericalLight));
     float baseDepthGate = saturate(directionalFrontLight * 0.72 + sphericalLight * 0.28);
     float frontSizeLift = baseDepthGate * 0.08;
@@ -1115,7 +1115,7 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float frontSurfaceContrast = mix(0.50, 1.18, litSurface);
     float backPresence = 1.0 - smoothstep(-0.54, 0.06, in.depth);
     float frontPresence = smoothstep(-0.22, 0.46, in.depth);
-    float backMute = mix(0.34, 1.0, frontPresence);
+    float backMute = mix(0.74, 1.0, frontPresence);
     float sparseDim = 1.0 - smoothstep(0.18, 0.58, density);
     float particleFill = saturate(0.14 + densityLight * 0.22 + ridge * 0.040 + in.flow * 0.030);
     float litFront = frontLight * litSurface;
@@ -1156,8 +1156,8 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     coverage = saturate(coverage + error * errorFracture * ridge * frontLight * 0.030);
     coverage *= mix(1.0, 0.66, exitBreak);
     coverage *= mix(1.0, 0.24 + exitDust * 0.16, exitLocalFade);
-    coverage = saturate(coverage * mix(0.88, 1.16, ionPresence) * mix(1.0, 0.70, sparseDim));
-    coverage *= mix(0.70, 1.0, frontPresence);
+    coverage = saturate(coverage * mix(0.92, 1.12, ionPresence) * mix(1.0, 0.90, sparseDim));
+    coverage *= mix(0.88, 1.0, frontPresence);
     coverage *= mix(1.0, 0.96, previewPlaceholder);
     float highlight = saturate(litSurface * 0.62 + in.flow * 0.34 + ridge * 0.26 + ionRidge * 0.42 + ridgeGlow * 0.54 + surfaceWake * 0.18);
     highlight = saturate(highlight + thinking * (ridge * 0.12 + in.flow * 0.035) * frontLight);
