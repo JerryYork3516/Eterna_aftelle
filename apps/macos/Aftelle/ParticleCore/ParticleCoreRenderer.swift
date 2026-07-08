@@ -24,6 +24,7 @@ struct ParticleCoreFrameUniforms {
     var stateElapsedTime: Float
     var globalScale: Float
     var pointSizeScale: Float
+    var particleEdgeSharpness: Float
     var brightness: Float
     var alphaScale: Float
     var ridgeBrightness: Float
@@ -90,12 +91,13 @@ enum ParticleCoreVisualState: UInt32 {
 }
 
 final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
-    private let model: ParticleCoreModel
+    private var model: ParticleCoreModel
+    private let modelSeed: UInt64
     private let frameSeed: UInt32
     private let device: MTLDevice
     private let commandQueue: MTLCommandQueue
     private let pipelineState: MTLRenderPipelineState
-    private let particleBuffer: MTLBuffer
+    private var particleBuffer: MTLBuffer
     private let uniformsBuffer: MTLBuffer
     private let startTime = CACurrentMediaTime()
     private var stateStartTime = CACurrentMediaTime()
@@ -139,8 +141,10 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
 
     init?(device: MTLDevice, visualState: ParticleCoreVisualState = .idle, validationSeed: UInt64? = nil) {
         let launchSeed: UInt64 = validationSeed ?? 0xA7F7E11E
+        let initialParticleCount = Int(ParticleCoreTuning.systemDefault.particleCount.rounded())
         self.device = device
-        self.model = ParticleCoreModel(seed: launchSeed)
+        self.modelSeed = launchSeed
+        self.model = ParticleCoreModel(count: initialParticleCount, seed: launchSeed)
         self.frameSeed = UInt32(truncatingIfNeeded: launchSeed ^ (launchSeed >> 32))
         self.visualState = visualState
         self.previousVisualState = visualState
@@ -277,6 +281,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             stateElapsedTime: stateElapsedTime,
             globalScale: Float(tuning.globalScale),
             pointSizeScale: Float(tuning.pointSizeScale),
+            particleEdgeSharpness: Float(tuning.particleEdgeSharpness),
             brightness: Float(tuning.brightness),
             alphaScale: Float(tuning.alphaScale),
             ridgeBrightness: Float(tuning.ridgeBrightness),
@@ -380,7 +385,9 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     }
 
     func setTuning(_ tuning: ParticleCoreTuning) {
-        self.tuning = tuning.clamped()
+        let nextTuning = tuning.clamped()
+        rebuildParticlesIfNeeded(count: Int(nextTuning.particleCount.rounded()))
+        self.tuning = nextTuning
     }
 
     func setColorProfile(_ colorProfile: ParticleCoreColorProfile) {
@@ -393,6 +400,19 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         for (index, payload) in payloads.enumerated() {
             pointer[index] = payload
         }
+    }
+
+    private func rebuildParticlesIfNeeded(count: Int) {
+        guard count != model.particles.count else { return }
+        let nextModel = ParticleCoreModel(count: count, seed: modelSeed)
+        let length = MemoryLayout<SIMD4<Float>>.stride * nextModel.particles.count
+        guard let nextBuffer = device.makeBuffer(length: length, options: .storageModeShared) else {
+            print("[ParticleCore] particleBuffer resize failed count=\(count)")
+            return
+        }
+        model = nextModel
+        particleBuffer = nextBuffer
+        uploadParticles()
     }
 
     private func updateSmoothedMouse(elapsedTime: CFTimeInterval) {

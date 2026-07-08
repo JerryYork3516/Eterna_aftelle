@@ -125,6 +125,7 @@ private final class ParticleCoreInputView: MTKView {
     private var trackingAreaRef: NSTrackingArea?
     private var lastMousePosition: SIMD2<Float>?
     private var lastMouseTime: TimeInterval?
+    private var lastLightDragLocation: CGPoint?
 
     override var acceptsFirstResponder: Bool {
         true
@@ -161,10 +162,18 @@ private final class ParticleCoreInputView: MTKView {
 
     override func mouseDragged(with event: NSEvent) {
         if lightDragEnabled, event.modifierFlags.contains(.option) {
-            inputRenderer?.rotateLight(deltaX: Float(event.deltaX), deltaY: Float(event.deltaY))
+            let location = convert(event.locationInWindow, from: nil)
+            if let lastLightDragLocation {
+                inputRenderer?.rotateLight(
+                    deltaX: Float(location.x - lastLightDragLocation.x),
+                    deltaY: Float(location.y - lastLightDragLocation.y)
+                )
+            }
+            lastLightDragLocation = location
             inputRenderer?.updateMouse(position: .zero, velocity: .zero, active: false)
             return
         }
+        lastLightDragLocation = nil
         if manualRotationEnabled {
             inputRenderer?.rotateManualView(deltaX: Float(event.deltaX), deltaY: Float(event.deltaY))
             inputRenderer?.updateMouse(position: .zero, velocity: .zero, active: false)
@@ -175,10 +184,17 @@ private final class ParticleCoreInputView: MTKView {
 
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
+        lastLightDragLocation = nil
         super.mouseDown(with: event)
     }
 
+    override func mouseUp(with event: NSEvent) {
+        lastLightDragLocation = nil
+        super.mouseUp(with: event)
+    }
+
     override func mouseExited(with event: NSEvent) {
+        lastLightDragLocation = nil
         lastMousePosition = nil
         lastMouseTime = nil
         inputRenderer?.updateMouse(position: .zero, velocity: .zero, active: false)

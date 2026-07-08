@@ -21,6 +21,7 @@ struct ParticleCoreFrameUniforms {
     float stateElapsedTime;
     float globalScale;
     float pointSizeScale;
+    float particleEdgeSharpness;
     float brightness;
     float alphaScale;
     float ridgeBrightness;
@@ -101,6 +102,7 @@ struct ParticleVertexOut {
     float exitDust;
     float brightness;
     float alphaScale;
+    float particleEdgeSharpness;
     float4 baseColor;
     float4 ridgeColor;
     float4 dimColor;
@@ -1075,6 +1077,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     out.exitDust = dustRelease;
     out.brightness = tuneBrightness;
     out.alphaScale = tuneAlpha;
+    out.particleEdgeSharpness = saturate(uniforms.particleEdgeSharpness);
     out.baseColor = uniforms.baseColor;
     out.ridgeColor = uniforms.ridgeColor;
     out.dimColor = uniforms.dimColor;
@@ -1087,8 +1090,11 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
 fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
                                 float2 pointCoord [[point_coord]]) {
     float d = distance(pointCoord, float2(0.5, 0.5));
-    float core = 1.0 - smoothstep(0.08, 0.28, d);
-    float halo = 1.0 - smoothstep(0.14, 0.52, d);
+    float particleEdgeSharpness = saturate(in.particleEdgeSharpness);
+    float coreOuter = mix(0.34, 0.20, particleEdgeSharpness);
+    float haloOuter = mix(0.64, 0.42, particleEdgeSharpness);
+    float core = 1.0 - smoothstep(0.08, coreOuter, d);
+    float halo = 1.0 - smoothstep(0.14, haloOuter, d);
     float depthLight = saturate(in.frontness);
     float frontLight = smoothstep(0.42, 0.88, in.frontness);
     float ridge = saturate(in.ridge);

@@ -3,7 +3,9 @@ import simd
 
 struct ParticleCoreTuning: Codable, Equatable {
     var globalScale: Double
+    var particleCount: Double
     var pointSizeScale: Double
+    var particleEdgeSharpness: Double
     var brightness: Double
     var alphaScale: Double
     var ridgeBrightness: Double
@@ -49,7 +51,9 @@ struct ParticleCoreTuning: Codable, Equatable {
 
     init(
         globalScale: Double,
+        particleCount: Double,
         pointSizeScale: Double,
+        particleEdgeSharpness: Double,
         brightness: Double,
         alphaScale: Double,
         ridgeBrightness: Double,
@@ -94,7 +98,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         surfaceLightStrength: Double
     ) {
         self.globalScale = globalScale
+        self.particleCount = particleCount
         self.pointSizeScale = pointSizeScale
+        self.particleEdgeSharpness = particleEdgeSharpness
         self.brightness = brightness
         self.alphaScale = alphaScale
         self.ridgeBrightness = ridgeBrightness
@@ -141,7 +147,9 @@ struct ParticleCoreTuning: Codable, Equatable {
 
     static let systemDefault = ParticleCoreTuning(
         globalScale: 0.56,
+        particleCount: 12000,
         pointSizeScale: 0.52,
+        particleEdgeSharpness: 0.55,
         brightness: 0.78,
         alphaScale: 0.84,
         ridgeBrightness: 0.56,
@@ -188,7 +196,9 @@ struct ParticleCoreTuning: Codable, Equatable {
 
     static let idlePolish = ParticleCoreTuning(
         globalScale: 0.58,
+        particleCount: 12000,
         pointSizeScale: 0.52,
+        particleEdgeSharpness: 0.55,
         brightness: 0.76,
         alphaScale: 0.84,
         ridgeBrightness: 0.62,
@@ -237,7 +247,9 @@ struct ParticleCoreTuning: Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case globalScale
+        case particleCount
         case pointSizeScale
+        case particleEdgeSharpness
         case brightness
         case alphaScale
         case ridgeBrightness
@@ -291,7 +303,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         let legacyValues = try decoder.container(keyedBy: LegacyCodingKeys.self)
         self.init(
             globalScale: try values.decodeIfPresent(Double.self, forKey: .globalScale) ?? 0.5,
+            particleCount: try values.decodeIfPresent(Double.self, forKey: .particleCount) ?? Self.systemDefault.particleCount,
             pointSizeScale: try values.decodeIfPresent(Double.self, forKey: .pointSizeScale) ?? 0.5,
+            particleEdgeSharpness: try values.decodeIfPresent(Double.self, forKey: .particleEdgeSharpness) ?? Self.systemDefault.particleEdgeSharpness,
             brightness: try values.decodeIfPresent(Double.self, forKey: .brightness) ?? 0.5,
             alphaScale: try values.decodeIfPresent(Double.self, forKey: .alphaScale) ?? 0.5,
             ridgeBrightness: try values.decodeIfPresent(Double.self, forKey: .ridgeBrightness) ?? 0.5,
@@ -367,7 +381,9 @@ struct ParticleCoreTuning: Codable, Equatable {
 
 enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case globalScale
+    case particleCount
     case pointSizeScale
+    case particleEdgeSharpness
     case brightness
     case alphaScale
     case ridgeBrightness
@@ -421,6 +437,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
 
     var step: Double {
         switch self {
+        case .particleCount:
+            return 250
         case .rotationDirection:
             return 1.0 / 3.0
         case .spineSeed:
@@ -429,7 +447,7 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return 0.05
         case .shapeScaleX, .shapeScaleY, .shapeScaleZ:
             return 0.02
-        case .globalScale, .pointSizeScale, .brightness, .alphaScale, .ridgeBrightness,
+        case .globalScale, .pointSizeScale, .particleEdgeSharpness, .brightness, .alphaScale, .ridgeBrightness,
              .breathingSpeed, .flowSpeed, .rotationSpeed, .surfaceLightStrength,
              .surfaceReliefStrength,
              .membraneMist, .membraneGrain, .membraneLineStrength,
@@ -444,6 +462,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
 
     var range: ClosedRange<Double> {
         switch self {
+        case .particleCount:
+            return 3000...16000
         case .shapeScaleX, .shapeScaleY, .shapeScaleZ:
             return -1.0...1.0
         default:
@@ -463,8 +483,12 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
         switch self {
         case .globalScale:
             return \.globalScale
+        case .particleCount:
+            return \.particleCount
         case .pointSizeScale:
             return \.pointSizeScale
+        case .particleEdgeSharpness:
+            return \.particleEdgeSharpness
         case .brightness:
             return \.brightness
         case .alphaScale:

@@ -463,7 +463,7 @@ private enum ParticleTuningGroup: CaseIterable, Identifiable {
     var parameters: [ParticleCoreTuningParameter] {
         switch self {
         case .basic:
-            return [.globalScale, .pointSizeScale, .brightness, .alphaScale]
+            return [.globalScale, .particleCount, .pointSizeScale, .brightness, .particleEdgeSharpness]
         case .shape:
             return [.surfaceReliefStrength, .shapeScaleX, .shapeScaleY, .shapeScaleZ]
         case .surface:
@@ -1189,7 +1189,14 @@ private struct ParticleParameterRow: View {
     }
 
     private var valueSummary: String {
-        String(
+        if parameter == .particleCount {
+            return String(
+                format: String(localized: "particleDebug.parameter.integerValueSummary"),
+                Int(currentValue.rounded()),
+                Int(parameter.defaultValue.rounded())
+            )
+        }
+        return String(
             format: String(localized: "particleDebug.parameter.valueSummary"),
             currentValue,
             parameter.defaultValue
