@@ -464,7 +464,7 @@ private enum ParticleTuningGroup: CaseIterable, Identifiable {
         case .edge:
             return [.edgeScatterDistance, .edgeDustAmount, .edgeFrayAmount]
         case .spine:
-            return [.ridgeBrightness, .membraneLineStrength, .membraneLineWidth, .membraneStability, .spineRadius, .spineSeed, .spineFlowBinding, .spineLineStrength, .spineLineWidth, .spineLineDensity]
+            return [.ridgeBrightness, .membraneLineStrength, .membraneStability, .spineRadius, .spineSeed, .spineFlowBinding, .spineLineStrength, .spineLineWidth, .spineLineDensity]
         }
     }
 }

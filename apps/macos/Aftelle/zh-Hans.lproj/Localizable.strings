@@ -75,7 +75,6 @@
 "particleDebug.parameter.membraneMist" = "膜雾强度";
 "particleDebug.parameter.membraneGrain" = "细尘大小";
 "particleDebug.parameter.membraneLineStrength" = "参考线强度";
-"particleDebug.parameter.membraneLineWidth" = "参考线宽度";
 "particleDebug.parameter.membraneStability" = "稳定度";
 "particleDebug.parameter.membraneFullness" = "体积饱满度";
 "particleDebug.parameter.sheetLightStrength" = "片层明暗";
@@ -161,9 +160,6 @@
 "particleDebug.parameter.membraneLineStrength.caption" = "控制壳体表面极弱的膜参考纹理。";
 "particleDebug.parameter.membraneLineStrength.lowHint" = "更隐";
 "particleDebug.parameter.membraneLineStrength.highHint" = "轻微纹理";
-"particleDebug.parameter.membraneLineWidth.caption" = "控制膜参考纹理的柔和宽度。";
-"particleDebug.parameter.membraneLineWidth.lowHint" = "更细";
-"particleDebug.parameter.membraneLineWidth.highHint" = "更柔";
 "particleDebug.parameter.membraneStability.caption" = "控制壳面结构的稳定程度。";
 "particleDebug.parameter.membraneStability.lowHint" = "更松";
 "particleDebug.parameter.membraneStability.highHint" = "更稳";

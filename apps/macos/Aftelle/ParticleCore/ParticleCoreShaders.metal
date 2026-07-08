@@ -387,7 +387,6 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneMembraneGrain = scaleAroundOne(uniforms.membraneGrain, 1.60);
     float membraneLineControl = saturate(uniforms.membraneLineStrength);
     float tuneMembraneLineStrength = membraneLineControl * membraneLineControl * membraneLineControl * 1.25;
-    float tuneMembraneLineWidth = mix(0.56, 1.18, saturate(uniforms.membraneLineWidth));
     float membraneFullnessValue = saturate(uniforms.membraneFullness);
     float tuneMembraneFullness = membraneFullnessValue * 2.0;
     float tuneSheetLight = saturate(uniforms.sheetLightStrength);
@@ -748,7 +747,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float sparseCavity = smoothstep(0.62, 0.94, (1.0 - sectionC) * 0.46 + (1.0 - cloudDensity) * 0.38)
         * (interior * 0.20 + midBand * 0.16);
     float spineReferenceWidth = max(0.24, tuneSpineWidth);
-    float membraneReferenceBand = mix(0.06, 0.18, saturate(uniforms.membraneLineWidth));
+    float membraneReferenceBand = 0.115;
     float spineWidthShift = (tuneSpineWidth - 1.0) * 0.125;
     float spineDensityShift = (tuneSpineDensity - 1.0) * 0.170;
     float spineSharpShift = (tuneSpineSharpness - 1.0) * 0.060;

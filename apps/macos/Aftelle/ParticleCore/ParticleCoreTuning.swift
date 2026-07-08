@@ -369,7 +369,6 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case membraneMist
     case membraneGrain
     case membraneLineStrength
-    case membraneLineWidth
     case membraneStability
     case membraneFullness
     case sheetLightStrength
@@ -422,7 +421,7 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
         case .globalScale, .pointSizeScale, .brightness, .alphaScale, .ridgeBrightness,
              .breathingSpeed, .flowSpeed, .rotationSpeed, .surfaceLightStrength,
              .shapeRoundness, .surfaceReliefStrength, .surfaceReliefDensity, .membraneAspect, .membraneScale,
-             .membraneMist, .membraneGrain, .membraneLineStrength, .membraneLineWidth,
+             .membraneMist, .membraneGrain, .membraneLineStrength,
              .membraneStability, .membraneFullness, .sheetLightStrength, .flowLightStrength,
              .spineRadius, .spineFlowBinding, .spineLineStrength, .spineLineWidth, .spineLineDensity, .spineLineHighlight,
              .spineLineContrast, .spineLineSharpness, .edgeScatterDistance, .surfaceFlowDirection:
@@ -478,8 +477,6 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.membraneGrain
         case .membraneLineStrength:
             return \.membraneLineStrength
-        case .membraneLineWidth:
-            return \.membraneLineWidth
         case .membraneStability:
             return \.membraneStability
         case .membraneFullness:

@@ -75,7 +75,6 @@
 "particleDebug.parameter.membraneMist" = "Membrane Mist";
 "particleDebug.parameter.membraneGrain" = "Fine Grain Size";
 "particleDebug.parameter.membraneLineStrength" = "Reference Line Strength";
-"particleDebug.parameter.membraneLineWidth" = "Reference Line Width";
 "particleDebug.parameter.membraneStability" = "Stability";
 "particleDebug.parameter.membraneFullness" = "Volume Fullness";
 "particleDebug.parameter.sheetLightStrength" = "Sheet Light Contrast";
@@ -161,9 +160,6 @@
 "particleDebug.parameter.membraneLineStrength.caption" = "Controls very subtle membrane surface reference texture.";
 "particleDebug.parameter.membraneLineStrength.lowHint" = "Hidden";
 "particleDebug.parameter.membraneLineStrength.highHint" = "Subtle texture";
-"particleDebug.parameter.membraneLineWidth.caption" = "Controls the softness and breadth of membrane reference texture.";
-"particleDebug.parameter.membraneLineWidth.lowHint" = "Thin";
-"particleDebug.parameter.membraneLineWidth.highHint" = "Soft";
 "particleDebug.parameter.membraneStability.caption" = "Controls how stable the shell surface remains.";
 "particleDebug.parameter.membraneStability.lowHint" = "Loose";
 "particleDebug.parameter.membraneStability.highHint" = "Stable";
