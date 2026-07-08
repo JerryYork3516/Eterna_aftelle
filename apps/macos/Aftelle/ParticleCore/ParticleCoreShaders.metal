@@ -543,7 +543,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     body = rotateBody(body, bodyAngles);
     float3 viewBody = rotateBody(shapeBody, selfSpinAngles + bodyAngles + float3(uniforms.manualRotationX, uniforms.manualRotationY, 0.0));
     float viewPerspective = 1.0 / max(0.72, 1.0 + viewBody.z * 0.10);
-    float viewRotationGate = smoothstep(0.22, 0.64, lengthP);
+    float viewRotationGate = 0.42 + smoothstep(0.14, 0.78, shellLayer) * 0.58;
     p = mix(shapeBody.xy, viewBody.xy * viewPerspective, viewRotationGate);
     float wholeTurn = globalTurnAngle(rotationPhaseTime * 0.36 + 6.4) * 0.10
         + sin(rotationPhaseTime * 0.19 + 1.7) * 0.035;
