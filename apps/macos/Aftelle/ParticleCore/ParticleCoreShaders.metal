@@ -991,7 +991,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + cloudPatchA * 0.030 * tuneMembraneMist
         + visibleStructuralSpine * 0.36
         + spineAggregation * 0.66
-        + edgeContour * 0.34
+        + edgeContour * edgeDustControl * 0.20
         + visibleIonCluster * 0.12);
     surfaceMaterialLight *= mix(0.58, 1.18, tuneSurfaceLight);
     float depthLayerLight = saturate(0.17 + sheetLight * (0.48 + sheetHighRange * 0.10) - visibleSparseCavity * (0.12 + 0.04 * sheetLayerStrength + sheetHighRange * 0.080));
@@ -1032,9 +1032,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float frontSizeLift = baseDepthGate * 0.08;
     float stableSizeRidge = saturate((visibleStructuralSpine * 0.36
         + spineAggregation * 0.22
-        + edgeContour * 0.12
-        + edgeDustVisibility * 0.10
-        + edgeFrayField * 0.08) * visibleEffectStrength);
+        + edgeDustVisibility * edgeDustControl * 0.10
+        + edgeFrayField * edgeFrayControl * 0.08) * visibleEffectStrength);
     float sizeJitter = mix(0.995, 1.005, hash11(particleSeed * 137.0 + seedB * 41.0));
     float pointBase = 1.18 * mix(1.0, 0.90, thinking * edge) * mix(1.0, 0.96, loading * edge) * mix(1.0, 1.04, speaking * edge) * mix(1.0, 0.96, previewPlaceholder * edge);
     float ridgeSizeLift = stableSizeRidge * 0.34;
@@ -1047,10 +1046,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     out.pointSize = clamp(layeredPointSize, 0.74 + frontSizeLift * 0.10, pointCeiling + ridgeSizeLift * 0.36) * 0.94 * exitPointScale * tunePointSize * tuneMembraneGrain;
     out.ridge = saturate((ridge * 0.18 + visibleStructuralSpine * 0.58 + spineAggregation * 0.34 + visibleRidgeFlow * 0.12) * tuneRidgeBrightness);
     out.depth = visibleDepth;
-    out.shimmer = saturate(spineAggregation * 0.46 + visibleStructuralSpine * 0.34 + edgeContour * 0.12 + edgeDustVisibility * 0.10);
+    out.shimmer = saturate(spineAggregation * 0.46 + visibleStructuralSpine * 0.34 + edgeDustVisibility * edgeDustControl * 0.10);
     float dynamicFlow = saturate(visibleRidgeFlow * 0.14 + visibleLayerDensity * 0.30 + visibleIonCluster * 0.46 + visibleCloudDensity * 0.18 + visibleStructuralSpine * 0.62 + spineAggregation * 0.36 + edgeFrayField * 0.10 + edgeDustVisibility * 0.12 + turnWakeEnergy * 0.22);
     out.flow = saturate(dynamicFlow * 0.58 + flowSheetLight * 0.52);
-    out.density = saturate(visibleLayerDensity * 0.62 + visibleDenseSection * 0.18 + visibleStructuralSpine * 0.22 + spineAggregation * 0.66 + edgeContour * 0.38 + edgeDustVisibility * 0.24 + edgeFrayField * 0.12 + bodyEnvelope * 0.15 * tuneMembraneMist + normalSurfaceFlow * 0.07 - visibleSparseCavity * 0.14);
+    out.density = saturate(visibleLayerDensity * 0.62 + visibleDenseSection * 0.18 + visibleStructuralSpine * 0.22 + spineAggregation * 0.66 + edgeDustVisibility * edgeDustControl * 0.24 + edgeFrayField * edgeFrayControl * 0.12 + bodyEnvelope * 0.15 * tuneMembraneMist + normalSurfaceFlow * 0.07 - visibleSparseCavity * 0.14);
     float baseFrontness = saturate(directionalFrontLight * 0.90 + smoothstep(-0.50, 0.24, visibleDepth) * 0.10);
     float sheetFrontnessContrast = mix(0.70, 1.12, sheetLayerStrength) + sheetHighRange * 0.58;
     out.frontness = saturate(0.48 + (baseFrontness - 0.48) * sheetFrontnessContrast);
