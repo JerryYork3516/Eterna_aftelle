@@ -9,6 +9,10 @@ struct ContentView: View {
     #if DEBUG
     @State private var debugSubtitleKeyMonitor: Any?
     @State private var particleDebugWindow = ParticleDebugWindowController()
+    @State private var particleValidation = ParticleValidationConfig.make(from: CommandLine.arguments)
+    @State private var particleValidationStep = ParticleValidationDisplayStep.idle
+    @State private var particleValidationRunID = UUID()
+    @State private var particleValidationDidStart = false
     #endif
 
     var body: some View {
@@ -16,6 +20,9 @@ struct ContentView: View {
             shellBackground
                 .ignoresSafeArea()
 
+            #if DEBUG
+            validationAwareParticleView
+            #else
             ParticleCoreMetalView(
                 visualState: controller.particleVisualState,
                 tuning: particleTuning,
@@ -23,14 +30,27 @@ struct ContentView: View {
                 isTransparentBackground: controller.particleShellMode == .transparentShell,
                 debugMetricsHandler: controller.updateParticleRenderMetrics
             )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .ignoresSafeArea()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea()
+            #endif
 
             ParticleSubtitleOverlay(state: controller.particleSubtitleState)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            #if DEBUG
+            if let particleValidation {
+                ParticleValidationOverlay(
+                    config: particleValidation,
+                    step: particleValidationStep
+                )
+            }
+            #endif
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(WindowShellConfigurator(shellMode: controller.particleShellMode))
+        #if DEBUG
+        .background(ParticleValidationWindowConfigurator(config: particleValidation))
+        #endif
         .task {
             controller.start()
         }
@@ -53,6 +73,7 @@ struct ContentView: View {
             )
             installDebugSubtitleKeyMonitor()
             syncParticleDebugWindow()
+            startParticleValidationIfNeeded()
         }
         .onDisappear {
             particleDebugWindow.close()
@@ -91,6 +112,21 @@ struct ContentView: View {
     }
 
     #if DEBUG
+    private var validationAwareParticleView: some View {
+        ParticleCoreMetalView(
+            visualState: controller.particleVisualState,
+            tuning: particleTuning,
+            colorProfile: particleColorProfile,
+            isTransparentBackground: controller.particleShellMode == .transparentShell,
+            debugMetricsHandler: controller.updateParticleRenderMetrics,
+            validationSeed: particleValidation?.seed,
+            validationFixedTime: particleValidationStep.fixedTime
+        )
+        .id(particleValidationRunID)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea()
+    }
+
     private func syncParticleDebugWindow() {
         particleDebugWindow.update(
             isPresented: controller.isParticleDebugPanelPresented,
@@ -170,6 +206,83 @@ struct ContentView: View {
         if let debugSubtitleKeyMonitor {
             NSEvent.removeMonitor(debugSubtitleKeyMonitor)
             self.debugSubtitleKeyMonitor = nil
+        }
+    }
+
+    private func startParticleValidationIfNeeded() {
+        guard let particleValidation, !particleValidationDidStart else { return }
+        particleValidationDidStart = true
+        controller.setParticleShellMode(.darkShell)
+        controller.setParticleDebugPanelPresented(false)
+        particleColorProfile = .systemDefault
+        controller.updateEffectiveParticleColorProfile(.systemDefault, savedOverride: false)
+        if particleValidation.holdForExternalCapture {
+            let item = particleValidation.singleCase ?? ParticleValidationCase.screenshotCases[0]
+            particleTuning = item.tuning(from: particleValidation.preset.tuning)
+            particleValidationStep = .capturing(
+                item,
+                mediaKind: particleValidation.mediaKind,
+                fixedTime: particleValidation.mediaKind == .screenshot ? particleValidation.screenshotTime : nil
+            )
+            particleValidationRunID = UUID()
+            return
+        }
+        Task { @MainActor in
+            await runParticleValidation(particleValidation)
+        }
+    }
+
+    private func runParticleValidation(_ config: ParticleValidationConfig) async {
+        ParticleCoreTuning.clearSaved()
+        do {
+            try config.prepareOutputDirectories()
+            var captures: [ParticleValidationCapture] = []
+            for item in ParticleValidationCase.screenshotCases {
+                captures.append(await captureValidationScreenshot(item, config: config))
+            }
+            for item in ParticleValidationCase.videoCases {
+                captures.append(await captureValidationVideo(item, config: config))
+            }
+            try config.writeCaptureManifest(captures)
+            particleValidationStep = ParticleValidationDisplayStep.finished(
+                capturedCount: captures.filter(\.success).count,
+                failedCount: captures.filter { !$0.success }.count
+            )
+        } catch {
+            particleValidationStep = .failed("validation setup failed: \(error)")
+        }
+
+        try? await Task.sleep(nanoseconds: 800_000_000)
+        NSApplication.shared.terminate(nil)
+    }
+
+    private func captureValidationScreenshot(_ item: ParticleValidationCase, config: ParticleValidationConfig) async -> ParticleValidationCapture {
+        particleTuning = item.tuning(from: config.preset.tuning)
+        particleValidationRunID = UUID()
+        particleValidationStep = .capturing(item, mediaKind: .screenshot, fixedTime: config.screenshotTime)
+        try? await Task.sleep(nanoseconds: 900_000_000)
+
+        let url = config.screenshotURL(for: item)
+        do {
+            try await ParticleValidationCaptureTool.writeWindowScreenshot(to: url)
+            return ParticleValidationCapture(caseName: item.fileStem, mediaKind: .screenshot, path: config.relativePath(for: url), success: true, message: "captured")
+        } catch {
+            return ParticleValidationCapture(caseName: item.fileStem, mediaKind: .screenshot, path: config.relativePath(for: url), success: false, message: "\(error)")
+        }
+    }
+
+    private func captureValidationVideo(_ item: ParticleValidationCase, config: ParticleValidationConfig) async -> ParticleValidationCapture {
+        particleTuning = item.tuning(from: config.preset.tuning)
+        particleValidationRunID = UUID()
+        particleValidationStep = .capturing(item, mediaKind: .video, fixedTime: nil)
+        try? await Task.sleep(nanoseconds: 900_000_000)
+
+        let url = config.videoURL(for: item)
+        do {
+            try await ParticleValidationCaptureTool.writeWindowRecording(to: url, duration: config.videoDuration)
+            return ParticleValidationCapture(caseName: item.fileStem, mediaKind: .video, path: config.relativePath(for: url), success: true, message: "captured")
+        } catch {
+            return ParticleValidationCapture(caseName: item.fileStem, mediaKind: .video, path: config.relativePath(for: url), success: false, message: "\(error)")
         }
     }
     #endif
@@ -1154,6 +1267,390 @@ private struct ParticleColorParameterRow: View {
             colorProfile[keyPath: parameter.keyPath]
         } set: { newValue in
             colorProfile[keyPath: parameter.keyPath] = min(1, max(0, newValue))
+        }
+    }
+}
+
+private enum ParticleValidationMediaKind: String, Codable {
+    case screenshot
+    case video
+}
+
+private enum ParticleValidationPreset: String {
+    case idlePolish
+
+    var tuning: ParticleCoreTuning {
+        switch self {
+        case .idlePolish:
+            return .idlePolish
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .idlePolish:
+            return "Idle Polish"
+        }
+    }
+}
+
+private struct ParticleValidationConfig {
+    let outputURL: URL
+    let preset: ParticleValidationPreset
+    let seed: UInt64
+    let windowSize: CGSize
+    let holdForExternalCapture: Bool
+    let singleCase: ParticleValidationCase?
+    let mediaKind: ParticleValidationMediaKind
+    let screenshotTime: Float = 4.0
+    let videoDuration: Int = 6
+
+    var screenshotDirectory: URL {
+        outputURL.appendingPathComponent("screenshots", isDirectory: true)
+    }
+
+    var videoDirectory: URL {
+        outputURL.appendingPathComponent("videos", isDirectory: true)
+    }
+
+    static func make(from arguments: [String]) -> ParticleValidationConfig? {
+        guard value(after: "--particle-validation", in: arguments) == "light-layers" else { return nil }
+        let outputPath = value(after: "--particle-validation-output", in: arguments) ?? "artifacts/particle_light_validation"
+        let presetName = value(after: "--particle-validation-preset", in: arguments) ?? "idlePolish"
+        let seed = UInt64(value(after: "--particle-validation-seed", in: arguments) ?? "") ?? 9233
+        let windowSize = parseWindowSize(value(after: "--particle-validation-window", in: arguments)) ?? CGSize(width: 960, height: 720)
+        let holdForExternalCapture = arguments.contains("--particle-validation-hold")
+        let mediaKind = ParticleValidationMediaKind(rawValue: value(after: "--particle-validation-media", in: arguments) ?? "screenshot") ?? .screenshot
+        let singleCase = makeCase(
+            parameterName: value(after: "--particle-validation-parameter", in: arguments),
+            valueName: value(after: "--particle-validation-value", in: arguments)
+        )
+        guard let preset = ParticleValidationPreset(rawValue: presetName) else { return nil }
+        return ParticleValidationConfig(
+            outputURL: URL(fileURLWithPath: outputPath).standardizedFileURL,
+            preset: preset,
+            seed: seed,
+            windowSize: windowSize,
+            holdForExternalCapture: holdForExternalCapture,
+            singleCase: singleCase,
+            mediaKind: mediaKind
+        )
+    }
+
+    func prepareOutputDirectories() throws {
+        let fileManager = FileManager.default
+        try fileManager.createDirectory(at: outputURL, withIntermediateDirectories: true)
+        for directory in [screenshotDirectory, videoDirectory] {
+            if fileManager.fileExists(atPath: directory.path) {
+                try fileManager.removeItem(at: directory)
+            }
+            try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+        }
+    }
+
+    func screenshotURL(for item: ParticleValidationCase) -> URL {
+        screenshotDirectory.appendingPathComponent("\(item.fileStem).png")
+    }
+
+    func videoURL(for item: ParticleValidationCase) -> URL {
+        videoDirectory.appendingPathComponent("\(item.fileStem).mov")
+    }
+
+    func relativePath(for url: URL) -> String {
+        let root = outputURL.path
+        let path = url.path
+        guard path.hasPrefix(root) else { return path }
+        return String(path.dropFirst(root.count + 1))
+    }
+
+    func writeCaptureManifest(_ captures: [ParticleValidationCapture]) throws {
+        let manifest = ParticleValidationCaptureManifest(
+            preset: preset.displayName,
+            seed: seed,
+            window: "\(Int(windowSize.width))x\(Int(windowSize.height))",
+            screenshotTime: screenshotTime,
+            videoDuration: videoDuration,
+            captures: captures
+        )
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let data = try encoder.encode(manifest)
+        try data.write(to: outputURL.appendingPathComponent("capture_manifest.json"))
+    }
+
+    private static func value(after flag: String, in arguments: [String]) -> String? {
+        guard let index = arguments.firstIndex(of: flag), arguments.indices.contains(index + 1) else { return nil }
+        return arguments[index + 1]
+    }
+
+    private static func parseWindowSize(_ value: String?) -> CGSize? {
+        guard let value else { return nil }
+        let parts = value.lowercased().split(separator: "x")
+        guard parts.count == 2,
+              let width = Double(parts[0]),
+              let height = Double(parts[1]),
+              width >= 320,
+              height >= 240 else { return nil }
+        return CGSize(width: width, height: height)
+    }
+
+    private static func makeCase(parameterName: String?, valueName: String?) -> ParticleValidationCase? {
+        guard let parameterName,
+              let parameter = ParticleCoreTuningParameter(rawValue: parameterName) else { return nil }
+        guard let valueName, valueName != "default" else {
+            return ParticleValidationCase(parameter: parameter, testedValue: .baseline)
+        }
+        guard let value = Double(valueName) else { return nil }
+        return ParticleValidationCase(parameter: parameter, testedValue: .value(value))
+    }
+}
+
+private struct ParticleValidationCase: Identifiable {
+    enum TestedValue {
+        case baseline
+        case value(Double)
+    }
+
+    let parameter: ParticleCoreTuningParameter
+    let testedValue: TestedValue
+
+    var id: String { fileStem }
+
+    var fileStem: String {
+        "\(parameter.rawValue)_\(fileValueLabel)"
+    }
+
+    var displayValueLabel: String {
+        switch testedValue {
+        case .baseline:
+            return "default"
+        case let .value(value):
+            return String(format: "%.2f", value)
+        }
+    }
+
+    var resolvedValueDescription: String {
+        switch testedValue {
+        case .baseline:
+            return "default (\(String(format: "%.2f", currentValue(from: .idlePolish))) )"
+        case let .value(value):
+            return String(format: "%.2f", value)
+        }
+    }
+
+    static let screenshotCases: [ParticleValidationCase] = [
+        .init(parameter: .sheetLightStrength, testedValue: .value(0.00)),
+        .init(parameter: .sheetLightStrength, testedValue: .baseline),
+        .init(parameter: .sheetLightStrength, testedValue: .value(1.00)),
+        .init(parameter: .surfaceLightStrength, testedValue: .value(0.00)),
+        .init(parameter: .surfaceLightStrength, testedValue: .baseline),
+        .init(parameter: .surfaceLightStrength, testedValue: .value(1.00)),
+        .init(parameter: .flowLightStrength, testedValue: .value(0.00)),
+        .init(parameter: .flowLightStrength, testedValue: .baseline),
+        .init(parameter: .flowLightStrength, testedValue: .value(1.00)),
+        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(0.00)),
+        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(0.25)),
+        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(0.50)),
+        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(0.75)),
+        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(1.00))
+    ]
+
+    static let videoCases: [ParticleValidationCase] = [
+        .init(parameter: .flowLightStrength, testedValue: .value(0.00)),
+        .init(parameter: .flowLightStrength, testedValue: .baseline),
+        .init(parameter: .flowLightStrength, testedValue: .value(1.00)),
+        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(0.00)),
+        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(0.25)),
+        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(0.50)),
+        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(0.75)),
+        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(1.00))
+    ]
+
+    func tuning(from base: ParticleCoreTuning) -> ParticleCoreTuning {
+        var tuning = base
+        tuning[keyPath: parameter.keyPath] = currentValue(from: base)
+        return tuning.clamped()
+    }
+
+    func currentValue(from base: ParticleCoreTuning) -> Double {
+        switch testedValue {
+        case .baseline:
+            return base[keyPath: parameter.keyPath]
+        case let .value(value):
+            return value
+        }
+    }
+
+    private var fileValueLabel: String {
+        switch testedValue {
+        case .baseline:
+            return "default"
+        case let .value(value):
+            return String(format: "%.2f", value)
+        }
+    }
+}
+
+private enum ParticleValidationDisplayStep {
+    case idle
+    case capturing(ParticleValidationCase, mediaKind: ParticleValidationMediaKind, fixedTime: Float?)
+    case finished(capturedCount: Int, failedCount: Int)
+    case failed(String)
+
+    var fixedTime: Float? {
+        switch self {
+        case let .capturing(_, _, fixedTime):
+            return fixedTime
+        case .idle, .finished, .failed:
+            return nil
+        }
+    }
+}
+
+private struct ParticleValidationCapture: Codable {
+    let caseName: String
+    let mediaKind: ParticleValidationMediaKind
+    let path: String
+    let success: Bool
+    let message: String
+}
+
+private struct ParticleValidationCaptureManifest: Codable {
+    let preset: String
+    let seed: UInt64
+    let window: String
+    let screenshotTime: Float
+    let videoDuration: Int
+    let captures: [ParticleValidationCapture]
+}
+
+private struct ParticleValidationOverlay: View {
+    let config: ParticleValidationConfig
+    let step: ParticleValidationDisplayStep
+
+    var body: some View {
+        VStack {
+            HStack {
+                Spacer()
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Particle Light Validation")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text("preset: \(config.preset.displayName)")
+                    Text("seed: \(config.seed)")
+                    Text("window: \(Int(config.windowSize.width))x\(Int(config.windowSize.height))")
+                    Text("visual state: idle")
+                    stepView
+                }
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.88))
+                .padding(14)
+                .frame(width: 340, alignment: .leading)
+                .background(.black.opacity(0.58))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .padding(18)
+            }
+            Spacer()
+        }
+        .allowsHitTesting(false)
+    }
+
+    @ViewBuilder
+    private var stepView: some View {
+        switch step {
+        case .idle:
+            Text("status: preparing")
+        case let .capturing(item, mediaKind, fixedTime):
+            Divider().background(.white.opacity(0.2))
+            Text("media: \(mediaKind.rawValue)")
+            Text("time: \(fixedTime.map { String(format: "%.1fs paused", $0) } ?? "1x playback")")
+            Text("control: \(String(localized: String.LocalizationValue(item.parameter.localizedKey)))")
+            Text("parameter: \(item.parameter.rawValue)")
+            Text("value: \(String(format: "%.2f", item.currentValue(from: config.preset.tuning)))")
+            Text("caption: \(String(localized: String.LocalizationValue(item.parameter.captionKey)))")
+                .fixedSize(horizontal: false, vertical: true)
+            Text("low: \(String(localized: String.LocalizationValue(item.parameter.lowHintKey)))")
+            Text("high: \(String(localized: String.LocalizationValue(item.parameter.highHintKey)))")
+        case let .finished(capturedCount, failedCount):
+            Text("status: finished captured=\(capturedCount) failed=\(failedCount)")
+        case let .failed(message):
+            Text("status: failed \(message)")
+        }
+    }
+}
+
+private struct ParticleValidationWindowConfigurator: NSViewRepresentable {
+    let config: ParticleValidationConfig?
+
+    func makeNSView(context: Context) -> NSView {
+        NSView()
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        guard let config else { return }
+        DispatchQueue.main.async {
+            guard let window = nsView.window else { return }
+            let current = window.contentView?.bounds.size ?? .zero
+            guard abs(current.width - config.windowSize.width) > 1 || abs(current.height - config.windowSize.height) > 1 else { return }
+            window.setContentSize(config.windowSize)
+            window.center()
+            window.title = "Aftelle Particle Light Validation"
+        }
+    }
+}
+
+private enum ParticleValidationCaptureTool {
+    static func writeWindowScreenshot(to url: URL) async throws {
+        let window = try validationWindow()
+        try await runScreencapture(arguments: ["-x", "-l\(window.windowNumber)", url.path])
+    }
+
+    static func writeWindowRecording(to url: URL, duration: Int) async throws {
+        let window = try validationWindow()
+        try await runScreencapture(arguments: ["-v", "-V\(duration)", "-x", "-l\(window.windowNumber)", url.path])
+    }
+
+    private static func runScreencapture(arguments: [String]) async throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+        process.arguments = arguments
+        let pipe = Pipe()
+        process.standardError = pipe
+        process.standardOutput = pipe
+        try await withCheckedThrowingContinuation { continuation in
+            process.terminationHandler = { finishedProcess in
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                let output = String(data: data, encoding: .utf8) ?? ""
+                if finishedProcess.terminationStatus == 0 {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: ParticleValidationError.captureFailed(output.isEmpty ? "screencapture exited \(finishedProcess.terminationStatus)" : output))
+                }
+            }
+            do {
+                try process.run()
+            } catch {
+                continuation.resume(throwing: error)
+            }
+        }
+    }
+
+    private static func validationWindow() throws -> NSWindow {
+        guard let window = NSApplication.shared.windows.first(where: { window in
+            window.isVisible && !(window is NSPanel) && window.title.contains("Aftelle")
+        }) else {
+            throw ParticleValidationError.captureFailed("validation window not found")
+        }
+        return window
+    }
+}
+
+private enum ParticleValidationError: Error, CustomStringConvertible {
+    case captureFailed(String)
+
+    var description: String {
+        switch self {
+        case let .captureFailed(message):
+            return message
         }
     }
 }

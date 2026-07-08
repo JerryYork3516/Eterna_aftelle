@@ -111,10 +111,13 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private var smoothExitStrength: Float
     private var tuning = ParticleCoreTuning.systemDefault
     private var colorProfile = ParticleCoreColorProfile.systemDefault
+    #if DEBUG
+    var validationFixedTime: Float?
+    #endif
     var debugMetricsHandler: ((ParticleRenderMetrics) -> Void)?
 
-    init?(device: MTLDevice, visualState: ParticleCoreVisualState = .idle) {
-        let launchSeed: UInt64 = 0xA7F7E11E
+    init?(device: MTLDevice, visualState: ParticleCoreVisualState = .idle, validationSeed: UInt64? = nil) {
+        let launchSeed: UInt64 = validationSeed ?? 0xA7F7E11E
         self.device = device
         self.model = ParticleCoreModel(seed: launchSeed)
         self.frameSeed = UInt32(truncatingIfNeeded: launchSeed ^ (launchSeed >> 32))
@@ -187,8 +190,18 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
               let commandBuffer = commandQueue.makeCommandBuffer(),
               let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
 
-        let elapsed = Float(CACurrentMediaTime() - startTime)
-        let stateAge = Float(CACurrentMediaTime() - stateStartTime)
+        let rawElapsed = Float(CACurrentMediaTime() - startTime)
+        #if DEBUG
+        let elapsed = validationFixedTime ?? rawElapsed
+        #else
+        let elapsed = rawElapsed
+        #endif
+        let rawStateAge = Float(CACurrentMediaTime() - stateStartTime)
+        #if DEBUG
+        let stateAge = validationFixedTime ?? rawStateAge
+        #else
+        let stateAge = rawStateAge
+        #endif
         let stateElapsedTime: Float
         if visualState == .exit {
             stateElapsedTime = stateAge

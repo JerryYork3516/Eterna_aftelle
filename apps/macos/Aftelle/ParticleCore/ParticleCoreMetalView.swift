@@ -8,6 +8,10 @@ struct ParticleCoreMetalView: NSViewRepresentable {
     var colorProfile: ParticleCoreColorProfile = .systemDefault
     var isTransparentBackground = false
     var debugMetricsHandler: ((ParticleRenderMetrics) -> Void)?
+    #if DEBUG
+    var validationSeed: UInt64?
+    var validationFixedTime: Float?
+    #endif
 
     func makeNSView(context: Context) -> MTKView {
         guard let device = MTLCreateSystemDefaultDevice() else {
@@ -23,10 +27,18 @@ struct ParticleCoreMetalView: NSViewRepresentable {
         view.framebufferOnly = true
         configureBackground(for: view, transparent: isTransparentBackground)
 
+        #if DEBUG
+        guard let renderer = ParticleCoreRenderer(device: device, visualState: visualState, validationSeed: validationSeed) else {
+            print("[ParticleCore] renderer init failed")
+            return view
+        }
+        renderer.validationFixedTime = validationFixedTime
+        #else
         guard let renderer = ParticleCoreRenderer(device: device, visualState: visualState) else {
             print("[ParticleCore] renderer init failed")
             return view
         }
+        #endif
         view.inputRenderer = renderer
         view.delegate = renderer
         context.coordinator.renderer = renderer
@@ -39,6 +51,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
                 context.coordinator.debugMetricsHandler?(metrics)
             }
         }
+        renderer.setTuning(tuning)
         renderer.setColorProfile(colorProfile)
         return view
     }
@@ -58,6 +71,9 @@ struct ParticleCoreMetalView: NSViewRepresentable {
             context.coordinator.renderer?.setColorProfile(colorProfile)
             context.coordinator.colorProfile = colorProfile
         }
+        #if DEBUG
+        context.coordinator.renderer?.validationFixedTime = validationFixedTime
+        #endif
     }
 
     func makeCoordinator() -> Coordinator {
