@@ -113,6 +113,16 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private var colorProfile = ParticleCoreColorProfile.systemDefault
     #if DEBUG
     var validationFixedTime: Float?
+    var debugAnimationPaused = false {
+        didSet {
+            if !debugAnimationPaused {
+                debugPausedRawElapsed = nil
+                debugPausedRawStateAge = nil
+            }
+        }
+    }
+    private var debugPausedRawElapsed: Float?
+    private var debugPausedRawStateAge: Float?
     #endif
     var debugMetricsHandler: ((ParticleRenderMetrics) -> Void)?
 
@@ -192,13 +202,31 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
 
         let rawElapsed = Float(CACurrentMediaTime() - startTime)
         #if DEBUG
-        let elapsed = validationFixedTime ?? rawElapsed
+        let elapsed: Float
+        if let validationFixedTime {
+            elapsed = validationFixedTime
+        } else if debugAnimationPaused {
+            let paused = debugPausedRawElapsed ?? rawElapsed
+            debugPausedRawElapsed = paused
+            elapsed = paused
+        } else {
+            elapsed = rawElapsed
+        }
         #else
         let elapsed = rawElapsed
         #endif
         let rawStateAge = Float(CACurrentMediaTime() - stateStartTime)
         #if DEBUG
-        let stateAge = validationFixedTime ?? rawStateAge
+        let stateAge: Float
+        if let validationFixedTime {
+            stateAge = validationFixedTime
+        } else if debugAnimationPaused {
+            let paused = debugPausedRawStateAge ?? rawStateAge
+            debugPausedRawStateAge = paused
+            stateAge = paused
+        } else {
+            stateAge = rawStateAge
+        }
         #else
         let stateAge = rawStateAge
         #endif

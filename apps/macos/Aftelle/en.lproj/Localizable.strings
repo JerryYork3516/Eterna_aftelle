@@ -279,6 +279,10 @@
 "particleDebug.diagnostics.providerTTSConnected" = "Provider/TTS Connected";
 "particleDebug.value.true" = "true";
 "particleDebug.value.false" = "false";
+"particleDebug.animation.pause" = "Pause Motion";
+"particleDebug.animation.resume" = "Resume Motion";
+"particleDebug.animation.paused" = "Motion paused";
+"particleDebug.animation.playing" = "Motion playing";
 "particleSubtitle.test.0" = "I am here.";
 "particleSubtitle.test.1" = "Still thinking.";
 "particleSubtitle.test.2" = "The signal is quiet.";

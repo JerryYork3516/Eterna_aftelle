@@ -304,7 +304,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float surfaceReliefAmount = surfaceReliefValue * (0.74 + surfaceReliefValue * 1.26);
     float surfaceReliefDensity = saturate(uniforms.surfaceReliefDensity);
     float reliefPresence = saturate(surfaceReliefValue * 1.35);
-    float shapeAmount = 0.98;
+    float shapeRoundBlend = smoothstep(0.0, 1.0, shapeRoundness);
+    float shapeAmount = mix(1.12, 0.36, shapeRoundBlend);
     float2 sourceRadial = normalize(sourceParticlePosition + float2(0.001, 0.001));
     float sourceRadius = length(sourceParticlePosition) / 0.52;
     float sourceAngle = atan2(sourceParticlePosition.y, sourceParticlePosition.x);
@@ -330,7 +331,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float roundnessNoise = sin(sourceAngle * 13.0 + depth * 4.2 + shapePhase * 0.31) * 0.54
         + cos(sourceAngle * 19.0 - depth * 5.4 + shapePhase * 0.17) * 0.32
         + sin(sourceAngle * 29.0 + depth * 2.6 - shapePhase * 0.23) * 0.14;
-    p += sourceRadial * roundnessNoise * shapeSurfaceRoughness * (0.0012 + surfaceRoughness * 0.0030 + silhouetteRoughness * 0.0068);
+    p += sourceRadial * roundnessNoise * shapeSurfaceRoughness * (0.0022 + surfaceRoughness * 0.0054 + silhouetteRoughness * 0.0118);
     float2 baseParticlePosition = p;
     float ridge = saturate(particle.z * surfaceReliefAmount);
     float id = float(vid);
@@ -356,7 +357,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneRidgeBrightness = scaleAroundOne(uniforms.ridgeBrightness, 1.65);
     float tuneFlowStrength = scaleAroundOne(uniforms.flowStrength, 1.65);
     float tuneFlowSpeed = scaleAroundOne(uniforms.flowSpeed, 1.80);
-    float tuneRotationSpeed = scaleAroundOne(uniforms.rotationSpeed, 4.20);
+    float rotationControl = saturate(uniforms.rotationSpeed);
+    float tuneRotationSpeed = rotationControl * 1.85;
     float2 tuneRotationDirection = cardinalDirection(uniforms.rotationDirection);
     float tuneRotationPhase = atan2(tuneRotationDirection.y, tuneRotationDirection.x);
     float tuneRotationDelta = abs(saturate(uniforms.rotationSpeed) - 0.5) * 2.0;
@@ -462,7 +464,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float localMorph = densityRelief;
     float morph = globalWave * 0.18 + localMorph * 0.82;
     float reliefRadiusGate = smoothstep(0.34, 0.72, lengthP) * (0.42 + edge * 0.36) * (0.54 + shellLayer * 0.34);
-    float reliefRadiusOffset = reliefSignal * surfaceReliefValue * reliefRadiusGate * (0.0030 + edge * 0.0045 + surfaceMotion * 0.0020);
+    float broadDensityShape = mix(broadRelief, reliefSignal, 0.28 + surfaceReliefDensity * 0.56);
+    float reliefRadiusOffset = broadDensityShape * reliefPresence * reliefRadiusGate * (0.0060 + edge * 0.0105 + surfaceMotion * 0.0045);
     float edgeMorph = edge * edge * (0.010 + 0.026 * edge + 0.006 * particleSeed) * morph * edgeSettle * speakingEdgeLift;
     float innerMorph = (interior * 0.20 * centerMotionGate + midBand * 0.88 * stateFocus) * (0.0040 + 0.0080 * seedB)
         * (globalWave * 0.78 + localMorph * 0.22);
@@ -490,7 +493,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * sin(dot(p, globalAxis) * 3.8 + dot(p, globalSide) * 2.6 - fieldTime * 0.74 + localPhase);
     p += (globalAxis * centerFollow + globalSide * centerFollow * 0.45) * (0.006 + midBand * 0.014);
 
-    float rotationTime = t * (0.28 + tuneRotationSpeed * 0.72);
+    float rotationTime = t * tuneRotationSpeed;
     float postureTime = fieldTime * 0.24;
     float rotationPhaseTime = postureTime + tuneRotationPhase;
     float turnAngle = globalTurnAngle(rotationPhaseTime);
@@ -525,6 +528,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     materialBody = rotateBody(materialBody, selfSpinAngles);
     body = rotateBody(body, selfSpinAngles);
     body = rotateBody(body, bodyAngles);
+    float bodyTurnProjection = smoothstep(0.02, 0.72, rotationControl);
+    p = mix(p, body.xy, bodyTurnProjection * 0.92);
     float wholeTurn = globalTurnAngle(rotationPhaseTime * 0.36 + 6.4) * 0.10
         + sin(rotationPhaseTime * 0.19 + 1.7) * 0.035;
     p = rotate2(p, wholeTurn);

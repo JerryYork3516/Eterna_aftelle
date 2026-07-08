@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var particleValidationStep = ParticleValidationDisplayStep.idle
     @State private var particleValidationRunID = UUID()
     @State private var particleValidationDidStart = false
+    @State private var particleDebugAnimationPaused = false
     #endif
 
     var body: some View {
@@ -120,7 +121,8 @@ struct ContentView: View {
             isTransparentBackground: controller.particleShellMode == .transparentShell,
             debugMetricsHandler: controller.updateParticleRenderMetrics,
             validationSeed: particleValidation?.seed,
-            validationFixedTime: particleValidationStep.fixedTime
+            validationFixedTime: particleValidationStep.fixedTime,
+            debugAnimationPaused: particleDebugAnimationPaused
         )
         .id(particleValidationRunID)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -143,6 +145,7 @@ struct ContentView: View {
             shellMode: controller.particleShellMode,
             renderKind: controller.particleRenderKind,
             tuning: $particleTuning,
+            animationPaused: $particleDebugAnimationPaused,
             colorProfile: $particleColorProfile,
             defaultColorProfile: controller.particleColorProfile,
             setShellMode: controller.setParticleShellMode,
@@ -474,6 +477,7 @@ private struct ParticleDebugPanel: View {
     let shellMode: ParticleShellMode
     let renderKind: ParticleRenderKind
     @Binding var tuning: ParticleCoreTuning
+    @Binding var animationPaused: Bool
     @Binding var colorProfile: ParticleCoreColorProfile
     let defaultColorProfile: ParticleCoreColorProfile
     let setShellMode: (ParticleShellMode) -> Void
@@ -547,6 +551,24 @@ private struct ParticleDebugPanel: View {
                                 userPresets: $userPresets,
                                 selectedUserPresetID: $selectedUserPresetID
                             )
+
+                            HStack {
+                                Button {
+                                    animationPaused.toggle()
+                                } label: {
+                                    Label(
+                                        String(localized: animationPaused ? "particleDebug.animation.resume" : "particleDebug.animation.pause"),
+                                        systemImage: animationPaused ? "play.fill" : "pause.fill"
+                                    )
+                                }
+                                .controlSize(.small)
+
+                                Text(String(localized: animationPaused ? "particleDebug.animation.paused" : "particleDebug.animation.playing"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+
+                                Spacer(minLength: 0)
+                            }
 
                             Picker("", selection: $tuningGroup) {
                                 ForEach(ParticleTuningGroup.allCases) { group in

@@ -279,6 +279,10 @@
 "particleDebug.diagnostics.providerTTSConnected" = "Provider/TTS 接入";
 "particleDebug.value.true" = "是";
 "particleDebug.value.false" = "否";
+"particleDebug.animation.pause" = "暂停动效";
+"particleDebug.animation.resume" = "继续动效";
+"particleDebug.animation.paused" = "动效已暂停";
+"particleDebug.animation.playing" = "动效播放中";
 "particleSubtitle.test.0" = "I am here.";
 "particleSubtitle.test.1" = "Still thinking.";
 "particleSubtitle.test.2" = "The signal is quiet.";

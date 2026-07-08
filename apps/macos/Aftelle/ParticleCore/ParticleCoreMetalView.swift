@@ -11,6 +11,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
     #if DEBUG
     var validationSeed: UInt64?
     var validationFixedTime: Float?
+    var debugAnimationPaused = false
     #endif
 
     func makeNSView(context: Context) -> MTKView {
@@ -33,6 +34,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
             return view
         }
         renderer.validationFixedTime = validationFixedTime
+        renderer.debugAnimationPaused = debugAnimationPaused
         #else
         guard let renderer = ParticleCoreRenderer(device: device, visualState: visualState) else {
             print("[ParticleCore] renderer init failed")
@@ -73,6 +75,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
         }
         #if DEBUG
         context.coordinator.renderer?.validationFixedTime = validationFixedTime
+        context.coordinator.renderer?.debugAnimationPaused = debugAnimationPaused
         #endif
     }
 
