@@ -1277,10 +1277,13 @@ private enum ParticleValidationMediaKind: String, Codable {
 }
 
 private enum ParticleValidationPreset: String {
+    case systemDefault
     case idlePolish
 
     var tuning: ParticleCoreTuning {
         switch self {
+        case .systemDefault:
+            return .systemDefault
         case .idlePolish:
             return .idlePolish
         }
@@ -1288,6 +1291,8 @@ private enum ParticleValidationPreset: String {
 
     var displayName: String {
         switch self {
+        case .systemDefault:
+            return "System Default"
         case .idlePolish:
             return "Idle Polish"
         }

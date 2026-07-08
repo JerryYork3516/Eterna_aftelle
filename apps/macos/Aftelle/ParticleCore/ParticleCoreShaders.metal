@@ -366,9 +366,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneSpineStrength = spineStrengthControl * (0.22 + spineStrengthControl * 2.58);
     float tuneSpineWidth = 0.50 + spineWidthControl * 1.35;
     float tuneSpineDensity = 0.38 + spineDensityControl * 1.95;
-    float tuneSpineHighlight = scaleAroundOne(uniforms.spineLineHighlight, 2.00);
-    float tuneSpineContrast = scaleAroundOne(uniforms.spineLineContrast, 1.50);
-    float tuneSpineSharpness = scaleAroundOne(uniforms.spineLineSharpness, 1.50);
+    float tuneSpineHighlight = 1.16;
+    float tuneSpineContrast = 1.10;
+    float tuneSpineSharpness = 1.08;
     float tuneSpineFlowBinding = saturate(uniforms.spineFlowBinding);
     float edgeScatterControl = saturate(uniforms.edgeScatterDistance);
     float edgeScatterBase = mix(0.003, 0.024, min(edgeScatterControl, 0.34) / 0.34);

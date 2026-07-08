@@ -83,9 +83,6 @@
 "particleDebug.parameter.spineSeed" = "背脊 Seed";
 "particleDebug.parameter.spineFlowBinding" = "背脊流动绑定";
 "particleDebug.parameter.spineLineStrength" = "背脊强度";
-"particleDebug.parameter.spineLineHighlight" = "背脊高光";
-"particleDebug.parameter.spineLineContrast" = "背脊对比";
-"particleDebug.parameter.spineLineSharpness" = "背脊锐度";
 "particleDebug.parameter.spineLineWidth" = "背脊宽度";
 "particleDebug.parameter.spineLineDensity" = "背脊密度";
 "particleDebug.parameter.edgeScatterDistance" = "边缘散射距离";
@@ -184,15 +181,6 @@
 "particleDebug.parameter.spineLineStrength.caption" = "控制由局部粒子密度和亮度聚集形成的主背脊。";
 "particleDebug.parameter.spineLineStrength.lowHint" = "更弱";
 "particleDebug.parameter.spineLineStrength.highHint" = "更明显";
-"particleDebug.parameter.spineLineHighlight.caption" = "控制背脊区域短促局部高光。";
-"particleDebug.parameter.spineLineHighlight.lowHint" = "更少";
-"particleDebug.parameter.spineLineHighlight.highHint" = "更多";
-"particleDebug.parameter.spineLineContrast.caption" = "控制背脊标记和暗部壳面的对比。";
-"particleDebug.parameter.spineLineContrast.lowHint" = "更柔";
-"particleDebug.parameter.spineLineContrast.highHint" = "更强";
-"particleDebug.parameter.spineLineSharpness.caption" = "控制局部背脊边缘锐度。";
-"particleDebug.parameter.spineLineSharpness.lowHint" = "更软";
-"particleDebug.parameter.spineLineSharpness.highHint" = "更锐";
 "particleDebug.parameter.spineLineWidth.caption" = "控制主背脊粗细。";
 "particleDebug.parameter.spineLineWidth.lowHint" = "更细";
 "particleDebug.parameter.spineLineWidth.highHint" = "更宽";

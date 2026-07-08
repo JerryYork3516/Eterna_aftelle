@@ -83,9 +83,6 @@
 "particleDebug.parameter.spineSeed" = "Spine Seed";
 "particleDebug.parameter.spineFlowBinding" = "Spine Flow Binding";
 "particleDebug.parameter.spineLineStrength" = "Spine Strength";
-"particleDebug.parameter.spineLineHighlight" = "Spine Highlight";
-"particleDebug.parameter.spineLineContrast" = "Spine Contrast";
-"particleDebug.parameter.spineLineSharpness" = "Spine Sharpness";
 "particleDebug.parameter.spineLineWidth" = "Spine Width";
 "particleDebug.parameter.spineLineDensity" = "Spine Density";
 "particleDebug.parameter.edgeScatterDistance" = "Edge Scatter Distance";
@@ -184,15 +181,6 @@
 "particleDebug.parameter.spineLineStrength.caption" = "Controls the main spine structure made from local particle density and light.";
 "particleDebug.parameter.spineLineStrength.lowHint" = "Weaker";
 "particleDebug.parameter.spineLineStrength.highHint" = "Stronger";
-"particleDebug.parameter.spineLineHighlight.caption" = "Controls short local highlights along spine regions.";
-"particleDebug.parameter.spineLineHighlight.lowHint" = "Few sparks";
-"particleDebug.parameter.spineLineHighlight.highHint" = "More sparks";
-"particleDebug.parameter.spineLineContrast.caption" = "Controls contrast between spine marks and nearby dark shell.";
-"particleDebug.parameter.spineLineContrast.lowHint" = "Soft contrast";
-"particleDebug.parameter.spineLineContrast.highHint" = "High contrast";
-"particleDebug.parameter.spineLineSharpness.caption" = "Controls ridge edge sharpness for local spine marks.";
-"particleDebug.parameter.spineLineSharpness.lowHint" = "Soft";
-"particleDebug.parameter.spineLineSharpness.highHint" = "Sharp";
 "particleDebug.parameter.spineLineWidth.caption" = "Controls the thickness of the main spine structure.";
 "particleDebug.parameter.spineLineWidth.lowHint" = "Thinner";
 "particleDebug.parameter.spineLineWidth.highHint" = "Wider";
