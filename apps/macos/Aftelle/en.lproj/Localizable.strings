@@ -68,6 +68,9 @@
 "particleDebug.parameter.rotationDirection" = "Global Rotation Direction";
 "particleDebug.parameter.shapeRoundness" = "Roundness";
 "particleDebug.parameter.surfaceReliefStrength" = "Surface Relief";
+"particleDebug.parameter.shapeScaleX" = "X Scale";
+"particleDebug.parameter.shapeScaleY" = "Y Scale";
+"particleDebug.parameter.shapeScaleZ" = "Z Scale";
 "particleDebug.parameter.surfaceReliefDensity" = "Relief Density";
 "particleDebug.parameter.shapeSeed" = "Shape Seed";
 "particleDebug.parameter.membraneAspect" = "Membrane Aspect";
@@ -133,9 +136,18 @@
 "particleDebug.parameter.shapeRoundness.caption" = "Controls surface roughness versus smoothness without changing the core body shape.";
 "particleDebug.parameter.shapeRoundness.lowHint" = "Rougher";
 "particleDebug.parameter.shapeRoundness.highHint" = "Smoother";
-"particleDebug.parameter.surfaceReliefStrength.caption" = "Controls the amplitude of local shell surface relief.";
+"particleDebug.parameter.surfaceReliefStrength.caption" = "Controls relief amplitude across the whole sphere surface.";
 "particleDebug.parameter.surfaceReliefStrength.lowHint" = "Flatter";
 "particleDebug.parameter.surfaceReliefStrength.highHint" = "More relief";
+"particleDebug.parameter.shapeScaleX.caption" = "Scales the particle body along the X axis.";
+"particleDebug.parameter.shapeScaleX.lowHint" = "Narrower";
+"particleDebug.parameter.shapeScaleX.highHint" = "Wider";
+"particleDebug.parameter.shapeScaleY.caption" = "Scales the particle body along the Y axis.";
+"particleDebug.parameter.shapeScaleY.lowHint" = "Shorter";
+"particleDebug.parameter.shapeScaleY.highHint" = "Taller";
+"particleDebug.parameter.shapeScaleZ.caption" = "Scales the particle body along the Z depth axis.";
+"particleDebug.parameter.shapeScaleZ.lowHint" = "Shallower";
+"particleDebug.parameter.shapeScaleZ.highHint" = "Deeper";
 "particleDebug.parameter.surfaceReliefDensity.caption" = "Controls how dense or fine the relief pattern is.";
 "particleDebug.parameter.surfaceReliefDensity.lowHint" = "Broader";
 "particleDebug.parameter.surfaceReliefDensity.highHint" = "Finer";
@@ -283,6 +295,7 @@
 "particleDebug.animation.resume" = "Resume Motion";
 "particleDebug.animation.paused" = "Motion paused";
 "particleDebug.animation.playing" = "Motion playing";
+"particleDebug.manualRotation.toggle" = "Drag to Rotate";
 "particleSubtitle.test.0" = "I am here.";
 "particleSubtitle.test.1" = "Still thinking.";
 "particleSubtitle.test.2" = "The signal is quiet.";

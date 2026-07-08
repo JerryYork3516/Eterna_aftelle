@@ -31,6 +31,9 @@ struct ParticleCoreFrameUniforms {
     float rotationDirection;
     float shapeRoundness;
     float surfaceReliefStrength;
+    float shapeScaleX;
+    float shapeScaleY;
+    float shapeScaleZ;
     float surfaceReliefDensity;
     float shapeSeed;
     float membraneAspect;
@@ -59,6 +62,8 @@ struct ParticleCoreFrameUniforms {
     float surfaceFlowSeed;
     float surfaceFlowLightSeed;
     float surfaceLightStrength;
+    float manualRotationX;
+    float manualRotationY;
     float4 baseColor;
     float4 ridgeColor;
     float4 dimColor;
@@ -298,14 +303,12 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float4 particle = particles[vid];
     float2 sourceParticlePosition = particle.xy;
     float depth = particle.w;
-    float shapeRoundness = saturate(uniforms.shapeRoundness);
-    float shapeSurfaceRoughness = pow(1.0 - shapeRoundness, 1.8);
+    float shapeSurfaceRoughness = 0.0;
     float surfaceReliefValue = saturate(uniforms.surfaceReliefStrength);
     float surfaceReliefAmount = surfaceReliefValue * (0.74 + surfaceReliefValue * 1.26);
     float surfaceReliefDensity = saturate(uniforms.surfaceReliefDensity);
     float reliefPresence = saturate(surfaceReliefValue * 1.35);
-    float shapeRoundBlend = smoothstep(0.0, 1.0, shapeRoundness);
-    float shapeAmount = mix(1.12, 0.36, shapeRoundBlend);
+    float shapeAmount = 0.0;
     float2 sourceRadial = normalize(sourceParticlePosition + float2(0.001, 0.001));
     float sourceRadius = length(sourceParticlePosition) / 0.52;
     float sourceAngle = atan2(sourceParticlePosition.y, sourceParticlePosition.x);
@@ -326,6 +329,12 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 referencePosition = (sourceRadial * min(sourceRadius, 1.05) * 0.52 * referenceFold + referenceTangent + referenceSkew * membraneEdge)
         * referenceScale;
     float2 p = spherePosition + (referencePosition - spherePosition) * shapeAmount;
+    float3 axisScale = float3(
+        max(0.35, 1.0 + clamp(uniforms.shapeScaleX, -1.0, 1.0) * 0.46),
+        max(0.35, 1.0 + clamp(uniforms.shapeScaleY, -1.0, 1.0) * 0.46),
+        max(0.35, 1.0 + clamp(uniforms.shapeScaleZ, -1.0, 1.0) * 0.46)
+    );
+    p *= axisScale.xy;
     float silhouetteRoughness = smoothstep(0.40, 0.96, sourceRadius);
     float surfaceRoughness = smoothstep(0.18, 0.88, sourceRadius);
     float roundnessNoise = sin(sourceAngle * 13.0 + depth * 4.2 + shapePhase * 0.31) * 0.54
@@ -465,7 +474,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float morph = globalWave * 0.18 + localMorph * 0.82;
     float reliefRadiusGate = smoothstep(0.34, 0.72, lengthP) * (0.42 + edge * 0.36) * (0.54 + shellLayer * 0.34);
     float broadDensityShape = mix(broadRelief, reliefSignal, 0.28 + surfaceReliefDensity * 0.56);
-    float reliefRadiusOffset = broadDensityShape * reliefPresence * reliefRadiusGate * (0.0060 + edge * 0.0105 + surfaceMotion * 0.0045);
+    float reliefRadiusOffset = broadDensityShape * reliefPresence * reliefRadiusGate * (0.0075 + edge * 0.0140 + surfaceMotion * 0.0060);
     float edgeMorph = edge * edge * (0.010 + 0.026 * edge + 0.006 * particleSeed) * morph * edgeSettle * speakingEdgeLift;
     float innerMorph = (interior * 0.20 * centerMotionGate + midBand * 0.88 * stateFocus) * (0.0040 + 0.0080 * seedB)
         * (globalWave * 0.78 + localMorph * 0.22);
@@ -511,10 +520,13 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     );
     float3 stableLightNormal = normalize(rotateBody(rotateBody(float3(baseParticlePosition * 0.92, depth * 1.24), selfSpinAngles), bodyAngles) + float3(0.001, 0.001, 0.001));
     float directionalFrontLight = smoothstep(-0.24, 0.70, stableLightNormal.z);
-    float bodyDepth = depth * mix(0.34, 0.72, tuneMembraneFullness)
+    float reliefDepthOffset = broadDensityShape * reliefPresence * reliefRadiusGate * (0.010 + shellLayer * 0.014);
+    float bodyDepth = depth * 0.52 * axisScale.z
         + globalWave * (0.006 + midBand * 0.018 + edge * 0.018) * mix(0.78, 1.02, tuneMembraneFullness)
-        + centerFollow * 0.010;
+        + centerFollow * 0.010
+        + reliefDepthOffset;
     float3 body = float3(p.x, p.y, bodyDepth);
+    float3 shapeBody = body;
     float activeInterior = interior * centerMotionGate;
     float3 materialFlow = materialFlowField(body, fieldTime, particleSeed, seedB, edge, activeInterior, midBand, globalWave, globalAxis, globalSide);
     float3 cloudFlow = volumetricCloudFlowField(body + materialFlow * 0.35, fieldTime, particleSeed, seedB, edge, activeInterior, midBand, globalWave, globalAxis, globalSide);
@@ -528,8 +540,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     materialBody = rotateBody(materialBody, selfSpinAngles);
     body = rotateBody(body, selfSpinAngles);
     body = rotateBody(body, bodyAngles);
-    float bodyTurnProjection = smoothstep(0.02, 0.72, rotationControl);
-    p = mix(p, body.xy, bodyTurnProjection * 0.92);
+    float3 viewBody = rotateBody(shapeBody, selfSpinAngles + bodyAngles + float3(uniforms.manualRotationX, uniforms.manualRotationY, 0.0));
+    float viewPerspective = 1.0 / max(0.72, 1.0 + viewBody.z * 0.10);
+    p = viewBody.xy * viewPerspective;
     float wholeTurn = globalTurnAngle(rotationPhaseTime * 0.36 + 6.4) * 0.10
         + sin(rotationPhaseTime * 0.19 + 1.7) * 0.035;
     p = rotate2(p, wholeTurn);

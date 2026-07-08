@@ -34,6 +34,9 @@ struct ParticleCoreFrameUniforms {
     var rotationDirection: Float
     var shapeRoundness: Float
     var surfaceReliefStrength: Float
+    var shapeScaleX: Float
+    var shapeScaleY: Float
+    var shapeScaleZ: Float
     var surfaceReliefDensity: Float
     var shapeSeed: Float
     var membraneAspect: Float
@@ -62,6 +65,8 @@ struct ParticleCoreFrameUniforms {
     var surfaceFlowSeed: Float
     var surfaceFlowLightSeed: Float
     var surfaceLightStrength: Float
+    var manualRotationX: Float
+    var manualRotationY: Float
     var baseColor: SIMD4<Float>
     var ridgeColor: SIMD4<Float>
     var dimColor: SIMD4<Float>
@@ -109,6 +114,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private var smoothLoadingStrength: Float
     private var smoothErrorStrength: Float
     private var smoothExitStrength: Float
+    private var manualRotation = SIMD2<Float>(repeating: 0)
     private var tuning = ParticleCoreTuning.systemDefault
     private var colorProfile = ParticleCoreColorProfile.systemDefault
     #if DEBUG
@@ -125,6 +131,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private var debugPausedRawStateAge: Float?
     #endif
     var debugMetricsHandler: ((ParticleRenderMetrics) -> Void)?
+    var manualRotationEnabled = false
 
     init?(device: MTLDevice, visualState: ParticleCoreVisualState = .idle, validationSeed: UInt64? = nil) {
         let launchSeed: UInt64 = validationSeed ?? 0xA7F7E11E
@@ -276,6 +283,9 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             rotationDirection: Float(tuning.rotationDirection),
             shapeRoundness: Float(tuning.shapeRoundness),
             surfaceReliefStrength: Float(tuning.surfaceReliefStrength),
+            shapeScaleX: Float(tuning.shapeScaleX),
+            shapeScaleY: Float(tuning.shapeScaleY),
+            shapeScaleZ: Float(tuning.shapeScaleZ),
             surfaceReliefDensity: Float(tuning.surfaceReliefDensity),
             shapeSeed: Float(tuning.shapeSeed),
             membraneAspect: Float(tuning.membraneAspect),
@@ -304,6 +314,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             surfaceFlowSeed: Float(tuning.surfaceFlowSeed),
             surfaceFlowLightSeed: Float(tuning.surfaceFlowLightSeed),
             surfaceLightStrength: Float(tuning.surfaceLightStrength),
+            manualRotationX: manualRotation.x,
+            manualRotationY: manualRotation.y,
             baseColor: colorProfile.baseVector,
             ridgeColor: colorProfile.ridgeVector,
             dimColor: colorProfile.dimVector,
@@ -330,6 +342,11 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         targetMouseVelocity = velocity
         targetMouseInfluence = active ? 1 : 0
         lastMouseEventTime = CACurrentMediaTime()
+    }
+
+    func rotateManualView(deltaX: Float, deltaY: Float) {
+        manualRotation.x = max(-1.25, min(1.25, manualRotation.x + deltaY * 0.010))
+        manualRotation.y += deltaX * 0.010
     }
 
     func setVisualState(_ visualState: ParticleCoreVisualState, reason: String = "appMapping") {

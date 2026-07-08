@@ -12,6 +12,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
     var validationSeed: UInt64?
     var validationFixedTime: Float?
     var debugAnimationPaused = false
+    var debugManualRotationEnabled = false
     #endif
 
     func makeNSView(context: Context) -> MTKView {
@@ -26,6 +27,9 @@ struct ParticleCoreMetalView: NSViewRepresentable {
         view.enableSetNeedsDisplay = false
         view.isPaused = false
         view.framebufferOnly = true
+        #if DEBUG
+        view.manualRotationEnabled = debugManualRotationEnabled
+        #endif
         configureBackground(for: view, transparent: isTransparentBackground)
 
         #if DEBUG
@@ -35,6 +39,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
         }
         renderer.validationFixedTime = validationFixedTime
         renderer.debugAnimationPaused = debugAnimationPaused
+        renderer.manualRotationEnabled = debugManualRotationEnabled
         #else
         guard let renderer = ParticleCoreRenderer(device: device, visualState: visualState) else {
             print("[ParticleCore] renderer init failed")
@@ -74,8 +79,12 @@ struct ParticleCoreMetalView: NSViewRepresentable {
             context.coordinator.colorProfile = colorProfile
         }
         #if DEBUG
+        if let inputView = nsView as? ParticleCoreInputView {
+            inputView.manualRotationEnabled = debugManualRotationEnabled
+        }
         context.coordinator.renderer?.validationFixedTime = validationFixedTime
         context.coordinator.renderer?.debugAnimationPaused = debugAnimationPaused
+        context.coordinator.renderer?.manualRotationEnabled = debugManualRotationEnabled
         #endif
     }
 
@@ -106,6 +115,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
 
 private final class ParticleCoreInputView: MTKView {
     weak var inputRenderer: ParticleCoreRenderer?
+    var manualRotationEnabled = false
     private var trackingAreaRef: NSTrackingArea?
     private var lastMousePosition: SIMD2<Float>?
     private var lastMouseTime: TimeInterval?
@@ -144,6 +154,11 @@ private final class ParticleCoreInputView: MTKView {
     }
 
     override func mouseDragged(with event: NSEvent) {
+        if manualRotationEnabled {
+            inputRenderer?.rotateManualView(deltaX: Float(event.deltaX), deltaY: Float(event.deltaY))
+            inputRenderer?.updateMouse(position: .zero, velocity: .zero, active: false)
+            return
+        }
         updateMouse(with: event, active: true)
     }
 
@@ -156,6 +171,14 @@ private final class ParticleCoreInputView: MTKView {
         lastMousePosition = nil
         lastMouseTime = nil
         inputRenderer?.updateMouse(position: .zero, velocity: .zero, active: false)
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        if manualRotationEnabled {
+            inputRenderer?.rotateManualView(deltaX: Float(event.scrollingDeltaX), deltaY: Float(event.scrollingDeltaY))
+            return
+        }
+        super.scrollWheel(with: event)
     }
 
     override func keyDown(with event: NSEvent) {

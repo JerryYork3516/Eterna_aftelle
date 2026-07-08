@@ -14,6 +14,7 @@ struct ContentView: View {
     @State private var particleValidationRunID = UUID()
     @State private var particleValidationDidStart = false
     @State private var particleDebugAnimationPaused = false
+    @State private var particleDebugManualRotationEnabled = false
     #endif
 
     var body: some View {
@@ -122,7 +123,8 @@ struct ContentView: View {
             debugMetricsHandler: controller.updateParticleRenderMetrics,
             validationSeed: particleValidation?.seed,
             validationFixedTime: particleValidationStep.fixedTime,
-            debugAnimationPaused: particleDebugAnimationPaused
+            debugAnimationPaused: particleDebugAnimationPaused,
+            debugManualRotationEnabled: particleDebugManualRotationEnabled
         )
         .id(particleValidationRunID)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -146,6 +148,7 @@ struct ContentView: View {
             renderKind: controller.particleRenderKind,
             tuning: $particleTuning,
             animationPaused: $particleDebugAnimationPaused,
+            manualRotationEnabled: $particleDebugManualRotationEnabled,
             colorProfile: $particleColorProfile,
             defaultColorProfile: controller.particleColorProfile,
             setShellMode: controller.setParticleShellMode,
@@ -459,7 +462,7 @@ private enum ParticleTuningGroup: CaseIterable, Identifiable {
         case .basic:
             return [.globalScale, .pointSizeScale, .brightness, .alphaScale]
         case .shape:
-            return [.shapeRoundness, .surfaceReliefStrength, .surfaceReliefDensity, .shapeSeed, .membraneAspect, .membraneScale, .membraneFullness]
+            return [.surfaceReliefStrength, .shapeScaleX, .shapeScaleY, .shapeScaleZ]
         case .surface:
             return [.membraneMist, .membraneGrain, .sheetLightStrength, .flowLightStrength, .surfaceLightStrength, .surfaceFlowDirection, .surfaceFlowSeed, .surfaceFlowLightSeed]
         case .motion:
@@ -478,6 +481,7 @@ private struct ParticleDebugPanel: View {
     let renderKind: ParticleRenderKind
     @Binding var tuning: ParticleCoreTuning
     @Binding var animationPaused: Bool
+    @Binding var manualRotationEnabled: Bool
     @Binding var colorProfile: ParticleCoreColorProfile
     let defaultColorProfile: ParticleCoreColorProfile
     let setShellMode: (ParticleShellMode) -> Void
@@ -562,6 +566,9 @@ private struct ParticleDebugPanel: View {
                                     )
                                 }
                                 .controlSize(.small)
+
+                                Toggle(String(localized: "particleDebug.manualRotation.toggle"), isOn: $manualRotationEnabled)
+                                    .toggleStyle(.checkbox)
 
                                 Text(String(localized: animationPaused ? "particleDebug.animation.paused" : "particleDebug.animation.playing"))
                                     .font(.caption)
@@ -1137,7 +1144,7 @@ private struct ParticleParameterRow: View {
                     .frame(width: 92, alignment: .leading)
                     .lineLimit(2)
 
-                Slider(value: value, in: 0...1, step: parameter.step)
+                Slider(value: value, in: parameter.range, step: parameter.step)
 
                 Text(String(localized: String.LocalizationValue(parameter.highHintKey)))
                     .font(.system(size: 10))
@@ -1158,7 +1165,7 @@ private struct ParticleParameterRow: View {
         Binding {
             tuning[keyPath: parameter.keyPath]
         } set: { newValue in
-            tuning[keyPath: parameter.keyPath] = min(1, max(0, newValue))
+            tuning[keyPath: parameter.keyPath] = parameter.clamp(newValue)
         }
     }
 

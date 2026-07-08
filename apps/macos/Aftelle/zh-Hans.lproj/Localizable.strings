@@ -68,6 +68,9 @@
 "particleDebug.parameter.rotationDirection" = "整体旋转方向";
 "particleDebug.parameter.shapeRoundness" = "圆润度";
 "particleDebug.parameter.surfaceReliefStrength" = "表面起伏";
+"particleDebug.parameter.shapeScaleX" = "X 轴缩放";
+"particleDebug.parameter.shapeScaleY" = "Y 轴缩放";
+"particleDebug.parameter.shapeScaleZ" = "Z 轴缩放";
 "particleDebug.parameter.surfaceReliefDensity" = "起伏密度";
 "particleDebug.parameter.shapeSeed" = "形态 Seed";
 "particleDebug.parameter.membraneAspect" = "膜比例";
@@ -133,9 +136,18 @@
 "particleDebug.parameter.shapeRoundness.caption" = "控制壳体表面粗糙 / 平滑程度，不改变整体形体。";
 "particleDebug.parameter.shapeRoundness.lowHint" = "更粗糙";
 "particleDebug.parameter.shapeRoundness.highHint" = "更平滑";
-"particleDebug.parameter.surfaceReliefStrength.caption" = "控制壳面局部凹凸幅度。";
+"particleDebug.parameter.surfaceReliefStrength.caption" = "控制整个球面表面起伏幅度。";
 "particleDebug.parameter.surfaceReliefStrength.lowHint" = "更平";
 "particleDebug.parameter.surfaceReliefStrength.highHint" = "更凹凸";
+"particleDebug.parameter.shapeScaleX.caption" = "控制粒子体 X 轴缩放。";
+"particleDebug.parameter.shapeScaleX.lowHint" = "更窄";
+"particleDebug.parameter.shapeScaleX.highHint" = "更宽";
+"particleDebug.parameter.shapeScaleY.caption" = "控制粒子体 Y 轴缩放。";
+"particleDebug.parameter.shapeScaleY.lowHint" = "更矮";
+"particleDebug.parameter.shapeScaleY.highHint" = "更高";
+"particleDebug.parameter.shapeScaleZ.caption" = "控制粒子体 Z 深度轴缩放。";
+"particleDebug.parameter.shapeScaleZ.lowHint" = "更浅";
+"particleDebug.parameter.shapeScaleZ.highHint" = "更深";
 "particleDebug.parameter.surfaceReliefDensity.caption" = "控制表面起伏纹理的疏密。";
 "particleDebug.parameter.surfaceReliefDensity.lowHint" = "更稀疏";
 "particleDebug.parameter.surfaceReliefDensity.highHint" = "更细密";
@@ -283,6 +295,7 @@
 "particleDebug.animation.resume" = "继续动效";
 "particleDebug.animation.paused" = "动效已暂停";
 "particleDebug.animation.playing" = "动效播放中";
+"particleDebug.manualRotation.toggle" = "拖动旋转";
 "particleSubtitle.test.0" = "I am here.";
 "particleSubtitle.test.1" = "Still thinking.";
 "particleSubtitle.test.2" = "The signal is quiet.";
