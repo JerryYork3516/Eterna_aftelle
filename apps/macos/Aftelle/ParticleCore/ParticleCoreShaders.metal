@@ -360,7 +360,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneGlobalScale = scaleAroundOne(uniforms.globalScale, 1.04);
     float pointSizeHeadroom = smoothstep(0.56, 1.0, saturate(uniforms.pointSizeScale));
     float brightnessHeadroom = smoothstep(0.94, 1.0, saturate(uniforms.brightness));
-    float tunePointSize = scaleAroundOne(uniforms.pointSizeScale, 1.23) * (1.0 + pointSizeHeadroom * 0.50);
+    float tunePointSize = scaleAroundOne(uniforms.pointSizeScale, 1.23) * (1.0 + pointSizeHeadroom * 2.0);
     float tuneBrightness = scaleAroundOne(uniforms.brightness, 1.35) * (1.0 + brightnessHeadroom * 0.50);
     float tuneAlpha = scaleAroundOne(uniforms.alphaScale, 1.35);
     float tuneRidgeBrightness = scaleAroundOne(uniforms.ridgeBrightness, 1.65);
@@ -940,7 +940,13 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     visibleIonCluster *= mix(1.0, 0.48, exitStructureLoss);
     visibleCloudDensity *= mix(1.0, 0.68, exitDim);
     visibleDenseSection *= mix(1.0, 0.64, exitDim);
-    float3 surfaceNormal = normalize(float3(flowedBody.xy * 0.92, flowedBody.z * 1.12 + visibleDepth * 0.22));
+    float reliefNormalStrength = reliefPresence * (0.18 + surfaceReliefValue * 0.34) * (0.62 + reliefRadiusGate * 0.38);
+    float3 reliefNormalOffset = normalize(float3(
+        turnedAxis * broadDensityShape + turnedSide * reliefSignal * 0.74,
+        broadDensityShape * 0.34 + reliefSignal * 0.22
+    ) + float3(0.001, 0.001, 0.001));
+    float3 surfaceNormal = normalize(float3(flowedBody.xy * 0.92, flowedBody.z * 1.12 + visibleDepth * 0.22)
+        + reliefNormalOffset * reliefNormalStrength);
     float3 keyDirection = normalize(float3(turnedSide * 0.74 + turnedAxis * 0.22, 0.54));
     float3 fillDirection = normalize(float3(-turnedSide * 0.42 + turnedAxis * 0.34, 0.50));
     float rollingLight = smoothstep(-0.24, 0.66, dot(surfaceNormal, keyDirection));
@@ -1028,7 +1034,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float visualSizeGate = saturate(max(frontParticleLift * 0.82, ridgeSizeLift * 0.96));
     float pointCeiling = mix(1.20, 4.20, visualSizeGate) + stableSizeRidge * 0.48;
     float depthVisibilitySize = mix(0.78, 1.06, frontParticleLift) * mix(1.0, 0.82, backParticleMute);
-    float layeredPointSize = pointBase * sizeJitter * depthSize * depthVisibilitySize
+    float reliefPoleMute = mix(1.0, 0.82, reliefPresence * smoothstep(0.52, 0.86, abs(stableScreenPosition.y)) * smoothstep(0.48, 0.92, stableRadius));
+    float layeredPointSize = pointBase * sizeJitter * depthSize * depthVisibilitySize * reliefPoleMute
         + ridgeSizeLift * (0.20 + frontParticleLift * 0.22);
     layeredPointSize += spineAggregation * 0.18 + edgeContour * 0.08 + edgeDustVisibility * 0.22 + edgeFrayField * 0.08 + spineHighlightLift * 0.14 + visibleStructuralSpine * spineContrastLift * 0.06 - spineHighlightMute * 0.08;
     float exitPointScale = mix(1.0, 0.56 + dustRelease * 0.16, exitDim);
