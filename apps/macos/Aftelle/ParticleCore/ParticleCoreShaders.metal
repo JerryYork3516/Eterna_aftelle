@@ -368,6 +368,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneFlowSpeed = scaleAroundOne(uniforms.flowSpeed, 1.80);
     float rotationControl = saturate(uniforms.rotationSpeed);
     float tuneRotationSpeed = rotationControl * 1.85;
+    float postureStrength = smoothstep(0.02, 0.42, rotationControl);
     float2 tuneRotationDirection = cardinalDirection(uniforms.rotationDirection);
     float tuneRotationPhase = atan2(tuneRotationDirection.y, tuneRotationDirection.x);
     float spineStrengthControl = saturate(uniforms.spineLineStrength);
@@ -474,7 +475,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float reliefSurfaceGate = 0.58 + smoothstep(0.02, 0.72, lengthP) * 0.42;
     float reliefRadiusGate = reliefSurfaceGate * (0.58 + edge * 0.42) * (0.72 + shellLayer * 0.28);
     float broadDensityShape = mix(broadRelief, reliefSignal, 0.28 + surfaceReliefDensity * 0.56);
-    float reliefRadiusOffset = broadDensityShape * reliefPresence * reliefRadiusGate * smoothstep(0.16, 0.58, lengthP) * (0.0085 + edge * 0.0160 + surfaceMotion * 0.0070);
+    float reliefScreenGate = 0.42 + smoothstep(0.02, 0.58, lengthP) * 0.58;
+    float reliefRadiusOffset = broadDensityShape * reliefPresence * reliefRadiusGate * reliefScreenGate * (0.0085 + edge * 0.0160 + surfaceMotion * 0.0070);
     float edgeMorph = edge * edge * (0.010 + 0.026 * edge + 0.006 * particleSeed) * morph * edgeSettle * speakingEdgeLift;
     float innerMorph = (interior * 0.20 * centerMotionGate + midBand * 0.88 * stateFocus) * (0.0040 + 0.0080 * seedB)
         * (globalWave * 0.78 + localMorph * 0.22);
@@ -503,7 +505,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     p += (globalAxis * centerFollow + globalSide * centerFollow * 0.45) * (0.006 + midBand * 0.014);
 
     float rotationTime = t * tuneRotationSpeed;
-    float postureTime = fieldTime * 0.24;
+    float postureTime = fieldTime * 0.24 * postureStrength;
     float rotationPhaseTime = postureTime + tuneRotationPhase;
     float turnAngle = globalTurnAngle(rotationPhaseTime);
     float turnChangePulse = globalTurnChangePulse(rotationPhaseTime);
@@ -517,9 +519,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         sin(rotationPhaseTime * 0.31 + 1.1) * 0.08 + sin(rotationPhaseTime * 0.14 + 2.2) * 0.035 + turnChangePulse * 0.02,
         turnAngle * 0.14 + sin(rotationPhaseTime * 0.24 + 0.6) * 0.045,
         sin(rotationPhaseTime * 0.19 + 0.8) * 0.045 + sin(rotationPhaseTime * 0.11 + 2.4) * 0.020 - turnChangePulse * 0.015
-    );
+    ) * postureStrength;
     float wholeTurn = globalTurnAngle(rotationPhaseTime * 0.36 + 6.4) * 0.10
         + sin(rotationPhaseTime * 0.19 + 1.7) * 0.035;
+    wholeTurn *= postureStrength;
     float3 viewAngles = selfSpinAngles + bodyAngles + float3(uniforms.manualRotationX, uniforms.manualRotationY, wholeTurn);
     float3 stableLightNormal = normalize(rotateBody(float3(baseParticlePosition * 0.92, depth * 1.24), viewAngles) + float3(0.001, 0.001, 0.001));
     float directionalFrontLight = smoothstep(-0.24, 0.70, stableLightNormal.z);
@@ -787,7 +790,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float leftFold = (1.0 - smoothstep(0.014, (0.048 - spineWidthShift * 0.14) * spineReferenceWidth, abs(ridgeX + 0.34 + 0.045 * sin(ridgeY * 7.0 + spineFlowPhase))))
         * smoothstep(-0.42, -0.12, ridgeY)
         * (1.0 - smoothstep(0.36, 0.52, ridgeY));
-    float referenceRidge = saturate(max(max(mainRidge, topRidge * 0.70), max(lowerRidge * 0.64, leftFold * 0.54)))
+    float referenceRidge = saturate(max(max(mainRidge, topRidge * 0.18), max(lowerRidge * 0.64, leftFold * 0.54)))
         * frontIonGate
         * (0.58 + interior * 0.34 + edge * 0.18)
         * spineShellGate;
@@ -945,6 +948,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         turnedAxis * broadDensityShape + turnedSide * reliefSignal * 0.74,
         broadDensityShape * 0.34 + reliefSignal * 0.22
     ) + float3(0.001, 0.001, 0.001));
+    float reliefDetail = saturate(abs(broadDensityShape) * reliefPresence * (0.44 + reliefRadiusGate * 0.56));
+    visibleCloudDensity = saturate(visibleCloudDensity + reliefDetail * 0.09);
+    visibleLayerDensity = saturate(visibleLayerDensity + reliefDetail * 0.12);
+    visibleLocalRidge = saturate(visibleLocalRidge + reliefDetail * 0.08);
     float3 surfaceNormal = normalize(float3(flowedBody.xy * 0.92, flowedBody.z * 1.12 + visibleDepth * 0.22)
         + reliefNormalOffset * reliefNormalStrength);
     float3 keyDirection = normalize(float3(turnedSide * 0.74 + turnedAxis * 0.22, 0.54));
