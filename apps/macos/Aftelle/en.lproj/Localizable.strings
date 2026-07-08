@@ -68,6 +68,9 @@
 "particleDebug.parameter.flowSpeed" = "Surface Flow Speed";
 "particleDebug.parameter.rotationSpeed" = "Global Rotation Speed";
 "particleDebug.parameter.rotationDirection" = "Global Rotation Direction";
+"particleDebug.parameter.lightRotationSpeed" = "Light Rotation Speed";
+"particleDebug.parameter.lightRotationDirection" = "Light Rotation Direction";
+"particleDebug.parameter.lightSourceStrength" = "Light Strength";
 "particleDebug.parameter.shapeRoundness" = "Roundness";
 "particleDebug.parameter.surfaceReliefStrength" = "Surface Relief";
 "particleDebug.parameter.shapeScaleX" = "X Scale";
@@ -83,6 +86,8 @@
 "particleDebug.parameter.membraneStability" = "Stability";
 "particleDebug.parameter.membraneFullness" = "Volume Fullness";
 "particleDebug.parameter.sheetLightStrength" = "Sheet Light Contrast";
+"particleDebug.parameter.frontLightStrength" = "Front Light";
+"particleDebug.parameter.backLightStrength" = "Back Light";
 "particleDebug.parameter.flowLightStrength" = "Flow Light Contrast";
 "particleDebug.parameter.spineRadius" = "Spine Radius";
 "particleDebug.parameter.spineSeed" = "Spine Seed";
@@ -142,6 +147,15 @@
 "particleDebug.parameter.rotationDirection.caption" = "Selects the whole-body rotation orientation.";
 "particleDebug.parameter.rotationDirection.lowHint" = "Axis";
 "particleDebug.parameter.rotationDirection.highHint" = "Direction";
+"particleDebug.parameter.lightRotationSpeed.caption" = "Controls automatic light rotation without rotating the particle body.";
+"particleDebug.parameter.lightRotationSpeed.lowHint" = "Still light";
+"particleDebug.parameter.lightRotationSpeed.highHint" = "Faster light";
+"particleDebug.parameter.lightRotationDirection.caption" = "Selects the automatic light rotation direction.";
+"particleDebug.parameter.lightRotationDirection.lowHint" = "Axis";
+"particleDebug.parameter.lightRotationDirection.highHint" = "Direction";
+"particleDebug.parameter.lightSourceStrength.caption" = "Controls the key light strength used by the rotating light source.";
+"particleDebug.parameter.lightSourceStrength.lowHint" = "Softer light";
+"particleDebug.parameter.lightSourceStrength.highHint" = "Stronger light";
 "particleDebug.parameter.shapeRoundness.caption" = "Controls surface roughness versus smoothness without changing the core body shape.";
 "particleDebug.parameter.shapeRoundness.lowHint" = "Rougher";
 "particleDebug.parameter.shapeRoundness.highHint" = "Smoother";
@@ -187,6 +201,12 @@
 "particleDebug.parameter.sheetLightStrength.caption" = "Controls front/back shell layer contrast without changing global exposure.";
 "particleDebug.parameter.sheetLightStrength.lowHint" = "Softer depth";
 "particleDebug.parameter.sheetLightStrength.highHint" = "Clearer depth";
+"particleDebug.parameter.frontLightStrength.caption" = "Adjusts the brightness of front-facing particles.";
+"particleDebug.parameter.frontLightStrength.lowHint" = "Darker front";
+"particleDebug.parameter.frontLightStrength.highHint" = "Brighter front";
+"particleDebug.parameter.backLightStrength.caption" = "Adjusts the brightness of back-facing particles.";
+"particleDebug.parameter.backLightStrength.lowHint" = "Darker back";
+"particleDebug.parameter.backLightStrength.highHint" = "Brighter back";
 "particleDebug.parameter.flowLightStrength.caption" = "Controls only the dynamic light and shadow carried by surface flow.";
 "particleDebug.parameter.flowLightStrength.lowHint" = "Muted flow";
 "particleDebug.parameter.flowLightStrength.highHint" = "Stronger flow";

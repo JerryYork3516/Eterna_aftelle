@@ -15,6 +15,9 @@ struct ParticleCoreTuning: Codable, Equatable {
     var flowSpeed: Double
     var rotationSpeed: Double
     var rotationDirection: Double
+    var lightRotationSpeed: Double
+    var lightRotationDirection: Double
+    var lightSourceStrength: Double
     var shapeRoundness: Double
     var surfaceReliefStrength: Double
     var shapeScaleX: Double
@@ -31,6 +34,8 @@ struct ParticleCoreTuning: Codable, Equatable {
     var membraneStability: Double
     var membraneFullness: Double
     var sheetLightStrength: Double
+    var frontLightStrength: Double
+    var backLightStrength: Double
     var flowLightStrength: Double
     var spineRadius: Double
     var spineSeed: Double
@@ -63,6 +68,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         flowSpeed: Double,
         rotationSpeed: Double,
         rotationDirection: Double,
+        lightRotationSpeed: Double,
+        lightRotationDirection: Double,
+        lightSourceStrength: Double,
         shapeRoundness: Double,
         surfaceReliefStrength: Double,
         shapeScaleX: Double,
@@ -79,6 +87,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         membraneStability: Double,
         membraneFullness: Double,
         sheetLightStrength: Double,
+        frontLightStrength: Double,
+        backLightStrength: Double,
         flowLightStrength: Double,
         spineRadius: Double,
         spineSeed: Double,
@@ -110,6 +120,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.flowSpeed = flowSpeed
         self.rotationSpeed = rotationSpeed
         self.rotationDirection = rotationDirection
+        self.lightRotationSpeed = lightRotationSpeed
+        self.lightRotationDirection = lightRotationDirection
+        self.lightSourceStrength = lightSourceStrength
         self.shapeRoundness = shapeRoundness
         self.surfaceReliefStrength = surfaceReliefStrength
         self.shapeScaleX = shapeScaleX
@@ -126,6 +139,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.membraneStability = membraneStability
         self.membraneFullness = membraneFullness
         self.sheetLightStrength = sheetLightStrength
+        self.frontLightStrength = frontLightStrength
+        self.backLightStrength = backLightStrength
         self.flowLightStrength = flowLightStrength
         self.spineRadius = spineRadius
         self.spineSeed = spineSeed
@@ -159,6 +174,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         flowSpeed: 0.22,
         rotationSpeed: 0.0,
         rotationDirection: 1.0,
+        lightRotationSpeed: 0.0,
+        lightRotationDirection: 1.0,
+        lightSourceStrength: 0.50,
         shapeRoundness: 1.0,
         surfaceReliefStrength: 0.0,
         shapeScaleX: 0.0,
@@ -175,6 +193,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         membraneStability: 0.98,
         membraneFullness: 0.82,
         sheetLightStrength: 0.82,
+        frontLightStrength: 0.50,
+        backLightStrength: 0.50,
         flowLightStrength: 0.62,
         spineRadius: 0.54,
         spineSeed: 0.50,
@@ -208,6 +228,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         flowSpeed: 0.24,
         rotationSpeed: 0.0,
         rotationDirection: 1.0,
+        lightRotationSpeed: 0.0,
+        lightRotationDirection: 1.0,
+        lightSourceStrength: 0.50,
         shapeRoundness: 1.0,
         surfaceReliefStrength: 0.0,
         shapeScaleX: 0.0,
@@ -224,6 +247,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         membraneStability: 0.98,
         membraneFullness: 0.86,
         sheetLightStrength: 0.84,
+        frontLightStrength: 0.50,
+        backLightStrength: 0.50,
         flowLightStrength: 0.70,
         spineRadius: 0.55,
         spineSeed: 0.50,
@@ -259,6 +284,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         case flowSpeed
         case rotationSpeed
         case rotationDirection
+        case lightRotationSpeed
+        case lightRotationDirection
+        case lightSourceStrength
         case shapeRoundness
         case surfaceReliefStrength
         case shapeScaleX
@@ -275,6 +303,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         case membraneStability
         case membraneFullness
         case sheetLightStrength
+        case frontLightStrength
+        case backLightStrength
         case flowLightStrength
         case spineRadius
         case spineSeed
@@ -315,6 +345,9 @@ struct ParticleCoreTuning: Codable, Equatable {
             flowSpeed: try values.decodeIfPresent(Double.self, forKey: .flowSpeed) ?? 0.5,
             rotationSpeed: try values.decodeIfPresent(Double.self, forKey: .rotationSpeed) ?? 0.5,
             rotationDirection: try values.decodeIfPresent(Double.self, forKey: .rotationDirection) ?? 1.0,
+            lightRotationSpeed: try values.decodeIfPresent(Double.self, forKey: .lightRotationSpeed) ?? Self.systemDefault.lightRotationSpeed,
+            lightRotationDirection: try values.decodeIfPresent(Double.self, forKey: .lightRotationDirection) ?? Self.systemDefault.lightRotationDirection,
+            lightSourceStrength: try values.decodeIfPresent(Double.self, forKey: .lightSourceStrength) ?? Self.systemDefault.lightSourceStrength,
             shapeRoundness: try values.decodeIfPresent(Double.self, forKey: .shapeRoundness) ?? Self.systemDefault.shapeRoundness,
             surfaceReliefStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceReliefStrength) ?? Self.systemDefault.surfaceReliefStrength,
             shapeScaleX: try values.decodeIfPresent(Double.self, forKey: .shapeScaleX) ?? Self.systemDefault.shapeScaleX,
@@ -333,6 +366,8 @@ struct ParticleCoreTuning: Codable, Equatable {
             membraneStability: try values.decodeIfPresent(Double.self, forKey: .membraneStability) ?? Self.systemDefault.membraneStability,
             membraneFullness: try values.decodeIfPresent(Double.self, forKey: .membraneFullness) ?? Self.systemDefault.membraneFullness,
             sheetLightStrength: try values.decodeIfPresent(Double.self, forKey: .sheetLightStrength) ?? Self.systemDefault.sheetLightStrength,
+            frontLightStrength: try values.decodeIfPresent(Double.self, forKey: .frontLightStrength) ?? Self.systemDefault.frontLightStrength,
+            backLightStrength: try values.decodeIfPresent(Double.self, forKey: .backLightStrength) ?? Self.systemDefault.backLightStrength,
             flowLightStrength: try values.decodeIfPresent(Double.self, forKey: .flowLightStrength) ?? Self.systemDefault.flowLightStrength,
             spineRadius: try values.decodeIfPresent(Double.self, forKey: .spineRadius) ?? Self.systemDefault.spineRadius,
             spineSeed: try values.decodeIfPresent(Double.self, forKey: .spineSeed) ?? Self.systemDefault.spineSeed,
@@ -393,6 +428,9 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case flowSpeed
     case rotationSpeed
     case rotationDirection
+    case lightRotationSpeed
+    case lightRotationDirection
+    case lightSourceStrength
     case surfaceReliefStrength
     case shapeScaleX
     case shapeScaleY
@@ -402,6 +440,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case membraneLineStrength
     case membraneStability
     case sheetLightStrength
+    case frontLightStrength
+    case backLightStrength
     case flowLightStrength
     case spineRadius
     case spineSeed
@@ -439,7 +479,7 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
         switch self {
         case .particleCount:
             return 250
-        case .rotationDirection:
+        case .rotationDirection, .lightRotationDirection:
             return 1.0 / 3.0
         case .spineSeed:
             return 0.05
@@ -448,10 +488,10 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
         case .shapeScaleX, .shapeScaleY, .shapeScaleZ:
             return 0.02
         case .globalScale, .pointSizeScale, .particleEdgeSharpness, .brightness, .alphaScale, .ridgeBrightness,
-             .breathingSpeed, .flowSpeed, .rotationSpeed, .surfaceLightStrength,
+             .breathingSpeed, .flowSpeed, .rotationSpeed, .lightRotationSpeed, .lightSourceStrength, .surfaceLightStrength,
              .surfaceReliefStrength,
              .membraneMist, .membraneGrain, .membraneLineStrength,
-             .membraneStability, .sheetLightStrength, .flowLightStrength,
+             .membraneStability, .sheetLightStrength, .frontLightStrength, .backLightStrength, .flowLightStrength,
              .spineRadius, .spineFlowBinding, .spineLineStrength, .spineLineWidth, .spineLineDensity,
              .edgeScatterDistance, .surfaceFlowDirection:
             return 0.01
@@ -507,6 +547,12 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.rotationSpeed
         case .rotationDirection:
             return \.rotationDirection
+        case .lightRotationSpeed:
+            return \.lightRotationSpeed
+        case .lightRotationDirection:
+            return \.lightRotationDirection
+        case .lightSourceStrength:
+            return \.lightSourceStrength
         case .surfaceReliefStrength:
             return \.surfaceReliefStrength
         case .shapeScaleX:
@@ -525,6 +571,10 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.membraneStability
         case .sheetLightStrength:
             return \.sheetLightStrength
+        case .frontLightStrength:
+            return \.frontLightStrength
+        case .backLightStrength:
+            return \.backLightStrength
         case .flowLightStrength:
             return \.flowLightStrength
         case .spineRadius:

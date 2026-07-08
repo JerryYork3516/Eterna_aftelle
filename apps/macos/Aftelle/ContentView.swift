@@ -467,9 +467,9 @@ private enum ParticleTuningGroup: CaseIterable, Identifiable {
         case .shape:
             return [.surfaceReliefStrength, .shapeScaleX, .shapeScaleY, .shapeScaleZ]
         case .surface:
-            return [.membraneMist, .membraneGrain, .sheetLightStrength, .flowLightStrength, .surfaceLightStrength, .surfaceFlowDirection, .surfaceFlowSeed, .surfaceFlowLightSeed]
+            return [.membraneMist, .membraneGrain, .sheetLightStrength, .frontLightStrength, .backLightStrength, .flowLightStrength, .surfaceLightStrength, .surfaceFlowDirection, .surfaceFlowSeed, .surfaceFlowLightSeed]
         case .motion:
-            return [.breathingAmount, .breathingSpeed, .flowStrength, .flowSpeed, .rotationSpeed, .rotationDirection]
+            return [.breathingAmount, .breathingSpeed, .flowStrength, .flowSpeed, .rotationSpeed, .rotationDirection, .lightRotationSpeed, .lightRotationDirection, .lightSourceStrength]
         case .edge:
             return [.edgeScatterDistance, .edgeDustAmount, .edgeFrayAmount]
         case .spine:
@@ -594,8 +594,8 @@ private struct ParticleDebugPanel: View {
 
                             VStack(spacing: 10) {
                                 ForEach(tuningGroup.parameters) { parameter in
-                                    if parameter == .rotationDirection {
-                                        ParticleDirectionRow(tuning: $tuning)
+                                    if parameter == .rotationDirection || parameter == .lightRotationDirection {
+                                        ParticleDirectionRow(parameter: parameter, tuning: $tuning)
                                     } else {
                                         ParticleParameterRow(parameter: parameter, tuning: $tuning)
                                     }
@@ -1205,12 +1205,13 @@ private struct ParticleParameterRow: View {
 }
 
 private struct ParticleDirectionRow: View {
+    let parameter: ParticleCoreTuningParameter
     @Binding var tuning: ParticleCoreTuning
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(String(localized: "particleDebug.parameter.rotationDirection"))
+                Text(String(localized: String.LocalizationValue(parameter.localizedKey)))
                     .font(.system(size: 12, weight: .semibold))
 
                 Text(statusText)
@@ -1230,18 +1231,18 @@ private struct ParticleDirectionRow: View {
                 Spacer(minLength: 0)
 
                 Button(String(localized: "particleDebug.parameter.resetOne")) {
-                    tuning.rotationDirection = ParticleCoreTuningParameter.rotationDirection.defaultValue
+                    tuning[keyPath: parameter.keyPath] = parameter.defaultValue
                 }
                 .controlSize(.mini)
                 .disabled(isDefault)
             }
 
-            Text(String(localized: "particleDebug.parameter.rotationDirection.caption"))
+            Text(String(localized: String.LocalizationValue(parameter.captionKey)))
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 10) {
-                Text(String(localized: "particleDebug.parameter.rotationDirection.lowHint"))
+                Text(String(localized: String.LocalizationValue(parameter.lowHintKey)))
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
                     .frame(width: 92, alignment: .leading)
@@ -1254,7 +1255,7 @@ private struct ParticleDirectionRow: View {
                 }
                 .pickerStyle(.segmented)
 
-                Text(String(localized: "particleDebug.parameter.rotationDirection.highHint"))
+                Text(String(localized: String.LocalizationValue(parameter.highHintKey)))
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
                     .frame(width: 92, alignment: .trailing)
@@ -1265,14 +1266,14 @@ private struct ParticleDirectionRow: View {
 
     private var direction: Binding<ParticleCoreRotationDirection> {
         Binding {
-            ParticleCoreRotationDirection.nearest(to: tuning.rotationDirection)
+            ParticleCoreRotationDirection.nearest(to: tuning[keyPath: parameter.keyPath])
         } set: { newValue in
-            tuning.rotationDirection = newValue.tuningValue
+            tuning[keyPath: parameter.keyPath] = newValue.tuningValue
         }
     }
 
     private var isDefault: Bool {
-        abs(tuning.rotationDirection - ParticleCoreTuningParameter.rotationDirection.defaultValue) < 0.0005
+        abs(tuning[keyPath: parameter.keyPath] - parameter.defaultValue) < 0.0005
     }
 
     private var statusText: String {

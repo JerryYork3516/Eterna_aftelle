@@ -30,6 +30,9 @@ struct ParticleCoreFrameUniforms {
     float flowSpeed;
     float rotationSpeed;
     float rotationDirection;
+    float lightRotationSpeed;
+    float lightRotationDirection;
+    float lightSourceStrength;
     float shapeRoundness;
     float surfaceReliefStrength;
     float shapeScaleX;
@@ -46,6 +49,8 @@ struct ParticleCoreFrameUniforms {
     float membraneStability;
     float membraneFullness;
     float sheetLightStrength;
+    float frontLightStrength;
+    float backLightStrength;
     float flowLightStrength;
     float spineRadius;
     float spineSeed;
@@ -103,6 +108,8 @@ struct ParticleVertexOut {
     float brightness;
     float alphaScale;
     float particleEdgeSharpness;
+    float frontLightStrength;
+    float backLightStrength;
     float4 baseColor;
     float4 ridgeColor;
     float4 dimColor;
@@ -959,11 +966,30 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     visibleLocalRidge = saturate(visibleLocalRidge + reliefDetail * 0.08);
     float3 surfaceNormal = normalize(float3(flowedBody.xy * 0.92, flowedBody.z * 1.12 + visibleDepth * 0.22)
         + reliefNormalOffset * reliefNormalStrength);
-    float3 lightAngles = float3(uniforms.lightRotationX, uniforms.lightRotationY, 0.0);
+    float sphereRadius = 0.78;
+    float2 normalizedSpherePosition = stableScreenPosition / sphereRadius;
+    float normalizedSphereRadius = max(1.0, length(normalizedSpherePosition));
+    float2 cappedSpherePosition = normalizedSpherePosition / normalizedSphereRadius;
+    float cleanSphereZ = sqrt(max(0.0, 1.0 - dot(cappedSpherePosition, cappedSpherePosition)));
+    float3 sizeLightNormal = normalize(float3(cappedSpherePosition, cleanSphereZ) + float3(0.0, 0.0, 0.001));
+    float lightRotationControl = saturate(uniforms.lightRotationSpeed);
+    float2 tuneLightRotationDirection = cardinalDirection(uniforms.lightRotationDirection);
+    float lightSpin = t * lightRotationControl * 1.85;
+    float3 autoLightAngles = float3(
+        -tuneLightRotationDirection.y * lightSpin,
+        tuneLightRotationDirection.x * lightSpin,
+        0.0
+    );
+    float3 lightAngles = float3(uniforms.lightRotationX, uniforms.lightRotationY, 0.0) + autoLightAngles;
     float3 keyDirection = normalize(rotateBody(float3(0.56, -0.24, 0.80), lightAngles));
     float3 fillDirection = normalize(rotateBody(float3(-0.44, 0.30, 0.58), lightAngles));
-    float rollingLight = smoothstep(-0.24, 0.66, dot(surfaceNormal, keyDirection));
-    float fillLight = smoothstep(-0.18, 0.62, dot(surfaceNormal, fillDirection));
+    float tuneLightSourceStrength = scaleAroundOne(uniforms.lightSourceStrength, 1.20);
+    float sideLightAmount = 1.0 - smoothstep(0.18, 0.72, abs(keyDirection.z));
+    float curvatureLift = (cleanSphereZ - 0.45) * (0.16 + sideLightAmount * 0.22);
+    float curvedSurfaceDot = dot(surfaceNormal, keyDirection) + curvatureLift * 0.55;
+    float curvedSphereDot = dot(sizeLightNormal, keyDirection) + curvatureLift;
+    float rollingLight = saturate(smoothstep(-0.24, 0.66, curvedSurfaceDot) * tuneLightSourceStrength);
+    float fillLight = saturate(smoothstep(-0.18, 0.62, dot(surfaceNormal, fillDirection)) * tuneLightSourceStrength);
     float sheetLayerStrength = saturate(mix(tuneSheetLight, tuneSheetLight * tuneSheetLight, 0.45));
     float sheetHighRange = smoothstep(0.84, 1.0, tuneSheetLight);
     float depthContrast = mix(0.12, 1.18, sheetLayerStrength);
@@ -1018,18 +1044,12 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     surfaceLight = saturate(surfaceLight
         + (directionalFrontLight - 0.52) * 0.34 * sheetHighRange
         - rearShade * cavityGuard * 0.080 * sheetHighRange);
-    float sphereRadius = 0.78;
-    float2 normalizedSpherePosition = stableScreenPosition / sphereRadius;
-    float normalizedSphereRadius = max(1.0, length(normalizedSpherePosition));
-    float2 cappedSpherePosition = normalizedSpherePosition / normalizedSphereRadius;
-    float cleanSphereZ = sqrt(max(0.0, 1.0 - dot(cappedSpherePosition, cappedSpherePosition)));
-    float3 sizeLightNormal = normalize(float3(cappedSpherePosition, cleanSphereZ) + float3(0.0, 0.0, 0.001));
-    float sizeKeyLight = smoothstep(-0.18, 0.82, dot(sizeLightNormal, keyDirection));
-    float sizeFillLight = smoothstep(-0.12, 0.70, dot(sizeLightNormal, fillDirection));
+    float sizeKeyLight = saturate(smoothstep(-0.18, 0.82, curvedSphereDot) * tuneLightSourceStrength);
+    float sizeFillLight = saturate(smoothstep(-0.12, 0.70, dot(sizeLightNormal, fillDirection)) * tuneLightSourceStrength);
     float sphericalLight = saturate(sizeKeyLight * 0.84 + sizeFillLight * 0.12 + cleanSphereZ * 0.04);
-    float sizeLightInfluence = smoothstep(0.02, 0.42, keyDirection.z);
+    float sizeLightInfluence = 0.72 + smoothstep(-0.12, 0.70, keyDirection.z) * 0.28;
     float particleSizeLight = mix(0.50, sphericalLight, sizeLightInfluence);
-    surfaceLight = mix(0.50, saturate(surfaceLight * 0.55 + sphericalLight * 0.45), sizeLightInfluence);
+    surfaceLight = mix(surfaceLight, saturate(surfaceLight * 0.55 + sphericalLight * 0.45), sizeLightInfluence);
     float lightSize = mix(1.0, mix(0.72, 1.58, smoothstep(0.10, 0.92, particleSizeLight)), sizeLightInfluence);
     float baseDepthGate = saturate(directionalFrontLight * 0.72 + sphericalLight * 0.28);
     float frontSizeLift = baseDepthGate * 0.08;
@@ -1078,6 +1098,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     out.brightness = tuneBrightness;
     out.alphaScale = tuneAlpha;
     out.particleEdgeSharpness = saturate(uniforms.particleEdgeSharpness);
+    out.frontLightStrength = scaleAroundOne(uniforms.frontLightStrength, 1.35);
+    out.backLightStrength = scaleAroundOne(uniforms.backLightStrength, 1.55);
     out.baseColor = uniforms.baseColor;
     out.ridgeColor = uniforms.ridgeColor;
     out.dimColor = uniforms.dimColor;
@@ -1091,10 +1113,14 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
                                 float2 pointCoord [[point_coord]]) {
     float d = distance(pointCoord, float2(0.5, 0.5));
     float particleEdgeSharpness = saturate(in.particleEdgeSharpness);
-    float coreOuter = mix(0.34, 0.20, particleEdgeSharpness);
-    float haloOuter = mix(0.64, 0.42, particleEdgeSharpness);
-    float core = 1.0 - smoothstep(0.08, coreOuter, d);
-    float halo = 1.0 - smoothstep(0.14, haloOuter, d);
+    float coreStart = mix(0.02, 0.22, particleEdgeSharpness);
+    float coreOuter = mix(0.28, 0.30, particleEdgeSharpness);
+    float haloStart = mix(0.00, 0.28, particleEdgeSharpness);
+    float haloOuter = mix(0.66, 0.46, particleEdgeSharpness);
+    float core = 1.0 - smoothstep(coreStart, coreOuter, d);
+    float halo = 1.0 - smoothstep(haloStart, haloOuter, d);
+    float haloWeight = mix(1.46, 0.50, particleEdgeSharpness);
+    float coreWeight = mix(0.34, 1.92, particleEdgeSharpness);
     float depthLight = saturate(in.frontness);
     float frontLight = smoothstep(0.42, 0.88, in.frontness);
     float ridge = saturate(in.ridge);
@@ -1123,7 +1149,8 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float frontSurfaceContrast = mix(0.50, 1.18, litSurface);
     float backPresence = 1.0 - smoothstep(-0.54, 0.06, in.depth);
     float frontPresence = smoothstep(-0.22, 0.46, in.depth);
-    float backMute = mix(0.74, 1.0, frontPresence);
+    float layerBrightness = mix(max(0.0, in.backLightStrength), max(0.0, in.frontLightStrength), frontPresence);
+    float backMute = mix(0.50, 1.0, frontPresence) * layerBrightness;
     float sparseDim = 1.0 - smoothstep(0.18, 0.58, density);
     float particleFill = saturate(0.14 + densityLight * 0.22 + ridge * 0.040 + in.flow * 0.030);
     float litFront = frontLight * litSurface;
@@ -1165,7 +1192,7 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     coverage *= mix(1.0, 0.66, exitBreak);
     coverage *= mix(1.0, 0.24 + exitDust * 0.16, exitLocalFade);
     coverage = saturate(coverage * mix(0.92, 1.12, ionPresence) * mix(1.0, 0.90, sparseDim));
-    coverage *= mix(0.88, 1.0, frontPresence);
+    coverage *= mix(0.68, 1.0, frontPresence) * layerBrightness;
     coverage *= mix(1.0, 0.96, previewPlaceholder);
     float highlight = saturate(litSurface * 0.62 + in.flow * 0.34 + ridge * 0.26 + ionRidge * 0.42 + ridgeGlow * 0.54 + surfaceWake * 0.18);
     highlight = saturate(highlight + thinking * (ridge * 0.12 + in.flow * 0.035) * frontLight);
@@ -1177,7 +1204,7 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     highlight *= mix(0.30, 1.0, frontPresence);
     highlight *= mix(1.0, 0.24, exitLocalFade);
     highlight *= mix(1.0, 0.74, exitBreak);
-    float alpha = saturate(halo * coverage * 1.42 + core * coverage * 1.12) * backMute;
+    float alpha = saturate(halo * coverage * haloWeight + core * coverage * coreWeight) * backMute;
     alpha *= mix(1.0, 0.18 + exitDust * 0.14, exitLocalFade);
     alpha = saturate(alpha * alphaScale);
     half3 back = half3(in.dimColor.rgb);
@@ -1195,6 +1222,7 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     color = mix(color, half3(0.64, 0.66, 0.70), half(error * errorInterrupt * 0.14));
     color = mix(color, wakeTint, half(surfaceWake * (0.20 + frontLight * 0.80) * 0.12));
     color = mix(color, half3(0.52, 0.54, 0.58), half(exitState * exitBreak * 0.08));
+    color *= half(mix(0.56, 1.0, frontPresence) * layerBrightness);
     color *= half(brightness);
     return half4(color, half(alpha));
 }
