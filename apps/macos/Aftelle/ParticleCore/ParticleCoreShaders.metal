@@ -1017,39 +1017,22 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     surfaceLight = saturate(surfaceLight
         + (directionalFrontLight - 0.52) * 0.34 * sheetHighRange
         - rearShade * cavityGuard * 0.080 * sheetHighRange);
-    float baseDepthGate = mix(0.72, directionalFrontLight, visibleEffectStrength);
-    float frontSizeLift = baseDepthGate * 0.16
-        + smoothstep(0.72, 0.10, stableScreenRadius) * 0.04;
-    float stableSizeRidge = saturate((ridge * 0.52
-        + smoothstep(0.30, 0.78, stableScreenRadius) * 0.14
-        + edge * 0.10
-        + visibleStructuralSpine * 0.10
-        + hash11(particleSeed * 73.0 + seedB * 19.0) * 0.06) * mix(0.34, 1.0, visibleEffectStrength));
-    float stableSparsePresence = saturate((1.0 - stableSizeRidge) * 0.18
-        + smoothstep(0.78, 1.02, stableScreenRadius) * 0.14);
-    float sizeJitter = mix(0.98, 1.02, hash11(particleSeed * 137.0 + seedB * 41.0));
-    float sizeScatter = mix(-0.12, 0.24, hash11(particleSeed * 311.0 + phaseB * 0.17))
-        * 0.42;
-    float backAggregationMute = mix(0.68, 1.0, directionalFrontLight);
-    float structureScale = mix(0.88, 1.12, stableSizeRidge);
-    structureScale *= mix(1.0, 0.88, stableSparsePresence);
-    float pointBase = (mix(0.82, 2.10, stableSizeRidge)
-        + ridge * 0.18 * backAggregationMute
-        + stableSizeRidge * 0.32
-        + edge * 0.05 * edgeSettle
-        + hash11(seedB * 67.0 + particleSeed * 23.0) * 0.045
-        + sizeScatter) * structureScale * mix(1.0, 0.74, stableSparsePresence) * mix(1.0, 0.84, thinking * edge) * mix(1.0, 0.94, loading * edge) * mix(1.0, 1.06, speaking * edge) * mix(1.0, 0.96, previewPlaceholder * edge);
-    float depthSize = mix(0.98, mix(0.92, 1.03, directionalFrontLight), visibleEffectStrength);
-    float frontParticleLift = mix(0.72, directionalFrontLight, visibleEffectStrength);
-    float backParticleMute = (1.0 - directionalFrontLight) * visibleEffectStrength;
-    float ridgeSizeLift = saturate(stableSizeRidge * 0.86 + ridge * 0.18);
-    float visualSizeGate = saturate(max(frontParticleLift * 0.82, ridgeSizeLift * 0.96));
-    float pointCeiling = mix(1.20, 4.20, visualSizeGate) + stableSizeRidge * 0.48;
-    float depthVisibilitySize = mix(0.78, 1.06, frontParticleLift) * mix(1.0, 0.82, backParticleMute);
+    float sphericalLight = saturate(rollingLight * 0.78 + fillLight * 0.18 + directionalFrontLight * 0.04);
+    float lightSize = mix(0.72, 1.58, smoothstep(0.10, 0.92, sphericalLight));
+    float baseDepthGate = saturate(directionalFrontLight * 0.72 + sphericalLight * 0.28);
+    float frontSizeLift = baseDepthGate * 0.08;
+    float stableSizeRidge = saturate((visibleStructuralSpine * 0.36
+        + spineAggregation * 0.22
+        + edgeContour * 0.12
+        + edgeDustVisibility * 0.10
+        + edgeFrayField * 0.08) * visibleEffectStrength);
+    float sizeJitter = mix(0.995, 1.005, hash11(particleSeed * 137.0 + seedB * 41.0));
+    float pointBase = 1.18 * mix(1.0, 0.90, thinking * edge) * mix(1.0, 0.96, loading * edge) * mix(1.0, 1.04, speaking * edge) * mix(1.0, 0.96, previewPlaceholder * edge);
+    float ridgeSizeLift = stableSizeRidge * 0.34;
+    float pointCeiling = 2.48 + sphericalLight * 1.40 + stableSizeRidge * 0.52;
     float reliefPoleMute = mix(1.0, 0.82, reliefPresence * smoothstep(0.52, 0.86, abs(stableScreenPosition.y)) * smoothstep(0.48, 0.92, stableRadius));
-    float layeredPointSize = pointBase * sizeJitter * depthSize * depthVisibilitySize * reliefPoleMute
-        + ridgeSizeLift * (0.20 + frontParticleLift * 0.22);
-    layeredPointSize += spineAggregation * 0.18 + edgeContour * 0.08 + edgeDustVisibility * 0.22 + edgeFrayField * 0.08 + spineHighlightLift * 0.14 + visibleStructuralSpine * spineContrastLift * 0.06 - spineHighlightMute * 0.08;
+    float layeredPointSize = pointBase * lightSize * sizeJitter * reliefPoleMute;
+    layeredPointSize += stableSizeRidge * 0.24 + spineHighlightLift * 0.08 - spineHighlightMute * 0.05;
     float exitPointScale = mix(1.0, 0.56 + dustRelease * 0.16, exitDim);
     exitPointScale *= mix(1.0, 0.84, exitState * exitBreakAmount);
     out.pointSize = clamp(layeredPointSize, 0.74 + frontSizeLift * 0.10, pointCeiling + ridgeSizeLift * 0.36) * 0.94 * exitPointScale * tunePointSize * tuneMembraneGrain;
