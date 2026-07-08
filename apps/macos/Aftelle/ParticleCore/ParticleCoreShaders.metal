@@ -304,7 +304,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float surfaceReliefAmount = surfaceReliefValue * (0.74 + surfaceReliefValue * 1.26);
     float surfaceReliefDensity = saturate(uniforms.surfaceReliefDensity);
     float reliefPresence = saturate(surfaceReliefValue * 1.35);
-    float shapeAmount = reliefPresence;
+    float shapeAmount = 0.98;
     float2 sourceRadial = normalize(sourceParticlePosition + float2(0.001, 0.001));
     float sourceRadius = length(sourceParticlePosition) / 0.52;
     float sourceAngle = atan2(sourceParticlePosition.y, sourceParticlePosition.x);
@@ -448,8 +448,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 globalAxis = globalDirection(fieldTime);
     float2 globalSide = float2(-globalAxis.y, globalAxis.x);
     float surfaceMotion = smoothstep(0.24, 0.58, lengthP);
-    float reliefPatchScale = mix(15.5, 3.4, surfaceReliefDensity);
-    float reliefCrossScale = mix(12.0, 2.6, surfaceReliefDensity);
+    float reliefPatchScale = mix(7.0, 19.2, surfaceReliefDensity);
+    float reliefCrossScale = mix(5.2, 15.2, surfaceReliefDensity);
     float reliefTravel = dot(p, globalAxis) * reliefCrossScale;
     float reliefCross = dot(p, globalSide) * reliefCrossScale;
     float reliefRaw = sin(angle * reliefPatchScale + depth * 2.2 + phaseB * 0.12 - fieldTime * 0.12) * 0.50

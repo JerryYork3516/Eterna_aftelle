@@ -137,12 +137,12 @@
 "particleDebug.parameter.shapeRoundness.caption" = "Controls surface roughness versus smoothness without changing the core body shape.";
 "particleDebug.parameter.shapeRoundness.lowHint" = "Rougher";
 "particleDebug.parameter.shapeRoundness.highHint" = "Smoother";
-"particleDebug.parameter.surfaceReliefStrength.caption" = "Adds local surface bumps and valleys from a smooth core shell.";
-"particleDebug.parameter.surfaceReliefStrength.lowHint" = "Smooth sphere";
+"particleDebug.parameter.surfaceReliefStrength.caption" = "Controls the amplitude of local shell surface relief.";
+"particleDebug.parameter.surfaceReliefStrength.lowHint" = "Flatter";
 "particleDebug.parameter.surfaceReliefStrength.highHint" = "More relief";
-"particleDebug.parameter.surfaceReliefDensity.caption" = "Controls the size and spacing of surface relief; lower values create more smaller relief marks.";
-"particleDebug.parameter.surfaceReliefDensity.lowHint" = "Denser";
-"particleDebug.parameter.surfaceReliefDensity.highHint" = "Sparser";
+"particleDebug.parameter.surfaceReliefDensity.caption" = "Controls how dense or fine the relief pattern is.";
+"particleDebug.parameter.surfaceReliefDensity.lowHint" = "Broader";
+"particleDebug.parameter.surfaceReliefDensity.highHint" = "Finer";
 "particleDebug.parameter.shapeSeed.caption" = "Shifts the local shape variation pattern.";
 "particleDebug.parameter.shapeSeed.lowHint" = "Seed 0";
 "particleDebug.parameter.shapeSeed.highHint" = "Seed 1";
