@@ -296,6 +296,7 @@
 "particleDebug.animation.paused" = "Motion paused";
 "particleDebug.animation.playing" = "Motion playing";
 "particleDebug.manualRotation.toggle" = "Drag to Rotate";
+"particleDebug.lightDrag.toggle" = "Drag Light";
 "particleSubtitle.test.0" = "I am here.";
 "particleSubtitle.test.1" = "Still thinking.";
 "particleSubtitle.test.2" = "The signal is quiet.";

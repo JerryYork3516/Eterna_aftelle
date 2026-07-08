@@ -64,6 +64,8 @@ struct ParticleCoreFrameUniforms {
     float surfaceLightStrength;
     float manualRotationX;
     float manualRotationY;
+    float lightRotationX;
+    float lightRotationY;
     float4 baseColor;
     float4 ridgeColor;
     float4 dimColor;
@@ -560,8 +562,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float stretch = sin(fieldTime * 0.58 + globalWave * 0.65);
     float sail = cos(fieldTime * 0.46 + dot(p, turnedSide) * 2.8);
     float postSurfaceMotion = 0.42 + 0.58 * smoothstep(0.10, 0.58, length(p));
-    p += turnedAxis * dot(p, turnedSide) * stretch * (0.030 + midBand * 0.020 + edge * 0.016) * postSurfaceMotion * surfaceReliefAmount * 0.22;
-    p += turnedSide * dot(p, turnedAxis) * sail * (0.014 + midBand * 0.014 + edge * 0.010) * postSurfaceMotion * surfaceReliefAmount * 0.24;
+    float screenDriftGate = visibleEffectStrength * smoothstep(0.18, 0.62, stableRadius);
+    p += turnedAxis * dot(p, turnedSide) * stretch * (0.030 + midBand * 0.020 + edge * 0.016) * postSurfaceMotion * surfaceReliefAmount * 0.22 * screenDriftGate;
+    p += turnedSide * dot(p, turnedAxis) * sail * (0.014 + midBand * 0.014 + edge * 0.010) * postSurfaceMotion * surfaceReliefAmount * 0.24 * screenDriftGate;
     float sheetTravel = dot(p, surfaceFlowAxis);
     float sheetCross = dot(p, surfaceFlowSide);
     float turnWakePhase = fieldTime * 0.66 + globalWave * 0.32 + surfaceFlowPhase * 0.35;
@@ -586,9 +589,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float screenCloudCurl = cos(dot(p, turnedSide) * 3.6 - body.z * 5.0 + fieldTime * 0.72 + phaseB * 0.10);
     float screenCloudStrength = (activeInterior * 0.006 + midBand * 0.018 * stateFocus + edge * 0.002 * edgeSettle) * surfaceReliefAmount * 0.44;
     p += (turnedAxis * screenCloudCurl + turnedSide * screenCloudRoll) * screenCloudStrength;
-    p += normalize(p + float2(0.001, 0.001)) * screenCloudRoll * (activeInterior * 0.003 + midBand * 0.012);
+    p += normalize(p + float2(0.001, 0.001)) * screenCloudRoll * (activeInterior * 0.003 + midBand * 0.012) * screenDriftGate;
     p += (turnedAxis * sin(fieldTime * 0.33 + 0.4) * 0.018
-        + turnedSide * cos(fieldTime * 0.29 + 1.2) * 0.012) * (0.34 + postSurfaceMotion * 0.66);
+        + turnedSide * cos(fieldTime * 0.29 + 1.2) * 0.012) * (0.34 + postSurfaceMotion * 0.66) * screenDriftGate;
     float visibleWakeGate = turnWakeGate
         * (0.46 + midBand * 0.42 + interior * 0.36 + frontSheetGate * 0.42 + frontSpreadGate * 0.88)
         * (1.0 - smoothstep(0.76, 0.98, stableRadius));
@@ -955,8 +958,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     visibleLocalRidge = saturate(visibleLocalRidge + reliefDetail * 0.08);
     float3 surfaceNormal = normalize(float3(flowedBody.xy * 0.92, flowedBody.z * 1.12 + visibleDepth * 0.22)
         + reliefNormalOffset * reliefNormalStrength);
-    float3 keyDirection = normalize(float3(turnedSide * 0.74 + turnedAxis * 0.22, 0.54));
-    float3 fillDirection = normalize(float3(-turnedSide * 0.42 + turnedAxis * 0.34, 0.50));
+    float3 lightAngles = float3(uniforms.lightRotationX, uniforms.lightRotationY, 0.0);
+    float3 keyDirection = normalize(rotateBody(float3(0.56, -0.24, 0.80), lightAngles));
+    float3 fillDirection = normalize(rotateBody(float3(-0.44, 0.30, 0.58), lightAngles));
     float rollingLight = smoothstep(-0.24, 0.66, dot(surfaceNormal, keyDirection));
     float fillLight = smoothstep(-0.18, 0.62, dot(surfaceNormal, fillDirection));
     float sheetLayerStrength = saturate(mix(tuneSheetLight, tuneSheetLight * tuneSheetLight, 0.45));

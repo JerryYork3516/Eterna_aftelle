@@ -15,6 +15,7 @@ struct ContentView: View {
     @State private var particleValidationDidStart = false
     @State private var particleDebugAnimationPaused = false
     @State private var particleDebugManualRotationEnabled = false
+    @State private var particleDebugLightDragEnabled = false
     #endif
 
     var body: some View {
@@ -124,7 +125,8 @@ struct ContentView: View {
             validationSeed: particleValidation?.seed,
             validationFixedTime: particleValidationStep.fixedTime,
             debugAnimationPaused: particleDebugAnimationPaused,
-            debugManualRotationEnabled: particleDebugManualRotationEnabled
+            debugManualRotationEnabled: particleDebugManualRotationEnabled,
+            debugLightDragEnabled: particleDebugLightDragEnabled
         )
         .id(particleValidationRunID)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -149,6 +151,7 @@ struct ContentView: View {
             tuning: $particleTuning,
             animationPaused: $particleDebugAnimationPaused,
             manualRotationEnabled: $particleDebugManualRotationEnabled,
+            lightDragEnabled: $particleDebugLightDragEnabled,
             colorProfile: $particleColorProfile,
             defaultColorProfile: controller.particleColorProfile,
             setShellMode: controller.setParticleShellMode,
@@ -482,6 +485,7 @@ private struct ParticleDebugPanel: View {
     @Binding var tuning: ParticleCoreTuning
     @Binding var animationPaused: Bool
     @Binding var manualRotationEnabled: Bool
+    @Binding var lightDragEnabled: Bool
     @Binding var colorProfile: ParticleCoreColorProfile
     let defaultColorProfile: ParticleCoreColorProfile
     let setShellMode: (ParticleShellMode) -> Void
@@ -568,6 +572,9 @@ private struct ParticleDebugPanel: View {
                                 .controlSize(.small)
 
                                 Toggle(String(localized: "particleDebug.manualRotation.toggle"), isOn: $manualRotationEnabled)
+                                    .toggleStyle(.checkbox)
+
+                                Toggle(String(localized: "particleDebug.lightDrag.toggle"), isOn: $lightDragEnabled)
                                     .toggleStyle(.checkbox)
 
                                 Text(String(localized: animationPaused ? "particleDebug.animation.paused" : "particleDebug.animation.playing"))

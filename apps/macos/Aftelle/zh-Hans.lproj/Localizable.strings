@@ -296,6 +296,7 @@
 "particleDebug.animation.paused" = "动效已暂停";
 "particleDebug.animation.playing" = "动效播放中";
 "particleDebug.manualRotation.toggle" = "拖动旋转";
+"particleDebug.lightDrag.toggle" = "拖动光源";
 "particleSubtitle.test.0" = "I am here.";
 "particleSubtitle.test.1" = "Still thinking.";
 "particleSubtitle.test.2" = "The signal is quiet.";

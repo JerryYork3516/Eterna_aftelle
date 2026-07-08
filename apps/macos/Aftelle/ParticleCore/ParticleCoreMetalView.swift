@@ -13,6 +13,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
     var validationFixedTime: Float?
     var debugAnimationPaused = false
     var debugManualRotationEnabled = false
+    var debugLightDragEnabled = false
     #endif
 
     func makeNSView(context: Context) -> MTKView {
@@ -29,6 +30,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
         view.framebufferOnly = true
         #if DEBUG
         view.manualRotationEnabled = debugManualRotationEnabled
+        view.lightDragEnabled = debugLightDragEnabled
         #endif
         configureBackground(for: view, transparent: isTransparentBackground)
 
@@ -40,6 +42,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
         renderer.validationFixedTime = validationFixedTime
         renderer.debugAnimationPaused = debugAnimationPaused
         renderer.manualRotationEnabled = debugManualRotationEnabled
+        renderer.lightDragEnabled = debugLightDragEnabled
         #else
         guard let renderer = ParticleCoreRenderer(device: device, visualState: visualState) else {
             print("[ParticleCore] renderer init failed")
@@ -81,10 +84,12 @@ struct ParticleCoreMetalView: NSViewRepresentable {
         #if DEBUG
         if let inputView = nsView as? ParticleCoreInputView {
             inputView.manualRotationEnabled = debugManualRotationEnabled
+            inputView.lightDragEnabled = debugLightDragEnabled
         }
         context.coordinator.renderer?.validationFixedTime = validationFixedTime
         context.coordinator.renderer?.debugAnimationPaused = debugAnimationPaused
         context.coordinator.renderer?.manualRotationEnabled = debugManualRotationEnabled
+        context.coordinator.renderer?.lightDragEnabled = debugLightDragEnabled
         #endif
     }
 
@@ -116,6 +121,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
 private final class ParticleCoreInputView: MTKView {
     weak var inputRenderer: ParticleCoreRenderer?
     var manualRotationEnabled = false
+    var lightDragEnabled = false
     private var trackingAreaRef: NSTrackingArea?
     private var lastMousePosition: SIMD2<Float>?
     private var lastMouseTime: TimeInterval?
@@ -154,6 +160,11 @@ private final class ParticleCoreInputView: MTKView {
     }
 
     override func mouseDragged(with event: NSEvent) {
+        if lightDragEnabled, event.modifierFlags.contains(.option) {
+            inputRenderer?.rotateLight(deltaX: Float(event.deltaX), deltaY: Float(event.deltaY))
+            inputRenderer?.updateMouse(position: .zero, velocity: .zero, active: false)
+            return
+        }
         if manualRotationEnabled {
             inputRenderer?.rotateManualView(deltaX: Float(event.deltaX), deltaY: Float(event.deltaY))
             inputRenderer?.updateMouse(position: .zero, velocity: .zero, active: false)

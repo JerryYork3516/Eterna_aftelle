@@ -67,6 +67,8 @@ struct ParticleCoreFrameUniforms {
     var surfaceLightStrength: Float
     var manualRotationX: Float
     var manualRotationY: Float
+    var lightRotationX: Float
+    var lightRotationY: Float
     var baseColor: SIMD4<Float>
     var ridgeColor: SIMD4<Float>
     var dimColor: SIMD4<Float>
@@ -115,6 +117,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private var smoothErrorStrength: Float
     private var smoothExitStrength: Float
     private var manualRotation = SIMD2<Float>(repeating: 0)
+    private var lightRotation = SIMD2<Float>(repeating: 0)
     private var tuning = ParticleCoreTuning.systemDefault
     private var colorProfile = ParticleCoreColorProfile.systemDefault
     #if DEBUG
@@ -132,6 +135,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     #endif
     var debugMetricsHandler: ((ParticleRenderMetrics) -> Void)?
     var manualRotationEnabled = false
+    var lightDragEnabled = false
 
     init?(device: MTLDevice, visualState: ParticleCoreVisualState = .idle, validationSeed: UInt64? = nil) {
         let launchSeed: UInt64 = validationSeed ?? 0xA7F7E11E
@@ -316,6 +320,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             surfaceLightStrength: Float(tuning.surfaceLightStrength),
             manualRotationX: manualRotation.x,
             manualRotationY: manualRotation.y,
+            lightRotationX: lightRotation.x,
+            lightRotationY: lightRotation.y,
             baseColor: colorProfile.baseVector,
             ridgeColor: colorProfile.ridgeVector,
             dimColor: colorProfile.dimVector,
@@ -347,6 +353,11 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     func rotateManualView(deltaX: Float, deltaY: Float) {
         manualRotation.x = max(-1.25, min(1.25, manualRotation.x + deltaY * 0.010))
         manualRotation.y += deltaX * 0.010
+    }
+
+    func rotateLight(deltaX: Float, deltaY: Float) {
+        lightRotation.x = max(-1.20, min(1.20, lightRotation.x + deltaY * 0.010))
+        lightRotation.y += deltaX * 0.010
     }
 
     func setVisualState(_ visualState: ParticleCoreVisualState, reason: String = "appMapping") {
