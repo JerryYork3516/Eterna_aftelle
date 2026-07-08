@@ -39,15 +39,10 @@ struct ParticleCoreModel {
         var values: [Particle] = []
         values.reserveCapacity(count)
 
-        let candidateCount = Int(Double(count) * 1.8)
-        var candidateIndex = 0
-
-        while values.count < count {
-            let index = candidateIndex
-            candidateIndex += 1
+        for index in 0..<count {
             let golden = 0.6180339887498949
-            let u = (Double(index) * golden + generator.nextUnit() * 0.022).truncatingRemainder(dividingBy: 1)
-            let v = (Double(index % candidateCount) + 0.5) / Double(candidateCount)
+            let u = (Double(index) * golden + generator.nextUnit() * 0.018).truncatingRemainder(dividingBy: 1)
+            let v = (Double(index) + 0.5) / Double(count)
             let theta = Float(u * .pi * 2)
             let z = Float(1 - 2 * v)
             let shell = sqrt(max(0, 1 - z * z))
@@ -63,10 +58,6 @@ struct ParticleCoreModel {
             let thread = max(threadA, threadB)
             let ridge = min(1, silhouette * 0.18 + thread * 0.08 + outlineBand * 0.12 + grain * 0.08)
             let edgeWeight = max(0, min(1, 0.16 + abs(depth) * 0.68 + (1 - silhouette) * 0.28 + outlineBand * 0.12))
-            let ridgeKeep = 0.42 + Double(silhouette) * 0.14 + Double(outlineBand) * 0.10
-            if generator.nextUnit() > ridgeKeep && candidateIndex < candidateCount * 3 {
-                continue
-            }
 
             values.append(Particle(
                 position: SIMD2<Float>(x, y),

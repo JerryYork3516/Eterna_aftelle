@@ -402,6 +402,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float tuneMembraneFullness = membraneFullnessValue * 2.0;
     float tuneSheetLight = saturate(uniforms.sheetLightStrength);
     float tuneFlowLight = saturate(uniforms.flowLightStrength);
+    float visibleEffectStrength = saturate(max(max(tuneSheetLight, tuneFlowLight), max(tuneSurfaceLight, reliefPresence)));
     float thinkingRaw = saturate(uniforms.thinkingStrength);
     float thinking = smoothstep(0.0, 1.0, thinkingRaw);
     float speakingRaw = saturate(uniforms.speakingStrength);
@@ -525,7 +526,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     wholeTurn *= postureStrength;
     float3 viewAngles = selfSpinAngles + bodyAngles + float3(uniforms.manualRotationX, uniforms.manualRotationY, wholeTurn);
     float3 stableLightNormal = normalize(rotateBody(float3(baseParticlePosition * 0.92, depth * 1.24), viewAngles) + float3(0.001, 0.001, 0.001));
-    float directionalFrontLight = smoothstep(-0.24, 0.70, stableLightNormal.z);
+    float directionalFrontLight = mix(0.72, smoothstep(-0.24, 0.70, stableLightNormal.z), visibleEffectStrength);
     float reliefDepthOffset = broadDensityShape * reliefPresence * reliefRadiusGate * (0.020 + shellLayer * 0.028);
     float bodyDepth = depth * 0.52 * axisScale.z
         + globalWave * (0.006 + midBand * 0.018 + edge * 0.018) * mix(0.78, 1.02, tuneMembraneFullness)
@@ -704,7 +705,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float mouseDistance = length(mouseDelta);
     float2 mouseRadial = mouseDelta / max(mouseDistance, 0.001);
     float2 mouseTangent = float2(-mouseRadial.y, mouseRadial.x);
-    float mouseShellResponse = smoothstep(0.18, 0.58, stableRadius) * (0.24 + edge * 0.76);
+    float mouseShellResponse = 0.42 + smoothstep(0.02, 0.58, stableRadius) * 0.58;
     float interactionScale = mix(1.0, 0.44, thinking) * mix(1.0, 0.86, previewPlaceholder);
     float radialMouseField = (1.0 - smoothstep(0.08, 0.96, mouseDistance)) * uniforms.mouseInfluence * mouseShellResponse * interactionScale;
     float swirlMouseField = (1.0 - smoothstep(0.03, 0.36, mouseDistance)) * uniforms.mouseInfluence * mouseShellResponse * interactionScale;
@@ -859,7 +860,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + turnWakeEnergy * 0.14
         + structuralSpine * 0.82);
     float stableScreenRadius = stableRadius;
-    float frontDepthGate = smoothstep(-0.36, 0.14, visibleDepth);
+    float frontDepthGate = mix(0.74, smoothstep(-0.36, 0.14, visibleDepth), visibleEffectStrength);
     float baseDetailGate = smoothstep(0.34, 0.64, lengthP);
     float visualDetailGate = smoothstep(0.48, 0.84, stableScreenRadius);
     float wakeDetailGate = saturate(max(min(baseDetailGate, visualDetailGate), turnWakeEnergy * 0.36));
@@ -893,7 +894,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float normalSurfaceFlow = saturate(visibleRidgeFlow * 0.26 + turnWakeEnergy * 0.34 + visibleCloudDensity * 0.18)
         * frontDepthGate
         * (1.0 - spineAggregation * 0.46);
-    float rearShade = 1.0 - smoothstep(-0.38, 0.54, visibleDepth);
+    float rearShade = (1.0 - smoothstep(-0.38, 0.54, visibleDepth)) * visibleEffectStrength;
     float lifePulse = smoothstep(0.18, 0.94, 0.5 + 0.5 * sin(t * 0.24));
     float spineHighlightLift = visibleStructuralSpine * max(0.0, tuneSpineHighlight - 1.0);
     float spineHighlightMute = visibleStructuralSpine * max(0.0, 1.0 - tuneSpineHighlight);
@@ -1012,14 +1013,14 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     surfaceLight = saturate(surfaceLight
         + (directionalFrontLight - 0.52) * 0.34 * sheetHighRange
         - rearShade * cavityGuard * 0.080 * sheetHighRange);
-    float baseDepthGate = directionalFrontLight;
+    float baseDepthGate = mix(0.72, directionalFrontLight, visibleEffectStrength);
     float frontSizeLift = baseDepthGate * 0.16
         + smoothstep(0.72, 0.10, stableScreenRadius) * 0.04;
-    float stableSizeRidge = saturate(ridge * 0.52
+    float stableSizeRidge = saturate((ridge * 0.52
         + smoothstep(0.30, 0.78, stableScreenRadius) * 0.14
         + edge * 0.10
         + visibleStructuralSpine * 0.10
-        + hash11(particleSeed * 73.0 + seedB * 19.0) * 0.06);
+        + hash11(particleSeed * 73.0 + seedB * 19.0) * 0.06) * mix(0.34, 1.0, visibleEffectStrength));
     float stableSparsePresence = saturate((1.0 - stableSizeRidge) * 0.18
         + smoothstep(0.78, 1.02, stableScreenRadius) * 0.14);
     float sizeJitter = mix(0.98, 1.02, hash11(particleSeed * 137.0 + seedB * 41.0));
@@ -1034,9 +1035,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + edge * 0.05 * edgeSettle
         + hash11(seedB * 67.0 + particleSeed * 23.0) * 0.045
         + sizeScatter) * structureScale * mix(1.0, 0.74, stableSparsePresence) * mix(1.0, 0.84, thinking * edge) * mix(1.0, 0.94, loading * edge) * mix(1.0, 1.06, speaking * edge) * mix(1.0, 0.96, previewPlaceholder * edge);
-    float depthSize = mix(0.92, 1.03, directionalFrontLight);
-    float frontParticleLift = directionalFrontLight;
-    float backParticleMute = 1.0 - directionalFrontLight;
+    float depthSize = mix(0.98, mix(0.92, 1.03, directionalFrontLight), visibleEffectStrength);
+    float frontParticleLift = mix(0.72, directionalFrontLight, visibleEffectStrength);
+    float backParticleMute = (1.0 - directionalFrontLight) * visibleEffectStrength;
     float ridgeSizeLift = saturate(stableSizeRidge * 0.86 + ridge * 0.18);
     float visualSizeGate = saturate(max(frontParticleLift * 0.82, ridgeSizeLift * 0.96));
     float pointCeiling = mix(1.20, 4.20, visualSizeGate) + stableSizeRidge * 0.48;
