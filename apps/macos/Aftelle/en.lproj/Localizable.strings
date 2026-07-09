@@ -72,12 +72,13 @@
 "particleDebug.parameter.lightRotationDirection" = "Light Rotation Direction";
 "particleDebug.parameter.lightSourceStrength" = "Light Strength";
 "particleDebug.parameter.shapeRoundness" = "Roundness";
+"particleDebug.parameter.targetShapeStrength" = "Shape Strength";
 "particleDebug.parameter.surfaceReliefStrength" = "Surface Relief";
 "particleDebug.parameter.shapeScaleX" = "X Scale";
 "particleDebug.parameter.shapeScaleY" = "Y Scale";
 "particleDebug.parameter.shapeScaleZ" = "Z Scale";
 "particleDebug.parameter.surfaceReliefDensity" = "Relief Density";
-"particleDebug.parameter.shapeSeed" = "Shape Seed";
+"particleDebug.parameter.shapeSeed" = "Body Shape Seed";
 "particleDebug.parameter.membraneAspect" = "Membrane Aspect";
 "particleDebug.parameter.membraneScale" = "Membrane Scale";
 "particleDebug.parameter.membraneMist" = "Membrane Mist";
@@ -159,6 +160,9 @@
 "particleDebug.parameter.shapeRoundness.caption" = "Controls surface roughness versus smoothness without changing the core body shape.";
 "particleDebug.parameter.shapeRoundness.lowHint" = "Rougher";
 "particleDebug.parameter.shapeRoundness.highHint" = "Smoother";
+"particleDebug.parameter.targetShapeStrength.caption" = "Controls how far the base sphere blends toward the 7.3 folded body shape.";
+"particleDebug.parameter.targetShapeStrength.lowHint" = "Sphere";
+"particleDebug.parameter.targetShapeStrength.highHint" = "Folded Shape";
 "particleDebug.parameter.surfaceReliefStrength.caption" = "Controls relief amplitude across the whole sphere surface.";
 "particleDebug.parameter.surfaceReliefStrength.lowHint" = "Flatter";
 "particleDebug.parameter.surfaceReliefStrength.highHint" = "More relief";
@@ -174,7 +178,7 @@
 "particleDebug.parameter.surfaceReliefDensity.caption" = "Controls how dense or fine the relief pattern is.";
 "particleDebug.parameter.surfaceReliefDensity.lowHint" = "Broader";
 "particleDebug.parameter.surfaceReliefDensity.highHint" = "Finer";
-"particleDebug.parameter.shapeSeed.caption" = "Shifts the local shape variation pattern.";
+"particleDebug.parameter.shapeSeed.caption" = "Changes the folded body layout, including dents, bulges, and folds.";
 "particleDebug.parameter.shapeSeed.lowHint" = "Seed 0";
 "particleDebug.parameter.shapeSeed.highHint" = "Seed 1";
 "particleDebug.parameter.membraneAspect.caption" = "Controls the shell aspect and vertical compression.";

@@ -34,6 +34,7 @@ struct ParticleCoreFrameUniforms {
     float lightRotationDirection;
     float lightSourceStrength;
     float shapeRoundness;
+    float targetShapeStrength;
     float surfaceReliefStrength;
     float shapeScaleX;
     float shapeScaleY;
@@ -319,27 +320,33 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float surfaceReliefAmount = surfaceReliefValue * (1.48 + surfaceReliefValue * 2.52);
     float surfaceReliefDensity = saturate(uniforms.surfaceReliefDensity);
     float reliefPresence = saturate(surfaceReliefValue * 1.35);
-    float shapeAmount = 0.0;
+    float shapeAmount = smoothstep(0.0, 1.0, saturate(uniforms.targetShapeStrength));
     float2 sourceRadial = normalize(sourceParticlePosition + float2(0.001, 0.001));
     float sourceRadius = length(sourceParticlePosition) / 0.52;
     float sourceAngle = atan2(sourceParticlePosition.y, sourceParticlePosition.x);
     float shapePhase = uniforms.shapeSeed * 6.2831853;
     float lobeA = sin(sourceAngle * 3.0 + depth * 2.6 + shapePhase * 0.7);
     float lobeB = cos(sourceAngle * 5.0 - depth * 3.1 + shapePhase * 1.3);
-    float lobeC = sin(sourceAngle * 7.0 + depth * 4.4 - shapePhase * 0.5);
+    float lobeC = sin(sourceAngle * 2.0 - depth * 1.7 + shapePhase * 1.9);
+    float lobeD = cos(sourceAngle * 4.0 + depth * 3.8 - shapePhase * 0.45);
     float membraneEdge = smoothstep(0.34, 0.92, sourceRadius);
-    float referenceFold = 1.0 + membraneEdge * (0.115 * lobeA + 0.070 * lobeB + 0.036 * lobeC);
-    float membraneAspectX = mix(0.86, 1.34, saturate(uniforms.membraneAspect));
-    float membraneAspectY = mix(0.84, 0.54, saturate(uniforms.membraneAspect));
-    float2 referenceScale = float2(membraneAspectX, membraneAspectY);
-    float2 referenceSkew = float2(depth * 0.060, -depth * 0.020);
+    float bodyFoldGate = 0.58 + smoothstep(0.10, 0.86, sourceRadius) * 0.42;
+    float foldedShellField = 0.340 * lobeA + 0.245 * lobeB + 0.175 * lobeC + 0.125 * lobeD;
+    float referenceFold = clamp(1.0 + bodyFoldGate * foldedShellField, 0.50, 1.58);
+    float2 referenceSkew = float2(depth * 0.090, -depth * 0.036);
     float2 referenceTangent = float2(-sourceRadial.y, sourceRadial.x)
-        * membraneEdge
-        * (0.030 * sin(sourceAngle * 4.0 + shapePhase) + 0.018 * cos(sourceAngle * 6.0 - shapePhase * 0.4));
+        * bodyFoldGate
+        * (0.100 * sin(sourceAngle * 4.0 + shapePhase) + 0.058 * cos(sourceAngle * 6.0 - shapePhase * 0.4));
+    float2 referenceLateral = float2(lobeB * 0.072 - lobeC * 0.046, lobeA * 0.056 + lobeD * 0.038)
+        * bodyFoldGate
+        * (0.36 + membraneEdge * 0.64);
     float2 spherePosition = sourceRadial * min(sourceRadius, 1.0) * 0.52;
-    float2 referencePosition = (sourceRadial * min(sourceRadius, 1.05) * 0.52 * referenceFold + referenceTangent + referenceSkew * membraneEdge)
-        * referenceScale;
+    float2 referencePosition = sourceRadial * min(sourceRadius, 1.05) * 0.52 * referenceFold
+        + referenceTangent
+        + referenceSkew * bodyFoldGate
+        + referenceLateral;
     float2 p = spherePosition + (referencePosition - spherePosition) * shapeAmount;
+    float foldedShellDepthOffset = bodyFoldGate * (lobeA * 0.120 + lobeB * 0.082 + lobeC * 0.058 + lobeD * 0.040);
     float3 axisScale = float3(
         max(0.35, 1.0 + clamp(uniforms.shapeScaleX, -1.0, 1.0) * 0.46),
         max(0.35, 1.0 + clamp(uniforms.shapeScaleY, -1.0, 1.0) * 0.46),
@@ -538,10 +545,14 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float3 stableLightNormal = normalize(rotateBody(float3(baseParticlePosition * 0.92, depth * 1.24), viewAngles) + float3(0.001, 0.001, 0.001));
     float directionalFrontLight = mix(0.72, smoothstep(-0.24, 0.70, stableLightNormal.z), visibleEffectStrength);
     float reliefDepthOffset = broadDensityShape * reliefPresence * reliefRadiusGate * (0.020 + shellLayer * 0.028);
-    float bodyDepth = depth * 0.52 * axisScale.z
+    float baseBodyDepth = depth * 0.52 * axisScale.z
         + globalWave * (0.006 + midBand * 0.018 + edge * 0.018) * mix(0.78, 1.02, tuneMembraneFullness)
         + centerFollow * 0.010
         + reliefDepthOffset;
+    float targetBodyDepth = depth * 0.46 * axisScale.z
+        + foldedShellDepthOffset * (0.72 + edge * 0.48)
+        + centerFollow * 0.010;
+    float bodyDepth = mix(baseBodyDepth, targetBodyDepth, shapeAmount);
     float3 body = float3(p.x, p.y, bodyDepth);
     float3 shapeBody = body;
     float activeInterior = interior * centerMotionGate;

@@ -72,12 +72,13 @@
 "particleDebug.parameter.lightRotationDirection" = "光源转动方向";
 "particleDebug.parameter.lightSourceStrength" = "光源强度";
 "particleDebug.parameter.shapeRoundness" = "圆润度";
+"particleDebug.parameter.targetShapeStrength" = "形体强度";
 "particleDebug.parameter.surfaceReliefStrength" = "表面起伏";
 "particleDebug.parameter.shapeScaleX" = "X 轴缩放";
 "particleDebug.parameter.shapeScaleY" = "Y 轴缩放";
 "particleDebug.parameter.shapeScaleZ" = "Z 轴缩放";
 "particleDebug.parameter.surfaceReliefDensity" = "起伏密度";
-"particleDebug.parameter.shapeSeed" = "形态 Seed";
+"particleDebug.parameter.shapeSeed" = "形体 Seed";
 "particleDebug.parameter.membraneAspect" = "膜比例";
 "particleDebug.parameter.membraneScale" = "膜缩放";
 "particleDebug.parameter.membraneMist" = "膜雾强度";
@@ -159,6 +160,9 @@
 "particleDebug.parameter.shapeRoundness.caption" = "控制壳体表面粗糙 / 平滑程度，不改变整体形体。";
 "particleDebug.parameter.shapeRoundness.lowHint" = "更粗糙";
 "particleDebug.parameter.shapeRoundness.highHint" = "更平滑";
+"particleDebug.parameter.targetShapeStrength.caption" = "控制基础球体向 7.3 折叠形体过渡的程度。";
+"particleDebug.parameter.targetShapeStrength.lowHint" = "球体";
+"particleDebug.parameter.targetShapeStrength.highHint" = "折叠形体";
 "particleDebug.parameter.surfaceReliefStrength.caption" = "控制整个球面表面起伏幅度。";
 "particleDebug.parameter.surfaceReliefStrength.lowHint" = "更平";
 "particleDebug.parameter.surfaceReliefStrength.highHint" = "更凹凸";
@@ -174,7 +178,7 @@
 "particleDebug.parameter.surfaceReliefDensity.caption" = "控制表面起伏纹理的疏密。";
 "particleDebug.parameter.surfaceReliefDensity.lowHint" = "更稀疏";
 "particleDebug.parameter.surfaceReliefDensity.highHint" = "更细密";
-"particleDebug.parameter.shapeSeed.caption" = "切换局部形态变化的随机种子。";
+"particleDebug.parameter.shapeSeed.caption" = "切换折叠、凹陷和鼓起的形体布局。";
 "particleDebug.parameter.shapeSeed.lowHint" = "Seed 0";
 "particleDebug.parameter.shapeSeed.highHint" = "Seed 1";
 "particleDebug.parameter.membraneAspect.caption" = "控制壳体比例和纵向压缩感。";

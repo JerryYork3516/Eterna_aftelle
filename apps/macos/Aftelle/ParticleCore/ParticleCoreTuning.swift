@@ -19,6 +19,7 @@ struct ParticleCoreTuning: Codable, Equatable {
     var lightRotationDirection: Double
     var lightSourceStrength: Double
     var shapeRoundness: Double
+    var targetShapeStrength: Double
     var surfaceReliefStrength: Double
     var shapeScaleX: Double
     var shapeScaleY: Double
@@ -72,6 +73,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         lightRotationDirection: Double,
         lightSourceStrength: Double,
         shapeRoundness: Double,
+        targetShapeStrength: Double,
         surfaceReliefStrength: Double,
         shapeScaleX: Double,
         shapeScaleY: Double,
@@ -124,6 +126,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.lightRotationDirection = lightRotationDirection
         self.lightSourceStrength = lightSourceStrength
         self.shapeRoundness = shapeRoundness
+        self.targetShapeStrength = targetShapeStrength
         self.surfaceReliefStrength = surfaceReliefStrength
         self.shapeScaleX = shapeScaleX
         self.shapeScaleY = shapeScaleY
@@ -178,6 +181,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         lightRotationDirection: 1.0,
         lightSourceStrength: 0.50,
         shapeRoundness: 1.0,
+        targetShapeStrength: 0.0,
         surfaceReliefStrength: 0.0,
         shapeScaleX: 0.0,
         shapeScaleY: 0.0,
@@ -232,6 +236,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         lightRotationDirection: 1.0,
         lightSourceStrength: 0.50,
         shapeRoundness: 1.0,
+        targetShapeStrength: 0.0,
         surfaceReliefStrength: 0.0,
         shapeScaleX: 0.0,
         shapeScaleY: 0.0,
@@ -288,6 +293,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         case lightRotationDirection
         case lightSourceStrength
         case shapeRoundness
+        case targetShapeStrength
         case surfaceReliefStrength
         case shapeScaleX
         case shapeScaleY
@@ -326,11 +332,22 @@ struct ParticleCoreTuning: Codable, Equatable {
 
     private enum LegacyCodingKeys: String, CodingKey {
         case surfaceReliefRadiusInfluence
+        case targetShape
     }
 
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         let legacyValues = try decoder.container(keyedBy: LegacyCodingKeys.self)
+        let decodedTargetShapeStrength = try values.decodeIfPresent(Double.self, forKey: .targetShapeStrength)
+        let legacyTargetShape = try legacyValues.decodeIfPresent(Double.self, forKey: .targetShape)
+        let targetShapeStrength: Double
+        if let legacyTargetShape,
+           legacyTargetShape < 0.5,
+           decodedTargetShapeStrength == 1.0 {
+            targetShapeStrength = Self.systemDefault.targetShapeStrength
+        } else {
+            targetShapeStrength = decodedTargetShapeStrength ?? Self.systemDefault.targetShapeStrength
+        }
         self.init(
             globalScale: try values.decodeIfPresent(Double.self, forKey: .globalScale) ?? 0.5,
             particleCount: try values.decodeIfPresent(Double.self, forKey: .particleCount) ?? Self.systemDefault.particleCount,
@@ -349,6 +366,7 @@ struct ParticleCoreTuning: Codable, Equatable {
             lightRotationDirection: try values.decodeIfPresent(Double.self, forKey: .lightRotationDirection) ?? Self.systemDefault.lightRotationDirection,
             lightSourceStrength: try values.decodeIfPresent(Double.self, forKey: .lightSourceStrength) ?? Self.systemDefault.lightSourceStrength,
             shapeRoundness: try values.decodeIfPresent(Double.self, forKey: .shapeRoundness) ?? Self.systemDefault.shapeRoundness,
+            targetShapeStrength: targetShapeStrength,
             surfaceReliefStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceReliefStrength) ?? Self.systemDefault.surfaceReliefStrength,
             shapeScaleX: try values.decodeIfPresent(Double.self, forKey: .shapeScaleX) ?? Self.systemDefault.shapeScaleX,
             shapeScaleY: try values.decodeIfPresent(Double.self, forKey: .shapeScaleY) ?? Self.systemDefault.shapeScaleY,
@@ -431,10 +449,12 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case lightRotationSpeed
     case lightRotationDirection
     case lightSourceStrength
+    case targetShapeStrength
     case surfaceReliefStrength
     case shapeScaleX
     case shapeScaleY
     case shapeScaleZ
+    case shapeSeed
     case membraneMist
     case membraneGrain
     case membraneLineStrength
@@ -483,13 +503,13 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return 1.0 / 3.0
         case .spineSeed:
             return 0.05
-        case .surfaceFlowSeed, .surfaceFlowLightSeed:
+        case .shapeSeed, .surfaceFlowSeed, .surfaceFlowLightSeed:
             return 0.05
         case .shapeScaleX, .shapeScaleY, .shapeScaleZ:
             return 0.02
         case .globalScale, .pointSizeScale, .particleEdgeSharpness, .brightness, .alphaScale, .ridgeBrightness,
              .breathingSpeed, .flowSpeed, .rotationSpeed, .lightRotationSpeed, .lightSourceStrength, .surfaceLightStrength,
-             .surfaceReliefStrength,
+             .targetShapeStrength, .surfaceReliefStrength,
              .membraneMist, .membraneGrain, .membraneLineStrength,
              .membraneStability, .sheetLightStrength, .frontLightStrength, .backLightStrength, .flowLightStrength,
              .spineRadius, .spineFlowBinding, .spineLineStrength, .spineLineWidth, .spineLineDensity,
@@ -553,6 +573,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.lightRotationDirection
         case .lightSourceStrength:
             return \.lightSourceStrength
+        case .targetShapeStrength:
+            return \.targetShapeStrength
         case .surfaceReliefStrength:
             return \.surfaceReliefStrength
         case .shapeScaleX:
@@ -561,6 +583,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.shapeScaleY
         case .shapeScaleZ:
             return \.shapeScaleZ
+        case .shapeSeed:
+            return \.shapeSeed
         case .membraneMist:
             return \.membraneMist
         case .membraneGrain:
