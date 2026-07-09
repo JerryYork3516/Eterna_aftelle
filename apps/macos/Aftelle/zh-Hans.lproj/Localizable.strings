@@ -73,6 +73,7 @@
 "particleDebug.parameter.lightSourceStrength" = "光源强度";
 "particleDebug.parameter.shapeRoundness" = "圆润度";
 "particleDebug.parameter.targetShapeStrength" = "形体强度";
+"particleDebug.parameter.targetShapeRadius" = "形体半径";
 "particleDebug.parameter.surfaceReliefStrength" = "表面起伏";
 "particleDebug.parameter.shapeScaleX" = "X 轴缩放";
 "particleDebug.parameter.shapeScaleY" = "Y 轴缩放";
@@ -163,6 +164,9 @@
 "particleDebug.parameter.targetShapeStrength.caption" = "控制基础球体向 7.3 折叠形体过渡的程度。";
 "particleDebug.parameter.targetShapeStrength.lowHint" = "球体";
 "particleDebug.parameter.targetShapeStrength.highHint" = "折叠形体";
+"particleDebug.parameter.targetShapeRadius.caption" = "控制凹陷、鼓起和折叠在球体表面的块面大小。";
+"particleDebug.parameter.targetShapeRadius.lowHint" = "更多更小";
+"particleDebug.parameter.targetShapeRadius.highHint" = "更少更大";
 "particleDebug.parameter.surfaceReliefStrength.caption" = "控制整个球面表面起伏幅度。";
 "particleDebug.parameter.surfaceReliefStrength.lowHint" = "更平";
 "particleDebug.parameter.surfaceReliefStrength.highHint" = "更凹凸";

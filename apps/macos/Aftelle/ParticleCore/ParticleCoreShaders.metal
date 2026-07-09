@@ -35,6 +35,7 @@ struct ParticleCoreFrameUniforms {
     float lightSourceStrength;
     float shapeRoundness;
     float targetShapeStrength;
+    float targetShapeRadius;
     float surfaceReliefStrength;
     float shapeScaleX;
     float shapeScaleY;
@@ -325,10 +326,27 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float sourceRadius = length(sourceParticlePosition) / 0.52;
     float sourceAngle = atan2(sourceParticlePosition.y, sourceParticlePosition.x);
     float shapePhase = uniforms.shapeSeed * 6.2831853;
-    float lobeA = sin(sourceAngle * 3.0 + depth * 2.6 + shapePhase * 0.7);
-    float lobeB = cos(sourceAngle * 5.0 - depth * 3.1 + shapePhase * 1.3);
-    float lobeC = sin(sourceAngle * 2.0 - depth * 1.7 + shapePhase * 1.9);
-    float lobeD = cos(sourceAngle * 4.0 + depth * 3.8 - shapePhase * 0.45);
+    float shapeRadius = smoothstep(0.0, 1.0, saturate(uniforms.targetShapeRadius));
+    float lobeA = mix(
+        sin(sourceAngle * 7.2 + depth * 4.6 + shapePhase * 0.7),
+        sin(sourceAngle * 2.4 + depth * 2.0 + shapePhase * 0.7),
+        shapeRadius
+    );
+    float lobeB = mix(
+        cos(sourceAngle * 9.0 - depth * 4.9 + shapePhase * 1.3),
+        cos(sourceAngle * 3.4 - depth * 2.6 + shapePhase * 1.3),
+        shapeRadius
+    );
+    float lobeC = mix(
+        sin(sourceAngle * 5.8 - depth * 3.8 + shapePhase * 1.9),
+        sin(sourceAngle * 1.7 - depth * 1.5 + shapePhase * 1.9),
+        shapeRadius
+    );
+    float lobeD = mix(
+        cos(sourceAngle * 8.0 + depth * 5.2 - shapePhase * 0.45),
+        cos(sourceAngle * 2.8 + depth * 3.0 - shapePhase * 0.45),
+        shapeRadius
+    );
     float membraneEdge = smoothstep(0.34, 0.92, sourceRadius);
     float bodyFoldGate = 0.58 + smoothstep(0.10, 0.86, sourceRadius) * 0.42;
     float foldedShellField = 0.340 * lobeA + 0.245 * lobeB + 0.175 * lobeC + 0.125 * lobeD;

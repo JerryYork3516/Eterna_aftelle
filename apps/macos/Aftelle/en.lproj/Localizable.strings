@@ -73,6 +73,7 @@
 "particleDebug.parameter.lightSourceStrength" = "Light Strength";
 "particleDebug.parameter.shapeRoundness" = "Roundness";
 "particleDebug.parameter.targetShapeStrength" = "Shape Strength";
+"particleDebug.parameter.targetShapeRadius" = "Shape Radius";
 "particleDebug.parameter.surfaceReliefStrength" = "Surface Relief";
 "particleDebug.parameter.shapeScaleX" = "X Scale";
 "particleDebug.parameter.shapeScaleY" = "Y Scale";
@@ -163,6 +164,9 @@
 "particleDebug.parameter.targetShapeStrength.caption" = "Controls how far the base sphere blends toward the 7.3 folded body shape.";
 "particleDebug.parameter.targetShapeStrength.lowHint" = "Sphere";
 "particleDebug.parameter.targetShapeStrength.highHint" = "Folded Shape";
+"particleDebug.parameter.targetShapeRadius.caption" = "Controls the surface size of dents, bulges, and folds.";
+"particleDebug.parameter.targetShapeRadius.lowHint" = "More smaller";
+"particleDebug.parameter.targetShapeRadius.highHint" = "Fewer larger";
 "particleDebug.parameter.surfaceReliefStrength.caption" = "Controls relief amplitude across the whole sphere surface.";
 "particleDebug.parameter.surfaceReliefStrength.lowHint" = "Flatter";
 "particleDebug.parameter.surfaceReliefStrength.highHint" = "More relief";

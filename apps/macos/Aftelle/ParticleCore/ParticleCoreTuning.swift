@@ -20,6 +20,7 @@ struct ParticleCoreTuning: Codable, Equatable {
     var lightSourceStrength: Double
     var shapeRoundness: Double
     var targetShapeStrength: Double
+    var targetShapeRadius: Double
     var surfaceReliefStrength: Double
     var shapeScaleX: Double
     var shapeScaleY: Double
@@ -74,6 +75,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         lightSourceStrength: Double,
         shapeRoundness: Double,
         targetShapeStrength: Double,
+        targetShapeRadius: Double,
         surfaceReliefStrength: Double,
         shapeScaleX: Double,
         shapeScaleY: Double,
@@ -127,6 +129,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.lightSourceStrength = lightSourceStrength
         self.shapeRoundness = shapeRoundness
         self.targetShapeStrength = targetShapeStrength
+        self.targetShapeRadius = targetShapeRadius
         self.surfaceReliefStrength = surfaceReliefStrength
         self.shapeScaleX = shapeScaleX
         self.shapeScaleY = shapeScaleY
@@ -182,6 +185,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         lightSourceStrength: 0.50,
         shapeRoundness: 1.0,
         targetShapeStrength: 0.0,
+        targetShapeRadius: 0.50,
         surfaceReliefStrength: 0.0,
         shapeScaleX: 0.0,
         shapeScaleY: 0.0,
@@ -237,6 +241,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         lightSourceStrength: 0.50,
         shapeRoundness: 1.0,
         targetShapeStrength: 0.0,
+        targetShapeRadius: 0.50,
         surfaceReliefStrength: 0.0,
         shapeScaleX: 0.0,
         shapeScaleY: 0.0,
@@ -294,6 +299,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         case lightSourceStrength
         case shapeRoundness
         case targetShapeStrength
+        case targetShapeRadius
         case surfaceReliefStrength
         case shapeScaleX
         case shapeScaleY
@@ -367,6 +373,7 @@ struct ParticleCoreTuning: Codable, Equatable {
             lightSourceStrength: try values.decodeIfPresent(Double.self, forKey: .lightSourceStrength) ?? Self.systemDefault.lightSourceStrength,
             shapeRoundness: try values.decodeIfPresent(Double.self, forKey: .shapeRoundness) ?? Self.systemDefault.shapeRoundness,
             targetShapeStrength: targetShapeStrength,
+            targetShapeRadius: try values.decodeIfPresent(Double.self, forKey: .targetShapeRadius) ?? Self.systemDefault.targetShapeRadius,
             surfaceReliefStrength: try values.decodeIfPresent(Double.self, forKey: .surfaceReliefStrength) ?? Self.systemDefault.surfaceReliefStrength,
             shapeScaleX: try values.decodeIfPresent(Double.self, forKey: .shapeScaleX) ?? Self.systemDefault.shapeScaleX,
             shapeScaleY: try values.decodeIfPresent(Double.self, forKey: .shapeScaleY) ?? Self.systemDefault.shapeScaleY,
@@ -450,6 +457,7 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case lightRotationDirection
     case lightSourceStrength
     case targetShapeStrength
+    case targetShapeRadius
     case surfaceReliefStrength
     case shapeScaleX
     case shapeScaleY
@@ -509,7 +517,7 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return 0.02
         case .globalScale, .pointSizeScale, .particleEdgeSharpness, .brightness, .alphaScale, .ridgeBrightness,
              .breathingSpeed, .flowSpeed, .rotationSpeed, .lightRotationSpeed, .lightSourceStrength, .surfaceLightStrength,
-             .targetShapeStrength, .surfaceReliefStrength,
+             .targetShapeStrength, .targetShapeRadius, .surfaceReliefStrength,
              .membraneMist, .membraneGrain, .membraneLineStrength,
              .membraneStability, .sheetLightStrength, .frontLightStrength, .backLightStrength, .flowLightStrength,
              .spineRadius, .spineFlowBinding, .spineLineStrength, .spineLineWidth, .spineLineDensity,
@@ -575,6 +583,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.lightSourceStrength
         case .targetShapeStrength:
             return \.targetShapeStrength
+        case .targetShapeRadius:
+            return \.targetShapeRadius
         case .surfaceReliefStrength:
             return \.surfaceReliefStrength
         case .shapeScaleX:

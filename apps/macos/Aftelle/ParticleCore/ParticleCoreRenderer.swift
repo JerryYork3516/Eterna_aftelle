@@ -38,6 +38,7 @@ struct ParticleCoreFrameUniforms {
     var lightSourceStrength: Float
     var shapeRoundness: Float
     var targetShapeStrength: Float
+    var targetShapeRadius: Float
     var surfaceReliefStrength: Float
     var shapeScaleX: Float
     var shapeScaleY: Float
@@ -301,6 +302,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             lightSourceStrength: Float(tuning.lightSourceStrength),
             shapeRoundness: Float(tuning.shapeRoundness),
             targetShapeStrength: Float(tuning.targetShapeStrength),
+            targetShapeRadius: Float(tuning.targetShapeRadius),
             surfaceReliefStrength: Float(tuning.surfaceReliefStrength),
             shapeScaleX: Float(tuning.shapeScaleX),
             shapeScaleY: Float(tuning.shapeScaleY),
