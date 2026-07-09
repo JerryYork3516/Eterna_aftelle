@@ -27,7 +27,6 @@ struct ParticleCoreFrameUniforms {
     var particleEdgeSharpness: Float
     var brightness: Float
     var alphaScale: Float
-    var ridgeBrightness: Float
     var breathingAmount: Float
     var flowStrength: Float
     var flowSpeed: Float
@@ -36,41 +35,8 @@ struct ParticleCoreFrameUniforms {
     var lightRotationSpeed: Float
     var lightRotationDirection: Float
     var lightSourceStrength: Float
-    var shapeRoundness: Float
-    var surfaceReliefStrength: Float
-    var shapeScaleX: Float
-    var shapeScaleY: Float
-    var shapeScaleZ: Float
-    var surfaceReliefDensity: Float
-    var shapeSeed: Float
-    var membraneAspect: Float
     var membraneScale: Float
-    var membraneMist: Float
-    var membraneGrain: Float
-    var membraneLineStrength: Float
-    var membraneLineWidth: Float
-    var membraneStability: Float
     var membraneFullness: Float
-    var sheetLightStrength: Float
-    var frontLightStrength: Float
-    var backLightStrength: Float
-    var flowLightStrength: Float
-    var spineRadius: Float
-    var spineSeed: Float
-    var spineFlowBinding: Float
-    var spineLineStrength: Float
-    var spineLineWidth: Float
-    var spineLineDensity: Float
-    var spineLineHighlight: Float
-    var spineLineContrast: Float
-    var spineLineSharpness: Float
-    var edgeScatterDistance: Float
-    var edgeDustAmount: Float
-    var edgeFrayAmount: Float
-    var surfaceFlowDirection: Float
-    var surfaceFlowSeed: Float
-    var surfaceFlowLightSeed: Float
-    var surfaceLightStrength: Float
     var manualRotationX: Float
     var manualRotationY: Float
     var lightRotationX: Float
@@ -289,7 +255,6 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             particleEdgeSharpness: Float(tuning.particleEdgeSharpness),
             brightness: Float(tuning.brightness),
             alphaScale: Float(tuning.alphaScale),
-            ridgeBrightness: Float(tuning.ridgeBrightness),
             breathingAmount: Float(tuning.breathingAmount),
             flowStrength: Float(tuning.flowStrength),
             flowSpeed: Float(tuning.flowSpeed),
@@ -298,41 +263,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             lightRotationSpeed: Float(tuning.lightRotationSpeed),
             lightRotationDirection: Float(tuning.lightRotationDirection),
             lightSourceStrength: Float(tuning.lightSourceStrength),
-            shapeRoundness: Float(tuning.shapeRoundness),
-            surfaceReliefStrength: Float(tuning.surfaceReliefStrength),
-            shapeScaleX: Float(tuning.shapeScaleX),
-            shapeScaleY: Float(tuning.shapeScaleY),
-            shapeScaleZ: Float(tuning.shapeScaleZ),
-            surfaceReliefDensity: Float(tuning.surfaceReliefDensity),
-            shapeSeed: Float(tuning.shapeSeed),
-            membraneAspect: Float(tuning.membraneAspect),
             membraneScale: Float(tuning.membraneScale),
-            membraneMist: Float(tuning.membraneMist),
-            membraneGrain: Float(tuning.membraneGrain),
-            membraneLineStrength: Float(tuning.membraneLineStrength),
-            membraneLineWidth: Float(tuning.membraneLineWidth),
-            membraneStability: Float(tuning.membraneStability),
             membraneFullness: Float(tuning.membraneFullness),
-            sheetLightStrength: Float(tuning.sheetLightStrength),
-            frontLightStrength: Float(tuning.frontLightStrength),
-            backLightStrength: Float(tuning.backLightStrength),
-            flowLightStrength: Float(tuning.flowLightStrength),
-            spineRadius: Float(tuning.spineRadius),
-            spineSeed: Float(tuning.spineSeed),
-            spineFlowBinding: Float(tuning.spineFlowBinding),
-            spineLineStrength: Float(tuning.spineLineStrength),
-            spineLineWidth: Float(tuning.spineLineWidth),
-            spineLineDensity: Float(tuning.spineLineDensity),
-            spineLineHighlight: Float(tuning.spineLineHighlight),
-            spineLineContrast: Float(tuning.spineLineContrast),
-            spineLineSharpness: Float(tuning.spineLineSharpness),
-            edgeScatterDistance: Float(tuning.edgeScatterDistance),
-            edgeDustAmount: Float(tuning.edgeDustAmount),
-            edgeFrayAmount: Float(tuning.edgeFrayAmount),
-            surfaceFlowDirection: Float(tuning.surfaceFlowDirection),
-            surfaceFlowSeed: Float(tuning.surfaceFlowSeed),
-            surfaceFlowLightSeed: Float(tuning.surfaceFlowLightSeed),
-            surfaceLightStrength: Float(tuning.surfaceLightStrength),
             manualRotationX: manualRotation.x,
             manualRotationY: manualRotation.y,
             lightRotationX: lightRotation.x,
@@ -473,7 +405,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             interactionStrength: Double(smoothMouseInfluence)
         )
         debugMetricsHandler?(metrics)
-        print("[ParticleCore] snapshot fps=\(String(format: "%.1f", fps)) particleCount=\(model.particles.count) drawableSize=\(drawableSize) preferredFPS=\(view.preferredFramesPerSecond) visualState=\(visualState) previousVisualState=\(previousVisualState) stateElapsedTime=\(String(format: "%.2f", stateElapsedTime)) reason=\(lastTransitionReason) mouseInside=\(mouseActive) interactionStrength=\(String(format: "%.2f", smoothMouseInfluence)) rotationSpeed=\(String(format: "%.2f", tuning.rotationSpeed)) rotationDirection=\(String(format: "%.2f", tuning.rotationDirection)) shapeRoundness=\(String(format: "%.2f", tuning.shapeRoundness)) surfaceRelief=\(String(format: "%.2f", tuning.surfaceReliefStrength)) shapeSeed=\(String(format: "%.2f", tuning.shapeSeed)) membraneAspect=\(String(format: "%.2f", tuning.membraneAspect)) membraneScale=\(String(format: "%.2f", tuning.membraneScale)) membraneMist=\(String(format: "%.2f", tuning.membraneMist)) membraneGrain=\(String(format: "%.2f", tuning.membraneGrain)) membraneFullness=\(String(format: "%.2f", tuning.membraneFullness)) sheetLight=\(String(format: "%.2f", tuning.sheetLightStrength)) flowLight=\(String(format: "%.2f", tuning.flowLightStrength)) membraneLineStrength=\(String(format: "%.2f", tuning.membraneLineStrength)) membraneLineWidth=\(String(format: "%.2f", tuning.membraneLineWidth)) membraneStability=\(String(format: "%.2f", tuning.membraneStability)) spineStrength=\(String(format: "%.2f", tuning.spineLineStrength)) spineWidth=\(String(format: "%.2f", tuning.spineLineWidth)) spineDensity=\(String(format: "%.2f", tuning.spineLineDensity)) spineHighlight=\(String(format: "%.2f", tuning.spineLineHighlight)) spineContrast=\(String(format: "%.2f", tuning.spineLineContrast)) spineSharpness=\(String(format: "%.2f", tuning.spineLineSharpness))")
+        print("[ParticleCore] snapshot fps=\(String(format: "%.1f", fps)) particleCount=\(model.particles.count) drawableSize=\(drawableSize) preferredFPS=\(view.preferredFramesPerSecond) visualState=\(visualState) previousVisualState=\(previousVisualState) stateElapsedTime=\(String(format: "%.2f", stateElapsedTime)) reason=\(lastTransitionReason) mouseInside=\(mouseActive) interactionStrength=\(String(format: "%.2f", smoothMouseInfluence)) globalScale=\(String(format: "%.2f", tuning.globalScale)) pointSize=\(String(format: "%.2f", tuning.pointSizeScale)) brightness=\(String(format: "%.2f", tuning.brightness)) flowStrength=\(String(format: "%.2f", tuning.flowStrength)) flowSpeed=\(String(format: "%.2f", tuning.flowSpeed)) rotationSpeed=\(String(format: "%.2f", tuning.rotationSpeed)) lightStrength=\(String(format: "%.2f", tuning.lightSourceStrength)) membraneScale=\(String(format: "%.2f", tuning.membraneScale)) membraneFullness=\(String(format: "%.2f", tuning.membraneFullness))")
     }
 
     private func scaleAroundOne(_ value: Double, range: Float) -> Float {

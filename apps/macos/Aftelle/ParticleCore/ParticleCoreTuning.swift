@@ -167,7 +167,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         particleEdgeSharpness: 0.55,
         brightness: 0.78,
         alphaScale: 0.84,
-        ridgeBrightness: 0.56,
+        ridgeBrightness: 0.0,
         breathingAmount: 0.26,
         breathingSpeed: 0.28,
         flowStrength: 0.28,
@@ -186,32 +186,32 @@ struct ParticleCoreTuning: Codable, Equatable {
         shapeSeed: 0.5,
         membraneAspect: 0.24,
         membraneScale: 0.52,
-        membraneMist: 0.78,
-        membraneGrain: 0.40,
-        membraneLineStrength: 0.52,
+        membraneMist: 0.0,
+        membraneGrain: 0.0,
+        membraneLineStrength: 0.0,
         membraneLineWidth: 0.46,
-        membraneStability: 0.98,
+        membraneStability: 1.0,
         membraneFullness: 0.82,
-        sheetLightStrength: 0.82,
-        frontLightStrength: 0.50,
-        backLightStrength: 0.50,
-        flowLightStrength: 0.62,
-        spineRadius: 0.54,
+        sheetLightStrength: 0.0,
+        frontLightStrength: 0.0,
+        backLightStrength: 0.0,
+        flowLightStrength: 0.0,
+        spineRadius: 0.0,
         spineSeed: 0.50,
-        spineFlowBinding: 0.30,
-        spineLineStrength: 0.44,
+        spineFlowBinding: 0.0,
+        spineLineStrength: 0.0,
         spineLineWidth: 0.46,
-        spineLineDensity: 0.48,
-        spineLineHighlight: 0.54,
-        spineLineContrast: 0.53,
-        spineLineSharpness: 0.52,
-        edgeScatterDistance: 0.24,
-        edgeDustAmount: 0.22,
-        edgeFrayAmount: 0.22,
-        surfaceFlowDirection: 1.0,
-        surfaceFlowSeed: 0.50,
-        surfaceFlowLightSeed: 0.50,
-        surfaceLightStrength: 0.78
+        spineLineDensity: 0.0,
+        spineLineHighlight: 0.0,
+        spineLineContrast: 0.0,
+        spineLineSharpness: 0.0,
+        edgeScatterDistance: 0.0,
+        edgeDustAmount: 0.0,
+        edgeFrayAmount: 0.0,
+        surfaceFlowDirection: 0.0,
+        surfaceFlowSeed: 0.0,
+        surfaceFlowLightSeed: 0.0,
+        surfaceLightStrength: 0.0
     )
 
     static let idlePolish = ParticleCoreTuning(
@@ -221,7 +221,7 @@ struct ParticleCoreTuning: Codable, Equatable {
         particleEdgeSharpness: 0.55,
         brightness: 0.76,
         alphaScale: 0.84,
-        ridgeBrightness: 0.62,
+        ridgeBrightness: 0.0,
         breathingAmount: 0.36,
         breathingSpeed: 0.26,
         flowStrength: 0.38,
@@ -240,32 +240,32 @@ struct ParticleCoreTuning: Codable, Equatable {
         shapeSeed: 0.5,
         membraneAspect: 0.24,
         membraneScale: 0.54,
-        membraneMist: 0.82,
-        membraneGrain: 0.42,
-        membraneLineStrength: 0.45,
+        membraneMist: 0.0,
+        membraneGrain: 0.0,
+        membraneLineStrength: 0.0,
         membraneLineWidth: 0.46,
-        membraneStability: 0.98,
+        membraneStability: 1.0,
         membraneFullness: 0.86,
-        sheetLightStrength: 0.84,
-        frontLightStrength: 0.50,
-        backLightStrength: 0.50,
-        flowLightStrength: 0.70,
-        spineRadius: 0.55,
+        sheetLightStrength: 0.0,
+        frontLightStrength: 0.0,
+        backLightStrength: 0.0,
+        flowLightStrength: 0.0,
+        spineRadius: 0.0,
         spineSeed: 0.50,
-        spineFlowBinding: 0.38,
-        spineLineStrength: 0.46,
+        spineFlowBinding: 0.0,
+        spineLineStrength: 0.0,
         spineLineWidth: 0.44,
-        spineLineDensity: 0.50,
-        spineLineHighlight: 0.54,
-        spineLineContrast: 0.53,
-        spineLineSharpness: 0.52,
-        edgeScatterDistance: 0.32,
-        edgeDustAmount: 0.28,
-        edgeFrayAmount: 0.26,
-        surfaceFlowDirection: 1.0,
-        surfaceFlowSeed: 0.50,
-        surfaceFlowLightSeed: 0.50,
-        surfaceLightStrength: 0.78
+        spineLineDensity: 0.0,
+        spineLineHighlight: 0.0,
+        spineLineContrast: 0.0,
+        spineLineSharpness: 0.0,
+        edgeScatterDistance: 0.0,
+        edgeDustAmount: 0.0,
+        edgeFrayAmount: 0.0,
+        surfaceFlowDirection: 0.0,
+        surfaceFlowSeed: 0.0,
+        surfaceFlowLightSeed: 0.0,
+        surfaceLightStrength: 0.0
     )
 
     static let storageKey = "ParticleCoreTuning.debug.v7"
@@ -421,7 +421,6 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case particleEdgeSharpness
     case brightness
     case alphaScale
-    case ridgeBrightness
     case breathingAmount
     case breathingSpeed
     case flowStrength
@@ -431,31 +430,6 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case lightRotationSpeed
     case lightRotationDirection
     case lightSourceStrength
-    case surfaceReliefStrength
-    case shapeScaleX
-    case shapeScaleY
-    case shapeScaleZ
-    case membraneMist
-    case membraneGrain
-    case membraneLineStrength
-    case membraneStability
-    case sheetLightStrength
-    case frontLightStrength
-    case backLightStrength
-    case flowLightStrength
-    case spineRadius
-    case spineSeed
-    case spineFlowBinding
-    case spineLineStrength
-    case spineLineWidth
-    case spineLineDensity
-    case edgeScatterDistance
-    case edgeDustAmount
-    case edgeFrayAmount
-    case surfaceFlowDirection
-    case surfaceFlowSeed
-    case surfaceFlowLightSeed
-    case surfaceLightStrength
 
     var id: String { rawValue }
 
@@ -481,21 +455,10 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return 250
         case .rotationDirection, .lightRotationDirection:
             return 1.0 / 3.0
-        case .spineSeed:
-            return 0.05
-        case .surfaceFlowSeed, .surfaceFlowLightSeed:
-            return 0.05
-        case .shapeScaleX, .shapeScaleY, .shapeScaleZ:
-            return 0.02
-        case .globalScale, .pointSizeScale, .particleEdgeSharpness, .brightness, .alphaScale, .ridgeBrightness,
-             .breathingSpeed, .flowSpeed, .rotationSpeed, .lightRotationSpeed, .lightSourceStrength, .surfaceLightStrength,
-             .surfaceReliefStrength,
-             .membraneMist, .membraneGrain, .membraneLineStrength,
-             .membraneStability, .sheetLightStrength, .frontLightStrength, .backLightStrength, .flowLightStrength,
-             .spineRadius, .spineFlowBinding, .spineLineStrength, .spineLineWidth, .spineLineDensity,
-             .edgeScatterDistance, .surfaceFlowDirection:
+        case .globalScale, .pointSizeScale, .particleEdgeSharpness, .brightness, .alphaScale,
+             .breathingSpeed, .flowSpeed, .rotationSpeed, .lightRotationSpeed, .lightSourceStrength:
             return 0.01
-        case .breathingAmount, .flowStrength, .edgeDustAmount, .edgeFrayAmount:
+        case .breathingAmount, .flowStrength:
             return 0.02
         }
     }
@@ -504,8 +467,6 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
         switch self {
         case .particleCount:
             return 3000...16000
-        case .shapeScaleX, .shapeScaleY, .shapeScaleZ:
-            return -1.0...1.0
         default:
             return 0.0...1.0
         }
@@ -533,8 +494,6 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.brightness
         case .alphaScale:
             return \.alphaScale
-        case .ridgeBrightness:
-            return \.ridgeBrightness
         case .breathingAmount:
             return \.breathingAmount
         case .breathingSpeed:
@@ -553,56 +512,6 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.lightRotationDirection
         case .lightSourceStrength:
             return \.lightSourceStrength
-        case .surfaceReliefStrength:
-            return \.surfaceReliefStrength
-        case .shapeScaleX:
-            return \.shapeScaleX
-        case .shapeScaleY:
-            return \.shapeScaleY
-        case .shapeScaleZ:
-            return \.shapeScaleZ
-        case .membraneMist:
-            return \.membraneMist
-        case .membraneGrain:
-            return \.membraneGrain
-        case .membraneLineStrength:
-            return \.membraneLineStrength
-        case .membraneStability:
-            return \.membraneStability
-        case .sheetLightStrength:
-            return \.sheetLightStrength
-        case .frontLightStrength:
-            return \.frontLightStrength
-        case .backLightStrength:
-            return \.backLightStrength
-        case .flowLightStrength:
-            return \.flowLightStrength
-        case .spineRadius:
-            return \.spineRadius
-        case .spineSeed:
-            return \.spineSeed
-        case .spineFlowBinding:
-            return \.spineFlowBinding
-        case .spineLineStrength:
-            return \.spineLineStrength
-        case .spineLineWidth:
-            return \.spineLineWidth
-        case .spineLineDensity:
-            return \.spineLineDensity
-        case .edgeScatterDistance:
-            return \.edgeScatterDistance
-        case .edgeDustAmount:
-            return \.edgeDustAmount
-        case .edgeFrayAmount:
-            return \.edgeFrayAmount
-        case .surfaceFlowDirection:
-            return \.surfaceFlowDirection
-        case .surfaceFlowSeed:
-            return \.surfaceFlowSeed
-        case .surfaceFlowLightSeed:
-            return \.surfaceFlowLightSeed
-        case .surfaceLightStrength:
-            return \.surfaceLightStrength
         }
     }
 }

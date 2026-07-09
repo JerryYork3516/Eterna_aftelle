@@ -465,15 +465,15 @@ private enum ParticleTuningGroup: CaseIterable, Identifiable {
         case .basic:
             return [.globalScale, .particleCount, .pointSizeScale, .brightness, .particleEdgeSharpness]
         case .shape:
-            return [.surfaceReliefStrength, .shapeScaleX, .shapeScaleY, .shapeScaleZ]
+            return []
         case .surface:
-            return [.membraneMist, .membraneGrain, .sheetLightStrength, .frontLightStrength, .backLightStrength, .flowLightStrength, .surfaceLightStrength, .surfaceFlowDirection, .surfaceFlowSeed, .surfaceFlowLightSeed]
+            return []
         case .motion:
             return [.breathingAmount, .breathingSpeed, .flowStrength, .flowSpeed, .rotationSpeed, .rotationDirection, .lightRotationSpeed, .lightRotationDirection, .lightSourceStrength]
         case .edge:
-            return [.edgeScatterDistance, .edgeDustAmount, .edgeFrayAmount]
+            return []
         case .spine:
-            return [.ridgeBrightness, .membraneLineStrength, .membraneStability, .spineRadius, .spineSeed, .spineFlowBinding, .spineLineStrength, .spineLineWidth, .spineLineDensity]
+            return []
         }
     }
 }
@@ -1487,33 +1487,9 @@ private struct ParticleValidationCase: Identifiable {
         }
     }
 
-    static let screenshotCases: [ParticleValidationCase] = [
-        .init(parameter: .sheetLightStrength, testedValue: .value(0.00)),
-        .init(parameter: .sheetLightStrength, testedValue: .baseline),
-        .init(parameter: .sheetLightStrength, testedValue: .value(1.00)),
-        .init(parameter: .surfaceLightStrength, testedValue: .value(0.00)),
-        .init(parameter: .surfaceLightStrength, testedValue: .baseline),
-        .init(parameter: .surfaceLightStrength, testedValue: .value(1.00)),
-        .init(parameter: .flowLightStrength, testedValue: .value(0.00)),
-        .init(parameter: .flowLightStrength, testedValue: .baseline),
-        .init(parameter: .flowLightStrength, testedValue: .value(1.00)),
-        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(0.00)),
-        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(0.25)),
-        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(0.50)),
-        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(0.75)),
-        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(1.00))
-    ]
+    static let screenshotCases: [ParticleValidationCase] = []
 
-    static let videoCases: [ParticleValidationCase] = [
-        .init(parameter: .flowLightStrength, testedValue: .value(0.00)),
-        .init(parameter: .flowLightStrength, testedValue: .baseline),
-        .init(parameter: .flowLightStrength, testedValue: .value(1.00)),
-        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(0.00)),
-        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(0.25)),
-        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(0.50)),
-        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(0.75)),
-        .init(parameter: .surfaceFlowLightSeed, testedValue: .value(1.00))
-    ]
+    static let videoCases: [ParticleValidationCase] = []
 
     func tuning(from base: ParticleCoreTuning) -> ParticleCoreTuning {
         var tuning = base
