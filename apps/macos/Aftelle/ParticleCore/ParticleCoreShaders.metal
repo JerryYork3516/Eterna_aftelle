@@ -437,16 +437,13 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float3 shellNormalView = normalize(rotateY(normalize(shapeLocal), earthSpinAngle));
     float silhouetteGrazing = 1.0 - abs(shellNormalView.z);
     float base360Rim = smoothstep(0.34, 0.82, silhouetteGrazing);
-    float3 axis3 = rotateY(float3(globalAxis.x, globalAxis.y, 0.0), earthSpinAngle);
-    float2 turnedAxis = normalize(axis3.xy + float2(0.001, 0.001));
-    float2 turnedSide = float2(-turnedAxis.y, turnedAxis.x);
     float2 surfaceFlowAxis = globalAxis;
     float2 surfaceFlowSide = float2(-surfaceFlowAxis.y, surfaceFlowAxis.x);
     float stretch = sin(fieldTime * 0.58 + globalWave * 0.65);
-    float sail = cos(fieldTime * 0.46 + dot(p, turnedSide) * 2.8);
+    float sail = cos(fieldTime * 0.46 + dot(p, surfaceFlowSide) * 2.8);
     float postSurfaceMotion = 0.42 + 0.58 * smoothstep(0.10, 0.58, length(p));
-    p += turnedAxis * dot(p, turnedSide) * stretch * (0.030 + midBand * 0.020 + edge * 0.016) * postSurfaceMotion * tuneFlowStructure;
-    p += turnedSide * dot(p, turnedAxis) * sail * (0.014 + midBand * 0.014 + edge * 0.010) * postSurfaceMotion * tuneFlowStructure;
+    p += surfaceFlowAxis * dot(p, surfaceFlowSide) * stretch * (0.030 + midBand * 0.020 + edge * 0.016) * postSurfaceMotion * tuneFlowStructure;
+    p += surfaceFlowSide * dot(p, surfaceFlowAxis) * sail * (0.014 + midBand * 0.014 + edge * 0.010) * postSurfaceMotion * tuneFlowStructure;
     float sheetTravel = dot(p, surfaceFlowAxis);
     float sheetCross = dot(p, surfaceFlowSide);
     float turnWakePhase = fieldTime * 0.66 + globalWave * 0.32;
@@ -469,16 +466,15 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float edgeFrayVariation = smoothstep(0.34, 0.78, edgeFrayA * 0.56 + edgeFrayB * 0.34 + seedB * 0.10);
     float edgeFrayField = base360Rim * mix(0.70, 1.0, edgeFrayVariation) * (0.82 + edge * 0.18);
     float2 edgeNormal = normalize(shellNormalView.xy + normalize(p + float2(0.001, 0.001)) * 0.35);
+    float2 edgeTangent = float2(-edgeNormal.y, edgeNormal.x);
     float edgeFrayAmount = edgeFrayField * (0.006 + 0.016 * seedB) * (0.76 + 0.24 * abs(globalWave)) * edgeSettle * speakingEdgeLift * tuneEdgeFray * 0.42;
     p += edgeNormal * edgeFrayAmount;
-    p += turnedSide * edgeFrayField * sin(fieldTime * 0.41 + phaseB + angle * 2.0) * (0.001 + 0.004 * particleSeed) * edgeSettle * speakingEdgeLift * tuneEdgeFray;
-    float screenCloudRoll = sin(dot(p, turnedAxis) * 3.2 + viewBody.z * 4.4 - fieldTime * 0.86 + globalWave);
-    float screenCloudCurl = cos(dot(p, turnedSide) * 3.6 - viewBody.z * 5.0 + fieldTime * 0.72 + phaseB * 0.10);
+    p += edgeTangent * edgeFrayField * sin(fieldTime * 0.41 + phaseB + angle * 2.0) * (0.001 + 0.004 * particleSeed) * edgeSettle * speakingEdgeLift * tuneEdgeFray;
+    float screenCloudRoll = sin(dot(p, surfaceFlowAxis) * 3.2 + viewBody.z * 4.4 - fieldTime * 0.86 + globalWave);
+    float screenCloudCurl = cos(dot(p, surfaceFlowSide) * 3.6 - viewBody.z * 5.0 + fieldTime * 0.72 + phaseB * 0.10);
     float screenCloudStrength = activeInterior * 0.006 + midBand * 0.018 * stateFocus + edge * 0.002 * edgeSettle;
-    p += (turnedAxis * screenCloudCurl + turnedSide * screenCloudRoll) * screenCloudStrength * tuneFlowStructure;
+    p += (surfaceFlowAxis * screenCloudCurl + surfaceFlowSide * screenCloudRoll) * screenCloudStrength * tuneFlowStructure;
     p += normalize(p + float2(0.001, 0.001)) * screenCloudRoll * (activeInterior * 0.003 + midBand * 0.012) * tuneFlowStructure;
-    p += (turnedAxis * sin(fieldTime * 0.33 + 0.4) * 0.018
-        + turnedSide * cos(fieldTime * 0.29 + 1.2) * 0.012) * (0.34 + postSurfaceMotion * 0.66);
     float visibleWakeGate = turnWakeGate
         * (0.46 + midBand * 0.42 + interior * 0.36 + frontSheetGate * 0.42 + frontSpreadGate * 0.88)
         * (1.0 - smoothstep(0.76, 0.98, stableRadius));
@@ -577,8 +573,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     ) + float2(0.001, 0.001));
     float flowSignature = sin(sheetTravel * 3.4 - sheetCross * 2.1 + viewBody.z * 2.6 + phaseB * 0.16);
     float2 exitFlowDirection = normalize(surfaceFlowAxis * (0.72 + flowSignature * 0.18)
-        + surfaceFlowSide * (0.18 * sin(angle * 2.4 + depth * 1.8 + seedB * 2.0))
-        + turnedAxis * 0.14);
+        + surfaceFlowSide * (0.18 * sin(angle * 2.4 + depth * 1.8 + seedB * 2.0)));
     float2 exitDirection = normalize(exitOutward * 0.68 + exitFlowDirection * 0.24 + exitRandom * 0.08);
     float exitBreakPattern = smoothstep(0.48, 0.88, 0.5 + 0.5 * sin(sheetTravel * 5.6 - sheetCross * 2.4 + viewBody.z * 3.2 + phaseB * 0.24));
     float exitBreakAmount = exitState * exitDisconnect * exitBreakPattern * (0.10 + midExitZone * 0.50 + edgeExitZone * 0.24);
