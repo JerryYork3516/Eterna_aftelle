@@ -32,6 +32,7 @@ struct ParticleCoreFrameUniforms {
     var ridgeSeed: Float
     var ridgeFlowBinding: Float
     var breathingAmount: Float
+    var breathingTime: Float
     var flowStrength: Float
     var flowSpeed: Float
     var flowDirection: Float
@@ -184,8 +185,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         let speedPhaseRate: Float = 0.025
         let motionElapsed = 0.42 * elapsed + (0.08 / speedPhaseRate) * (1 - cos(elapsed * speedPhaseRate))
         let resolution = SIMD2<Float>(Float(drawableSize.width), Float(drawableSize.height))
-        let tunedBreathTime = motionElapsed * scaleAroundOne(tuning.breathingSpeed, range: 0.90)
-        let breathingAmount = scaleAroundOne(tuning.breathingAmount, range: 1.20)
+        let tunedBreathTime = motionElapsed * Float(tuning.breathingSpeed * 2)
+        let breathingAmount = centeredControl(tuning.breathingAmount, maximum: 2.2)
         let breathing = (0.010 * sin(tunedBreathTime * 0.23) + 0.006 * sin(tunedBreathTime * 0.13 + 0.9)) * breathingAmount
         let edgeBreathing = (0.012 * sin(tunedBreathTime * 0.19 + 1.4) + 0.005 * sin(tunedBreathTime * 0.37 + 0.3)) * breathingAmount
         let coreStability = 1 - min(0.025, abs(breathing) * 0.16)
@@ -216,7 +217,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             ridgeBreakup: Float(tuning.ridgeBreakup),
             ridgeSeed: Float(tuning.ridgeSeed),
             ridgeFlowBinding: Float(tuning.ridgeFlowBinding),
-            breathingAmount: Float(tuning.breathingAmount),
+            breathingAmount: breathingAmount,
+            breathingTime: tunedBreathTime,
             flowStrength: Float(tuning.flowStrength),
             flowSpeed: Float(tuning.flowSpeed),
             flowDirection: Float(tuning.flowDirection),
@@ -393,7 +395,11 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         print("[ParticleCore] snapshot fps=\(String(format: "%.1f", fps)) particleCount=\(model.particles.count) drawableSize=\(drawableSize) preferredFPS=\(view.preferredFramesPerSecond) visualState=\(visualState) previousVisualState=\(previousVisualState) stateElapsedTime=\(String(format: "%.2f", stateElapsedTime)) reason=\(lastTransitionReason) mouseInside=\(mouseActive) interactionStrength=\(String(format: "%.2f", smoothMouseInfluence))")
     }
 
-    private func scaleAroundOne(_ value: Double, range: Float) -> Float {
-        max(0, 1 + (Float(value) - 0.5) * 2 * range)
+    private func centeredControl(_ value: Double, maximum: Float) -> Float {
+        let control = Float(min(1, max(0, value)))
+        if control <= 0.5 {
+            return control * 2
+        }
+        return 1 + (control - 0.5) * 2 * (maximum - 1)
     }
 }

@@ -382,6 +382,35 @@ enum ParticleCoreRotationDirection: CaseIterable, Identifiable {
     }
 }
 
+enum ParticleCoreSpinDirection: CaseIterable, Identifiable {
+    case left
+    case right
+
+    var id: String { localizedKey }
+
+    var localizedKey: String {
+        switch self {
+        case .left:
+            return "particleDebug.direction.left"
+        case .right:
+            return "particleDebug.direction.right"
+        }
+    }
+
+    var tuningValue: Double {
+        switch self {
+        case .left:
+            return 0
+        case .right:
+            return 1
+        }
+    }
+
+    static func nearest(to value: Double) -> ParticleCoreSpinDirection {
+        value < 0.5 ? .left : .right
+    }
+}
+
 struct ParticleCoreColorProfile: Codable, Equatable {
     var baseRed: Double
     var baseGreen: Double

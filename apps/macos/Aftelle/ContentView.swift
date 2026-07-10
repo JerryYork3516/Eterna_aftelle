@@ -252,10 +252,9 @@ private struct ParticleOrientationDebugOverlay: View {
     }
 
     private func rotationState(at motionTime: TimeInterval) -> ParticleRotationState {
-        let tuneRotationSpeed = scaleAroundOne(tuning.rotationSpeed, range: 1.40)
-        let direction = cardinalDirection(for: tuning.rotationDirection)
+        let tuneRotationSpeed = centeredControl(tuning.rotationSpeed, maximum: 2.40)
         let rotationTime = motionTime * 0.76 * tuneRotationSpeed
-        let spinDirection = direction.x + direction.y < -0.25 ? -1.0 : 1.0
+        let spinDirection = min(1, max(0, tuning.rotationDirection)) < 0.5 ? -1.0 : 1.0
         let earthSpinAngle = rotationTime * spinDirection * 3.0
         return ParticleRotationState(
             rotationTime: rotationTime,
@@ -268,20 +267,6 @@ private struct ParticleOrientationDebugOverlay: View {
         let rotationTime: TimeInterval
         let earthSpinAngle: Double
         let angularVelocityPerMotionSecond: Double
-    }
-
-    private func cardinalDirection(for value: Double) -> CGPoint {
-        let bucket = floor(min(1, max(0, value)) * 3.0 + 0.5)
-        if bucket < 0.5 {
-            return CGPoint(x: 0, y: 1)
-        }
-        if bucket < 1.5 {
-            return CGPoint(x: 0, y: -1)
-        }
-        if bucket < 2.5 {
-            return CGPoint(x: -1, y: 0)
-        }
-        return CGPoint(x: 1, y: 0)
     }
 
     private func drawAxisSet(in canvas: inout GraphicsContext, origin: CGPoint, length: CGFloat, motionTime: TimeInterval, lineWidth: CGFloat) {
@@ -352,8 +337,12 @@ private struct ParticleOrientationDebugOverlay: View {
     }
 
 
-    private func scaleAroundOne(_ value: Double, range: Double) -> Double {
-        max(0, 1 + (min(1, max(0, value)) - 0.5) * 2 * range)
+    private func centeredControl(_ value: Double, maximum: Double) -> Double {
+        let control = min(1, max(0, value))
+        if control <= 0.5 {
+            return control * 2
+        }
+        return 1 + (control - 0.5) * 2 * (maximum - 1)
     }
 
     private func drawMotionTimeline(in canvas: inout GraphicsContext, size: CGSize, motionTime: TimeInterval, renderElapsed: TimeInterval) {
@@ -633,8 +622,10 @@ private struct ParticleDebugPanel: View {
                         ForEach(tuningGroup.parameters) { parameter in
                             if parameter == .shapeStyle {
                                 ParticleShapeStyleRow(tuning: $tuning)
-                            } else if parameter == .rotationDirection || parameter == .flowDirection {
+                            } else if parameter == .flowDirection {
                                 ParticleDirectionRow(parameter: parameter, tuning: $tuning)
+                            } else if parameter == .rotationDirection {
+                                ParticleSpinDirectionRow(tuning: $tuning)
                             } else {
                                 ParticleParameterRow(parameter: parameter, tuning: $tuning)
                             }
@@ -1017,6 +1008,34 @@ private struct ParticleShapeStyleRow: View {
             ParticleCoreShapeStyle.nearest(to: tuning.shapeStyle)
         } set: { newValue in
             tuning.shapeStyle = newValue.tuningValue
+        }
+    }
+}
+
+private struct ParticleSpinDirectionRow: View {
+    @Binding var tuning: ParticleCoreTuning
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(String(localized: "particleDebug.parameter.rotationDirection"))
+                .font(.system(size: 12))
+                .frame(width: 116, alignment: .leading)
+
+            Picker("", selection: direction) {
+                ForEach(ParticleCoreSpinDirection.allCases) { direction in
+                    Text(String(localized: String.LocalizationValue(direction.localizedKey)))
+                        .tag(direction)
+                }
+            }
+            .pickerStyle(.segmented)
+        }
+    }
+
+    private var direction: Binding<ParticleCoreSpinDirection> {
+        Binding {
+            ParticleCoreSpinDirection.nearest(to: tuning.rotationDirection)
+        } set: { newValue in
+            tuning.rotationDirection = newValue.tuningValue
         }
     }
 }
