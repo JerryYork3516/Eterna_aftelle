@@ -38,7 +38,6 @@ struct ParticleCoreModel {
     init(
         count: Int = 12_000,
         seed: UInt64 = Self.defaultSeed,
-        shapeStyle: ParticleCoreShapeStyle = .organicShell,
         shapeStrength: Float = 1,
         shapeFeatureScale: Float = 0.5,
         shapeSeed: Float = 0.5,
@@ -69,17 +68,12 @@ struct ParticleCoreModel {
             let z = Float(1 - 2 * v)
             let shell = sqrt(max(0, 1 - z * z))
             let baseDepth = shell * sin(theta)
-            let unitPosition = SIMD3<Float>(shell * cos(theta), z, baseDepth)
-            let shapeComponents = Self.shapeComponents(
-                style: shapeStyle,
-                unitPosition: unitPosition,
-                theta: theta,
-                frequency: featureFrequency,
-                phase: shapePhase
-            )
-            let fold = 1 + shapeComponents.foldOffset * tunedShapeStrength
-            var x = (unitPosition.x * 0.58 + shapeComponents.xShear * tunedShapeStrength) * fold
-            var y = (unitPosition.y * 0.44 + shapeComponents.yRelief * tunedShapeStrength) * fold
+            let foldOffset = 0.14 * sin((theta * 3.0 + z * 4.7) * featureFrequency + shapePhase)
+                + 0.09 * sin((theta * 6.0 - z * 2.6) * featureFrequency - shapePhase * 0.72)
+                + 0.05 * sin((theta * 11.0 + z * 5.1) * featureFrequency + shapePhase * 1.31)
+            let fold = 1 + foldOffset * tunedShapeStrength
+            var x = (shell * cos(theta) * 0.58 + baseDepth * 0.075 * tunedShapeStrength) * fold
+            var y = (z * 0.44 + 0.035 * tunedShapeStrength * sin((theta * 2.0 + baseDepth * 3.0) * featureFrequency + shapePhase * 0.61)) * fold
             var depth = baseDepth * fold
             let projectedRadius = sqrt(x * x / 0.62 / 0.62 + y * y / 0.48 / 0.48)
             let outlineBand = max(0, min(1, (projectedRadius - 0.62) / 0.32))
@@ -105,15 +99,7 @@ struct ParticleCoreModel {
             let threadB = pow(max(0, 0.5 + 0.5 * sin(theta * 5.0 - z * 3.1)), 5)
             let grain = 0.5 + 0.5 * sin(theta * 13.0 + z * 8.7 + baseDepth * 3.1)
             let thread = max(threadA, threadB)
-            let shapeRidge = min(1, abs(shapeComponents.foldOffset) * 4.6) * min(1, tunedShapeStrength)
-            let ridge = min(
-                1,
-                shapeRidge * 0.52
-                    + silhouette * 0.10
-                    + thread * 0.05
-                    + outlineBand * 0.14
-                    + grain * 0.04
-            )
+            let ridge = min(1, silhouette * 0.24 + thread * 0.08 + outlineBand * 0.22 + grain * 0.10)
             let edgeWeight = max(0, min(1, 0.18 + abs(baseDepth) * 0.72 + (1 - silhouette) * 0.34 + outlineBand * 0.16))
             let ridgeKeep = 0.36 + Double(silhouette) * 0.10 + Double(outlineBand) * 0.24
             if generator.nextUnit() > ridgeKeep && candidateIndex < candidateCount * 3 {
@@ -134,41 +120,6 @@ struct ParticleCoreModel {
 
     private static func wrappedUnit(_ value: Double) -> Double {
         value - floor(value)
-    }
-
-    private static func shapeComponents(
-        style: ParticleCoreShapeStyle,
-        unitPosition: SIMD3<Float>,
-        theta: Float,
-        frequency: Float,
-        phase: Float
-    ) -> (foldOffset: Float, xShear: Float, yRelief: Float) {
-        switch style {
-        case .organicShell:
-            let foldOffset = 0.14 * sin((theta * 3.0 + unitPosition.y * 4.7) * frequency + phase)
-                + 0.09 * sin((theta * 6.0 - unitPosition.y * 2.6) * frequency - phase * 0.72)
-                + 0.05 * sin((theta * 11.0 + unitPosition.y * 5.1) * frequency + phase * 1.31)
-            let yRelief = 0.035 * sin((theta * 2.0 + unitPosition.z * 3.0) * frequency + phase * 0.61)
-            return (foldOffset, unitPosition.z * 0.075, yRelief)
-
-        case .broadFoldShell:
-            let axisA = unitPosition.x * 0.72 + unitPosition.y * 0.48 + unitPosition.z * 0.64
-            let axisB = unitPosition.x * -0.44 + unitPosition.y * 0.76 + unitPosition.z * 0.52
-            let axisC = unitPosition.x * 0.58 + unitPosition.y * -0.62 + unitPosition.z * 0.66
-            let foldOffset = 0.17 * sin(axisA * 3.4 * frequency + phase)
-                + 0.11 * cos(axisB * 4.2 * frequency - phase * 0.68)
-                + 0.055 * sin(axisC * 5.3 * frequency + phase * 1.22)
-            return (foldOffset, 0, 0)
-
-        case .layeredShell:
-            let axisA = unitPosition.x + unitPosition.y + unitPosition.z
-            let axisB = unitPosition.x - unitPosition.y + unitPosition.z
-            let axisC = -unitPosition.x + unitPosition.y + unitPosition.z
-            let foldOffset = 0.115 * sin(axisA * 5.2 * frequency + phase)
-                + 0.085 * sin(axisB * 7.1 * frequency - phase * 0.84)
-                + 0.060 * cos(axisC * 9.3 * frequency + phase * 1.36)
-            return (foldOffset, 0, 0)
-        }
     }
 
     var vertexPayloads: [SIMD4<Float>] {

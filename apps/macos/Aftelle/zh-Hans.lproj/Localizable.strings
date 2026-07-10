@@ -57,7 +57,6 @@
 "particleDebug.parameter.edgeDustAmount" = "边缘微尘";
 "particleDebug.parameter.edgeFrayAmount" = "边缘毛边";
 "particleDebug.parameter.surfaceLightStrength" = "表面光强";
-"particleDebug.parameter.shapeStyle" = "形态风格";
 "particleDebug.parameter.shapeStrength" = "形体强度";
 "particleDebug.parameter.shapeFeatureScale" = "形态结构尺度";
 "particleDebug.parameter.shapeSeed" = "形体 Seed";
@@ -67,9 +66,6 @@
 "particleDebug.direction.down" = "下";
 "particleDebug.direction.left" = "左";
 "particleDebug.direction.right" = "右";
-"particleDebug.shapeStyle.organicShell" = "有机壳体";
-"particleDebug.shapeStyle.broadFoldShell" = "宽褶薄壳";
-"particleDebug.shapeStyle.layeredShell" = "层叠膜壳";
 "particleDebug.color.baseRed" = "基色 红";
 "particleDebug.color.baseGreen" = "基色 绿";
 "particleDebug.color.baseBlue" = "基色 蓝";
