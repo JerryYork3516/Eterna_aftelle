@@ -30,6 +30,9 @@ struct ParticleCoreFrameUniforms {
     var breathingAmount: Float
     var flowStrength: Float
     var flowSpeed: Float
+    var flowDirection: Float
+    var flowSeed: Float
+    var flowBrightnessStrength: Float
     var rotationSpeed: Float
     var rotationDirection: Float
     var edgeDustAmount: Float
@@ -208,6 +211,9 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             breathingAmount: Float(tuning.breathingAmount),
             flowStrength: Float(tuning.flowStrength),
             flowSpeed: Float(tuning.flowSpeed),
+            flowDirection: Float(tuning.flowDirection),
+            flowSeed: Float(tuning.flowSeed),
+            flowBrightnessStrength: Float(tuning.flowBrightnessStrength),
             rotationSpeed: Float(tuning.rotationSpeed),
             rotationDirection: Float(tuning.rotationDirection),
             edgeDustAmount: Float(tuning.edgeDustAmount),

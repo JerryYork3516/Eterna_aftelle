@@ -42,8 +42,11 @@
 "particleDebug.parameter.ridgeBrightness" = "Ridge Brightness";
 "particleDebug.parameter.breathingAmount" = "Breathing Amount";
 "particleDebug.parameter.breathingSpeed" = "Breathing Speed";
-"particleDebug.parameter.flowStrength" = "Surface Flow Strength";
 "particleDebug.parameter.flowSpeed" = "Surface Flow Speed";
+"particleDebug.parameter.flowDirection" = "Surface Flow Direction";
+"particleDebug.parameter.flowSeed" = "Flow Pattern Seed";
+"particleDebug.parameter.flowBrightnessStrength" = "Flow Brightness";
+"particleDebug.parameter.flowStructureInfluence" = "Structure Influence";
 "particleDebug.parameter.rotationSpeed" = "Global Rotation Speed";
 "particleDebug.parameter.rotationDirection" = "Global Rotation Direction";
 "particleDebug.parameter.edgeDustAmount" = "Edge Dust";

@@ -42,8 +42,11 @@
 "particleDebug.parameter.ridgeBrightness" = "亮脊强度";
 "particleDebug.parameter.breathingAmount" = "呼吸幅度";
 "particleDebug.parameter.breathingSpeed" = "呼吸速度";
-"particleDebug.parameter.flowStrength" = "表面流动强度";
 "particleDebug.parameter.flowSpeed" = "表面流动速度";
+"particleDebug.parameter.flowDirection" = "表面流动方向";
+"particleDebug.parameter.flowSeed" = "流动形态 Seed";
+"particleDebug.parameter.flowBrightnessStrength" = "流动亮区强度";
+"particleDebug.parameter.flowStructureInfluence" = "流动结构影响";
 "particleDebug.parameter.rotationSpeed" = "整体旋转速度";
 "particleDebug.parameter.rotationDirection" = "整体旋转方向";
 "particleDebug.parameter.edgeDustAmount" = "边缘微尘";

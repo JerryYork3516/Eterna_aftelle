@@ -11,6 +11,9 @@ struct ParticleCoreTuning: Codable, Equatable {
     var breathingSpeed: Double
     var flowStrength: Double
     var flowSpeed: Double
+    var flowDirection: Double
+    var flowSeed: Double
+    var flowBrightnessStrength: Double
     var rotationSpeed: Double
     var rotationDirection: Double
     var edgeDustAmount: Double
@@ -31,6 +34,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         breathingSpeed: Double,
         flowStrength: Double,
         flowSpeed: Double,
+        flowDirection: Double,
+        flowSeed: Double,
+        flowBrightnessStrength: Double,
         rotationSpeed: Double,
         rotationDirection: Double,
         edgeDustAmount: Double,
@@ -50,6 +56,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.breathingSpeed = breathingSpeed
         self.flowStrength = flowStrength
         self.flowSpeed = flowSpeed
+        self.flowDirection = flowDirection
+        self.flowSeed = flowSeed
+        self.flowBrightnessStrength = flowBrightnessStrength
         self.rotationSpeed = rotationSpeed
         self.rotationDirection = rotationDirection
         self.edgeDustAmount = edgeDustAmount
@@ -71,6 +80,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         breathingSpeed: 0.5,
         flowStrength: 0.5,
         flowSpeed: 0.5,
+        flowDirection: 1.0,
+        flowSeed: 0.5,
+        flowBrightnessStrength: 0.5,
         rotationSpeed: 0.5,
         rotationDirection: 1.0,
         edgeDustAmount: 0.5,
@@ -92,6 +104,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         case breathingSpeed
         case flowStrength
         case flowSpeed
+        case flowDirection
+        case flowSeed
+        case flowBrightnessStrength
         case rotationSpeed
         case rotationDirection
         case edgeDustAmount
@@ -116,6 +131,9 @@ struct ParticleCoreTuning: Codable, Equatable {
             breathingSpeed: try container.decodeIfPresent(Double.self, forKey: .breathingSpeed) ?? defaults.breathingSpeed,
             flowStrength: try container.decodeIfPresent(Double.self, forKey: .flowStrength) ?? defaults.flowStrength,
             flowSpeed: try container.decodeIfPresent(Double.self, forKey: .flowSpeed) ?? defaults.flowSpeed,
+            flowDirection: try container.decodeIfPresent(Double.self, forKey: .flowDirection) ?? defaults.flowDirection,
+            flowSeed: try container.decodeIfPresent(Double.self, forKey: .flowSeed) ?? defaults.flowSeed,
+            flowBrightnessStrength: try container.decodeIfPresent(Double.self, forKey: .flowBrightnessStrength) ?? defaults.flowBrightnessStrength,
             rotationSpeed: try container.decodeIfPresent(Double.self, forKey: .rotationSpeed) ?? defaults.rotationSpeed,
             rotationDirection: try container.decodeIfPresent(Double.self, forKey: .rotationDirection) ?? defaults.rotationDirection,
             edgeDustAmount: try container.decodeIfPresent(Double.self, forKey: .edgeDustAmount) ?? defaults.edgeDustAmount,
@@ -168,8 +186,11 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case ridgeBrightness
     case breathingAmount
     case breathingSpeed
-    case flowStrength
     case flowSpeed
+    case flowDirection
+    case flowSeed
+    case flowBrightnessStrength
+    case flowStructureInfluence
     case rotationSpeed
     case rotationDirection
     case edgeDustAmount
@@ -202,10 +223,16 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.breathingAmount
         case .breathingSpeed:
             return \.breathingSpeed
-        case .flowStrength:
-            return \.flowStrength
         case .flowSpeed:
             return \.flowSpeed
+        case .flowDirection:
+            return \.flowDirection
+        case .flowSeed:
+            return \.flowSeed
+        case .flowBrightnessStrength:
+            return \.flowBrightnessStrength
+        case .flowStructureInfluence:
+            return \.flowStrength
         case .rotationSpeed:
             return \.rotationSpeed
         case .rotationDirection:
