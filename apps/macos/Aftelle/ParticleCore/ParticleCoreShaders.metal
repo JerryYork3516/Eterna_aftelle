@@ -595,7 +595,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
 
     ParticleVertexOut out;
     out.position = float4(clip, 0.0, 1.0);
-    float independentFlowAngle = fieldTime * 0.62;
+    float independentFlowAngle = fieldTime * 2.48 + 0.73;
     float3 flowSpace = rotateBody(rotateY(lightFlowBody, independentFlowAngle), float3(0.08, -0.05, 0.03));
     float viewDepth = clamp(viewBody.z * 1.55, -1.0, 1.0);
     float animatedTravel = dot(flowSpace.xy, surfaceFlowAxis);
