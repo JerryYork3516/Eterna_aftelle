@@ -22,6 +22,8 @@ struct ParticleCoreSeededGenerator {
 }
 
 struct ParticleCoreModel {
+    static let defaultSeed: UInt64 = 0xA7F7E11E
+
     struct Particle: Hashable {
         var position: SIMD2<Float>
         var seed: Float
@@ -33,11 +35,22 @@ struct ParticleCoreModel {
     let particles: [Particle]
     let seed: UInt64
 
-    init(count: Int = 12_000, seed: UInt64 = 0xA7F7E11E) {
+    init(
+        count: Int = 12_000,
+        seed: UInt64 = Self.defaultSeed,
+        shapeStrength: Float = 1,
+        shapeSeed: Float = 0.5,
+        scatterStrength: Float = 1,
+        scatterSeed: Float = 0.5
+    ) {
         self.seed = seed
         var generator = ParticleCoreSeededGenerator(seed: seed)
         var values: [Particle] = []
         values.reserveCapacity(count)
+        let tunedShapeStrength = min(2, max(0, shapeStrength))
+        let tunedScatterStrength = min(2, max(0, scatterStrength))
+        let shapePhase = (min(1, max(0, shapeSeed)) - 0.5) * Float.pi * 2
+        let scatterOffset = Double(min(1, max(0, scatterSeed)) - 0.5)
 
         let candidateCount = Int(Double(count) * 1.8)
         var candidateIndex = 0
@@ -52,12 +65,12 @@ struct ParticleCoreModel {
             let z = Float(1 - 2 * v)
             let shell = sqrt(max(0, 1 - z * z))
             let baseDepth = shell * sin(theta)
-            let fold = 1
-                + 0.14 * sin(theta * 3.0 + z * 4.7)
-                + 0.09 * sin(theta * 6.0 - z * 2.6)
-                + 0.05 * sin(theta * 11.0 + z * 5.1)
-            var x = (shell * cos(theta) * 0.58 + baseDepth * 0.075) * fold
-            var y = (z * 0.44 + 0.035 * sin(theta * 2.0 + baseDepth * 3.0)) * fold
+            let foldOffset = 0.14 * sin(theta * 3.0 + z * 4.7 + shapePhase)
+                + 0.09 * sin(theta * 6.0 - z * 2.6 - shapePhase * 0.72)
+                + 0.05 * sin(theta * 11.0 + z * 5.1 + shapePhase * 1.31)
+            let fold = 1 + foldOffset * tunedShapeStrength
+            var x = (shell * cos(theta) * 0.58 + baseDepth * 0.075 * tunedShapeStrength) * fold
+            var y = (z * 0.44 + 0.035 * tunedShapeStrength * sin(theta * 2.0 + baseDepth * 3.0 + shapePhase * 0.61)) * fold
             var depth = baseDepth * fold
             let projectedRadius = sqrt(x * x / 0.62 / 0.62 + y * y / 0.48 / 0.48)
             let outlineBand = max(0, min(1, (projectedRadius - 0.62) / 0.32))
@@ -68,9 +81,12 @@ struct ParticleCoreModel {
                 ? SIMD3<Float>(0, 0, 1)
                 : SIMD3<Float>(0, 1, 0)
             let shellTangent = simd_normalize(simd_cross(tangentReference, shellNormal))
-            let strongScatter = generator.nextUnit() < 0.46
-            let radialScatter = (strongScatter ? 0.105 : 0.034) * pow(Float(generator.nextUnit()), 1.45)
-            let tangentialScatter = (Float(generator.nextUnit()) - 0.5) * 0.048
+            let strongScatterSample = Self.wrappedUnit(generator.nextUnit() + scatterOffset)
+            let radialScatterSample = Self.wrappedUnit(generator.nextUnit() + scatterOffset * 1.73)
+            let tangentialScatterSample = Self.wrappedUnit(generator.nextUnit() + scatterOffset * 2.37)
+            let strongScatter = strongScatterSample < 0.46
+            let radialScatter = (strongScatter ? 0.105 : 0.034) * pow(Float(radialScatterSample), 1.45) * tunedScatterStrength
+            let tangentialScatter = (Float(tangentialScatterSample) - 0.5) * 0.048 * tunedScatterStrength
             bodyPosition += shellNormal * radialScatter + shellTangent * tangentialScatter
             x = bodyPosition.x
             y = bodyPosition.y
@@ -97,6 +113,10 @@ struct ParticleCoreModel {
         }
 
         self.particles = values
+    }
+
+    private static func wrappedUnit(_ value: Double) -> Double {
+        value - floor(value)
     }
 
     var vertexPayloads: [SIMD4<Float>] {

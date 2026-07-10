@@ -1,14 +1,24 @@
 import AppKit
 import SwiftUI
+import Combine
 import UniformTypeIdentifiers
+
+@MainActor
+final class ParticlePresentationSettings: ObservableObject {
+    @Published var tuning = ParticleCoreTuning.loadSaved()
+    @Published var colorProfile = ParticleCoreColorProfile.loadSaved() ?? .systemDefault
+    #if DEBUG
+    @Published var isOrientationOverlayVisible = true
+    #endif
+}
 
 struct ContentView: View {
     @ObservedObject var controller: AppController
-    @State private var particleTuning = ParticleCoreTuning.loadSaved()
-    @State private var particleColorProfile = ParticleCoreColorProfile.loadSaved() ?? .systemDefault
+    @ObservedObject var presentationSettings: ParticlePresentationSettings
     #if DEBUG
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
     @State private var debugSubtitleKeyMonitor: Any?
-    @State private var isParticleOrientationOverlayVisible = true
     @State private var particleOrientationTimeSample = ParticleOrientationTimeSample.empty
     #endif
 
@@ -19,8 +29,8 @@ struct ContentView: View {
 
             ParticleCoreMetalView(
                 visualState: controller.particleVisualState,
-                tuning: particleTuning,
-                colorProfile: particleColorProfile,
+                tuning: presentationSettings.tuning,
+                colorProfile: presentationSettings.colorProfile,
                 isTransparentBackground: controller.particleShellMode == .transparentShell,
                 debugMetricsHandler: { metrics in
                     controller.updateParticleRenderMetrics(metrics)
@@ -40,35 +50,10 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             #if DEBUG
-            if isParticleOrientationOverlayVisible {
-                ParticleOrientationDebugOverlay(tuning: particleTuning, timeSample: particleOrientationTimeSample)
+            if presentationSettings.isOrientationOverlayVisible {
+                ParticleOrientationDebugOverlay(tuning: presentationSettings.tuning, timeSample: particleOrientationTimeSample)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .allowsHitTesting(false)
-            }
-
-            if controller.isParticleDebugPanelPresented {
-                ParticleDebugPanel(
-                    snapshot: controller.particleDebugSnapshot,
-                    shellMode: controller.particleShellMode,
-                    renderKind: controller.particleRenderKind,
-                    tuning: $particleTuning,
-                    colorProfile: $particleColorProfile,
-                    orientationOverlayVisible: $isParticleOrientationOverlayVisible,
-                    defaultColorProfile: controller.particleColorProfile,
-                    setShellMode: controller.setParticleShellMode,
-                    setRenderKind: controller.setParticleRenderKind,
-                    refreshColorProfileSnapshot: {
-                        controller.updateEffectiveParticleColorProfile(
-                            particleColorProfile,
-                            savedOverride: ParticleCoreColorProfile.hasSavedProfile()
-                        )
-                    },
-                    importDR: openDebugDRImportPanel
-                )
-                .padding(.top, 18)
-                .padding(.trailing, 18)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .transition(.opacity)
             }
             #endif
         }
@@ -79,10 +64,10 @@ struct ContentView: View {
         }
         .onChange(of: controller.particleColorProfile) { _, newValue in
             guard !ParticleCoreColorProfile.hasSavedProfile() else { return }
-            particleColorProfile = newValue
+            presentationSettings.colorProfile = newValue
             controller.updateEffectiveParticleColorProfile(newValue, savedOverride: false)
         }
-        .onChange(of: particleColorProfile) { _, newValue in
+        .onChange(of: presentationSettings.colorProfile) { _, newValue in
             controller.updateEffectiveParticleColorProfile(
                 newValue,
                 savedOverride: ParticleCoreColorProfile.hasSavedProfile()
@@ -91,13 +76,20 @@ struct ContentView: View {
         #if DEBUG
         .onAppear {
             controller.updateEffectiveParticleColorProfile(
-                particleColorProfile,
+                presentationSettings.colorProfile,
                 savedOverride: ParticleCoreColorProfile.hasSavedProfile()
             )
             installDebugSubtitleKeyMonitor()
         }
         .onDisappear {
             removeDebugSubtitleKeyMonitor()
+        }
+        .onChange(of: controller.isParticleDebugPanelPresented) { _, isPresented in
+            if isPresented {
+                openWindow(id: ParticleDebugWindow.sceneID)
+            } else {
+                dismissWindow(id: ParticleDebugWindow.sceneID)
+            }
         }
         #endif
     }
@@ -114,26 +106,6 @@ struct ContentView: View {
     }
 
     #if DEBUG
-    private func openDebugDRImportPanel() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = false
-        panel.canChooseFiles = true
-        panel.allowsMultipleSelection = false
-        var contentTypes: [UTType] = [.json]
-        if let digitalResidentType = UTType(filenameExtension: "digital_resident") {
-            contentTypes.append(digitalResidentType)
-        }
-        if let drType = UTType(filenameExtension: "dr") {
-            contentTypes.append(drType)
-        }
-        panel.allowedContentTypes = contentTypes
-
-        if panel.runModal() == .OK, let url = panel.url {
-            controller.debugImportResident(from: url)
-            particleColorProfile = controller.particleColorProfile
-        }
-    }
-
     private func installDebugSubtitleKeyMonitor() {
         guard debugSubtitleKeyMonitor == nil else { return }
         debugSubtitleKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
@@ -477,6 +449,89 @@ private enum ParticleDebugSection {
     case color
 }
 
+struct ParticleDebugWindow: View {
+    static let sceneID = "particle-debug-window"
+
+    @ObservedObject var controller: AppController
+    @ObservedObject var presentationSettings: ParticlePresentationSettings
+
+    var body: some View {
+        ParticleDebugPanel(
+            snapshot: controller.particleDebugSnapshot,
+            shellMode: controller.particleShellMode,
+            renderKind: controller.particleRenderKind,
+            tuning: $presentationSettings.tuning,
+            colorProfile: $presentationSettings.colorProfile,
+            orientationOverlayVisible: $presentationSettings.isOrientationOverlayVisible,
+            defaultColorProfile: controller.particleColorProfile,
+            setShellMode: controller.setParticleShellMode,
+            setRenderKind: controller.setParticleRenderKind,
+            refreshColorProfileSnapshot: {
+                controller.updateEffectiveParticleColorProfile(
+                    presentationSettings.colorProfile,
+                    savedOverride: ParticleCoreColorProfile.hasSavedProfile()
+                )
+            },
+            importDR: openDebugDRImportPanel
+        )
+        .onAppear {
+            controller.setParticleDebugPanelPresented(true)
+        }
+        .onDisappear {
+            controller.setParticleDebugPanelPresented(false)
+        }
+    }
+
+    private func openDebugDRImportPanel() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowsMultipleSelection = false
+        var contentTypes: [UTType] = [.json]
+        if let digitalResidentType = UTType(filenameExtension: "digital_resident") {
+            contentTypes.append(digitalResidentType)
+        }
+        if let drType = UTType(filenameExtension: "dr") {
+            contentTypes.append(drType)
+        }
+        panel.allowedContentTypes = contentTypes
+
+        if panel.runModal() == .OK, let url = panel.url {
+            controller.debugImportResident(from: url)
+            presentationSettings.colorProfile = controller.particleColorProfile
+        }
+    }
+}
+
+private enum ParticleTuningGroup: String, CaseIterable, Identifiable {
+    case basics
+    case shape
+    case surface
+    case motion
+    case edge
+
+    var id: String { rawValue }
+
+    var localizedKey: String {
+        "particleDebug.tuningGroup.\(rawValue)"
+    }
+
+    var parameters: [ParticleCoreTuningParameter] {
+        switch self {
+        case .basics:
+            return [.globalScale, .pointSizeScale, .brightness, .alphaScale]
+        case .shape:
+            return [.shapeStrength, .shapeSeed]
+        case .surface:
+            return [.ridgeBrightness, .surfaceLightStrength]
+        case .motion:
+            return [.breathingAmount, .breathingSpeed, .flowStrength, .flowSpeed, .rotationSpeed, .rotationDirection]
+        case .edge:
+            return [.scatterStrength, .scatterSeed, .edgeDustAmount, .edgeFrayAmount]
+        }
+    }
+}
+
 private struct ParticleDebugPanel: View {
     let snapshot: ParticleDebugSnapshot
     let shellMode: ParticleShellMode
@@ -490,6 +545,7 @@ private struct ParticleDebugPanel: View {
     let refreshColorProfileSnapshot: () -> Void
     let importDR: () -> Void
     @State private var section: ParticleDebugSection = .diagnostics
+    @State private var tuningGroup: ParticleTuningGroup = .basics
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -517,6 +573,16 @@ private struct ParticleDebugPanel: View {
                     .tag(ParticleDebugSection.color)
             }
             .pickerStyle(.segmented)
+
+            if section == .particle {
+                Picker("", selection: $tuningGroup) {
+                    ForEach(ParticleTuningGroup.allCases) { group in
+                        Text(String(localized: String.LocalizationValue(group.localizedKey)))
+                            .tag(group)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
 
             Toggle(String(localized: "particleDebug.orientation.overlay"), isOn: $orientationOverlayVisible)
                 .font(.system(size: 12))
@@ -551,7 +617,7 @@ private struct ParticleDebugPanel: View {
                             setRenderKind: setRenderKind
                         )
                     case .particle:
-                        ForEach(ParticleCoreTuningParameter.allCases) { parameter in
+                        ForEach(tuningGroup.parameters) { parameter in
                             if parameter == .rotationDirection {
                                 ParticleDirectionRow(tuning: $tuning)
                             } else {
@@ -565,7 +631,7 @@ private struct ParticleDebugPanel: View {
                     }
                 }
             }
-            .frame(maxHeight: section == .diagnostics ? 460 : 360)
+            .frame(minHeight: 280, maxHeight: .infinity)
 
             if section == .particle || section == .color {
                 Divider()
@@ -585,7 +651,7 @@ private struct ParticleDebugPanel: View {
             }
         }
         .padding(14)
-        .frame(width: 430)
+        .frame(minWidth: 520, idealWidth: 560, minHeight: 500, idealHeight: 620)
     }
 
     private var sectionSubtitle: String {
@@ -940,5 +1006,8 @@ private struct ParticleColorParameterRow: View {
 #endif
 
 #Preview {
-    ContentView(controller: AppController())
+    ContentView(
+        controller: AppController(),
+        presentationSettings: ParticlePresentationSettings()
+    )
 }

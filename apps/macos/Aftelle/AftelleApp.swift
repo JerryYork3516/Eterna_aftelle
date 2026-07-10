@@ -3,11 +3,12 @@ import SwiftUI
 @main
 struct AftelleApp: App {
     @StateObject private var controller = AppController()
+    @StateObject private var presentationSettings = ParticlePresentationSettings()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup("Aftelle") {
-            ContentView(controller: controller)
+            ContentView(controller: controller, presentationSettings: presentationSettings)
         }
         .windowResizability(.contentSize)
         .commands {
@@ -57,6 +58,14 @@ struct AftelleApp: App {
                 controller.markSessionUncleanIfPossible()
             }
         }
+
+        #if DEBUG
+        Window(String(localized: "particleDebug.windowTitle"), id: ParticleDebugWindow.sceneID) {
+            ParticleDebugWindow(controller: controller, presentationSettings: presentationSettings)
+        }
+        .defaultSize(width: 560, height: 640)
+        .windowResizability(.contentMinSize)
+        #endif
     }
 
     #if DEBUG

@@ -1,10 +1,11 @@
 "particleDebug.button" = "Debug";
 "particleDebug.title" = "Debug";
+"particleDebug.windowTitle" = "Particle Debug Console";
 "particleDebug.diagnostics" = "Diagnostics";
 "particleDebug.diagnosticsCaption" = "Read-only state snapshot";
 "particleDebug.menu.title" = "Debug";
 "app.menu.quit" = "Quit Aftelle";
-"particleDebug.menu.togglePanel" = "Toggle Debug Panel";
+"particleDebug.menu.togglePanel" = "Show/Hide Debug Window";
 "particleDebug.menu.shellMode" = "Shell Mode";
 "particleDebug.menu.renderAdapter" = "Render Adapter";
 "particleDebug.shellMode" = "Shell Mode";
@@ -25,6 +26,11 @@
 "particleDebug.renderKind.dualResidentReserved" = "dual_resident_reserved";
 "particleDebug.renderKind.arTransitionReserved" = "ar_transition_reserved";
 "particleDebug.parameters" = "Parameters";
+"particleDebug.tuningGroup.basics" = "Basics";
+"particleDebug.tuningGroup.shape" = "Shape";
+"particleDebug.tuningGroup.surface" = "Surface";
+"particleDebug.tuningGroup.motion" = "Motion";
+"particleDebug.tuningGroup.edge" = "Edge";
 "particleDebug.colorParameters" = "Color Parameters";
 "particleDebug.importDR" = "Import DR";
 "particleDebug.save" = "Save";
@@ -43,6 +49,10 @@
 "particleDebug.parameter.edgeDustAmount" = "Edge Dust";
 "particleDebug.parameter.edgeFrayAmount" = "Edge Fray";
 "particleDebug.parameter.surfaceLightStrength" = "Surface Light";
+"particleDebug.parameter.shapeStrength" = "Shape Strength";
+"particleDebug.parameter.shapeSeed" = "Shape Seed";
+"particleDebug.parameter.scatterStrength" = "Scatter Strength";
+"particleDebug.parameter.scatterSeed" = "Scatter Seed";
 "particleDebug.direction.up" = "Up";
 "particleDebug.direction.down" = "Down";
 "particleDebug.direction.left" = "Left";

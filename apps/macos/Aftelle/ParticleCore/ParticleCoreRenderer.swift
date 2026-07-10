@@ -56,12 +56,13 @@ enum ParticleCoreVisualState: UInt32 {
 }
 
 final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
-    private let model: ParticleCoreModel
+    private var model: ParticleCoreModel
+    private let modelSeed: UInt64
     private let frameSeed: UInt32
     private let device: MTLDevice
     private let commandQueue: MTLCommandQueue
     private let pipelineState: MTLRenderPipelineState
-    private let particleBuffer: MTLBuffer
+    private var particleBuffer: MTLBuffer
     private let uniformsBuffer: MTLBuffer
     private let startTime = CACurrentMediaTime()
     private var stateStartTime = CACurrentMediaTime()
@@ -84,13 +85,16 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private var smoothExitStrength: Float
     private var tuning = ParticleCoreTuning.systemDefault
     private var colorProfile = ParticleCoreColorProfile.systemDefault
+    private var pendingModelRebuild: DispatchWorkItem?
     var debugMetricsHandler: ((ParticleRenderMetrics) -> Void)?
 
     init?(device: MTLDevice, visualState: ParticleCoreVisualState = .idle) {
-        let launchSeed = UInt64.random(in: 1...UInt64.max)
+        let modelSeed = ParticleCoreModel.defaultSeed
+        let flowSeed = UInt64.random(in: 1...UInt64.max)
         self.device = device
-        self.model = ParticleCoreModel(seed: launchSeed)
-        self.frameSeed = UInt32(truncatingIfNeeded: launchSeed ^ (launchSeed >> 32))
+        self.modelSeed = modelSeed
+        self.model = ParticleCoreModel(seed: modelSeed)
+        self.frameSeed = UInt32(truncatingIfNeeded: flowSeed ^ (flowSeed >> 32))
         self.visualState = visualState
         self.previousVisualState = visualState
         self.smoothThinkingStrength = visualState.targetStrength(for: .thinking)
@@ -257,7 +261,20 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     }
 
     func setTuning(_ tuning: ParticleCoreTuning) {
-        self.tuning = tuning.clamped()
+        let value = tuning.clamped()
+        let requiresModelRebuild = self.tuning.shapeStrength != value.shapeStrength
+            || self.tuning.shapeSeed != value.shapeSeed
+            || self.tuning.scatterStrength != value.scatterStrength
+            || self.tuning.scatterSeed != value.scatterSeed
+        self.tuning = value
+        guard requiresModelRebuild else { return }
+
+        pendingModelRebuild?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.rebuildParticles(using: value)
+        }
+        pendingModelRebuild = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: workItem)
     }
 
     func setColorProfile(_ colorProfile: ParticleCoreColorProfile) {
@@ -270,6 +287,37 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         for (index, payload) in payloads.enumerated() {
             pointer[index] = payload
         }
+    }
+
+    private func rebuildParticles(using tuning: ParticleCoreTuning) {
+        let rebuiltModel = ParticleCoreModel(
+            seed: modelSeed,
+            shapeStrength: Float(tuning.shapeStrength * 2),
+            shapeSeed: Float(tuning.shapeSeed),
+            scatterStrength: Float(tuning.scatterStrength * 2),
+            scatterSeed: Float(tuning.scatterSeed)
+        )
+        let payloads = rebuiltModel.vertexPayloads
+        guard let rebuiltBuffer = device.makeBuffer(
+            length: MemoryLayout<SIMD4<Float>>.stride * payloads.count,
+            options: .storageModeShared
+        ) else {
+            print("[ParticleCore] model rebuild buffer failed")
+            return
+        }
+
+        let pointer = rebuiltBuffer.contents().bindMemory(to: SIMD4<Float>.self, capacity: payloads.count)
+        for (index, payload) in payloads.enumerated() {
+            pointer[index] = payload
+        }
+        model = rebuiltModel
+        particleBuffer = rebuiltBuffer
+        print(
+            "[ParticleCore] model rebuilt shapeStrength=\(String(format: "%.2f", tuning.shapeStrength)) "
+                + "shapeSeed=\(String(format: "%.2f", tuning.shapeSeed)) "
+                + "scatterStrength=\(String(format: "%.2f", tuning.scatterStrength)) "
+                + "scatterSeed=\(String(format: "%.2f", tuning.scatterSeed))"
+        )
     }
 
     private func updateSmoothedMouse(elapsedTime: CFTimeInterval) {

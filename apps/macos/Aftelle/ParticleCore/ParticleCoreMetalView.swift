@@ -39,6 +39,7 @@ struct ParticleCoreMetalView: NSViewRepresentable {
                 context.coordinator.debugMetricsHandler?(metrics)
             }
         }
+        renderer.setTuning(tuning)
         renderer.setColorProfile(colorProfile)
         return view
     }

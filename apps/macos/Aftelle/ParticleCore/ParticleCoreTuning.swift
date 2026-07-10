@@ -16,6 +16,50 @@ struct ParticleCoreTuning: Codable, Equatable {
     var edgeDustAmount: Double
     var edgeFrayAmount: Double
     var surfaceLightStrength: Double
+    var shapeStrength: Double
+    var shapeSeed: Double
+    var scatterStrength: Double
+    var scatterSeed: Double
+
+    init(
+        globalScale: Double,
+        pointSizeScale: Double,
+        brightness: Double,
+        alphaScale: Double,
+        ridgeBrightness: Double,
+        breathingAmount: Double,
+        breathingSpeed: Double,
+        flowStrength: Double,
+        flowSpeed: Double,
+        rotationSpeed: Double,
+        rotationDirection: Double,
+        edgeDustAmount: Double,
+        edgeFrayAmount: Double,
+        surfaceLightStrength: Double,
+        shapeStrength: Double,
+        shapeSeed: Double,
+        scatterStrength: Double,
+        scatterSeed: Double
+    ) {
+        self.globalScale = globalScale
+        self.pointSizeScale = pointSizeScale
+        self.brightness = brightness
+        self.alphaScale = alphaScale
+        self.ridgeBrightness = ridgeBrightness
+        self.breathingAmount = breathingAmount
+        self.breathingSpeed = breathingSpeed
+        self.flowStrength = flowStrength
+        self.flowSpeed = flowSpeed
+        self.rotationSpeed = rotationSpeed
+        self.rotationDirection = rotationDirection
+        self.edgeDustAmount = edgeDustAmount
+        self.edgeFrayAmount = edgeFrayAmount
+        self.surfaceLightStrength = surfaceLightStrength
+        self.shapeStrength = shapeStrength
+        self.shapeSeed = shapeSeed
+        self.scatterStrength = scatterStrength
+        self.scatterSeed = scatterSeed
+    }
 
     static let systemDefault = ParticleCoreTuning(
         globalScale: 0.5,
@@ -31,8 +75,58 @@ struct ParticleCoreTuning: Codable, Equatable {
         rotationDirection: 1.0,
         edgeDustAmount: 0.5,
         edgeFrayAmount: 0.5,
-        surfaceLightStrength: 0.5
+        surfaceLightStrength: 0.5,
+        shapeStrength: 0.5,
+        shapeSeed: 0.5,
+        scatterStrength: 0.5,
+        scatterSeed: 0.5
     )
+
+    private enum CodingKeys: String, CodingKey {
+        case globalScale
+        case pointSizeScale
+        case brightness
+        case alphaScale
+        case ridgeBrightness
+        case breathingAmount
+        case breathingSpeed
+        case flowStrength
+        case flowSpeed
+        case rotationSpeed
+        case rotationDirection
+        case edgeDustAmount
+        case edgeFrayAmount
+        case surfaceLightStrength
+        case shapeStrength
+        case shapeSeed
+        case scatterStrength
+        case scatterSeed
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = Self.systemDefault
+        self.init(
+            globalScale: try container.decodeIfPresent(Double.self, forKey: .globalScale) ?? defaults.globalScale,
+            pointSizeScale: try container.decodeIfPresent(Double.self, forKey: .pointSizeScale) ?? defaults.pointSizeScale,
+            brightness: try container.decodeIfPresent(Double.self, forKey: .brightness) ?? defaults.brightness,
+            alphaScale: try container.decodeIfPresent(Double.self, forKey: .alphaScale) ?? defaults.alphaScale,
+            ridgeBrightness: try container.decodeIfPresent(Double.self, forKey: .ridgeBrightness) ?? defaults.ridgeBrightness,
+            breathingAmount: try container.decodeIfPresent(Double.self, forKey: .breathingAmount) ?? defaults.breathingAmount,
+            breathingSpeed: try container.decodeIfPresent(Double.self, forKey: .breathingSpeed) ?? defaults.breathingSpeed,
+            flowStrength: try container.decodeIfPresent(Double.self, forKey: .flowStrength) ?? defaults.flowStrength,
+            flowSpeed: try container.decodeIfPresent(Double.self, forKey: .flowSpeed) ?? defaults.flowSpeed,
+            rotationSpeed: try container.decodeIfPresent(Double.self, forKey: .rotationSpeed) ?? defaults.rotationSpeed,
+            rotationDirection: try container.decodeIfPresent(Double.self, forKey: .rotationDirection) ?? defaults.rotationDirection,
+            edgeDustAmount: try container.decodeIfPresent(Double.self, forKey: .edgeDustAmount) ?? defaults.edgeDustAmount,
+            edgeFrayAmount: try container.decodeIfPresent(Double.self, forKey: .edgeFrayAmount) ?? defaults.edgeFrayAmount,
+            surfaceLightStrength: try container.decodeIfPresent(Double.self, forKey: .surfaceLightStrength) ?? defaults.surfaceLightStrength,
+            shapeStrength: try container.decodeIfPresent(Double.self, forKey: .shapeStrength) ?? defaults.shapeStrength,
+            shapeSeed: try container.decodeIfPresent(Double.self, forKey: .shapeSeed) ?? defaults.shapeSeed,
+            scatterStrength: try container.decodeIfPresent(Double.self, forKey: .scatterStrength) ?? defaults.scatterStrength,
+            scatterSeed: try container.decodeIfPresent(Double.self, forKey: .scatterSeed) ?? defaults.scatterSeed
+        )
+    }
 
     static let storageKey = "ParticleCoreTuning.debug.v1"
 
@@ -81,6 +175,10 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case edgeDustAmount
     case edgeFrayAmount
     case surfaceLightStrength
+    case shapeStrength
+    case shapeSeed
+    case scatterStrength
+    case scatterSeed
 
     var id: String { rawValue }
 
@@ -118,6 +216,14 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.edgeFrayAmount
         case .surfaceLightStrength:
             return \.surfaceLightStrength
+        case .shapeStrength:
+            return \.shapeStrength
+        case .shapeSeed:
+            return \.shapeSeed
+        case .scatterStrength:
+            return \.scatterStrength
+        case .scatterSeed:
+            return \.scatterSeed
         }
     }
 }

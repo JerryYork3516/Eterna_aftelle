@@ -1,10 +1,11 @@
 "particleDebug.button" = "调试";
 "particleDebug.title" = "调试";
+"particleDebug.windowTitle" = "粒子调试台";
 "particleDebug.diagnostics" = "诊断";
 "particleDebug.diagnosticsCaption" = "只读状态快照";
 "particleDebug.menu.title" = "调试";
 "app.menu.quit" = "退出 Aftelle";
-"particleDebug.menu.togglePanel" = "显示/隐藏调试面板";
+"particleDebug.menu.togglePanel" = "显示/隐藏调试窗口";
 "particleDebug.menu.shellMode" = "Shell 模式";
 "particleDebug.menu.renderAdapter" = "渲染切换";
 "particleDebug.shellMode" = "Shell 模式";
@@ -25,6 +26,11 @@
 "particleDebug.renderKind.dualResidentReserved" = "dual_resident_reserved";
 "particleDebug.renderKind.arTransitionReserved" = "ar_transition_reserved";
 "particleDebug.parameters" = "参数";
+"particleDebug.tuningGroup.basics" = "基础";
+"particleDebug.tuningGroup.shape" = "形体";
+"particleDebug.tuningGroup.surface" = "表面";
+"particleDebug.tuningGroup.motion" = "动效";
+"particleDebug.tuningGroup.edge" = "边缘";
 "particleDebug.colorParameters" = "颜色参数";
 "particleDebug.importDR" = "导入 DR";
 "particleDebug.save" = "保存";
@@ -43,6 +49,10 @@
 "particleDebug.parameter.edgeDustAmount" = "边缘微尘";
 "particleDebug.parameter.edgeFrayAmount" = "边缘毛边";
 "particleDebug.parameter.surfaceLightStrength" = "表面光强";
+"particleDebug.parameter.shapeStrength" = "形体强度";
+"particleDebug.parameter.shapeSeed" = "形体 Seed";
+"particleDebug.parameter.scatterStrength" = "散射强度";
+"particleDebug.parameter.scatterSeed" = "散射 Seed";
 "particleDebug.direction.up" = "上";
 "particleDebug.direction.down" = "下";
 "particleDebug.direction.left" = "左";
