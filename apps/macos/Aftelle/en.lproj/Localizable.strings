@@ -31,6 +31,7 @@
 "particleDebug.tuningGroup.surface" = "Surface";
 "particleDebug.tuningGroup.motion" = "Motion";
 "particleDebug.tuningGroup.edge" = "Edge";
+"particleDebug.tuningGroup.ridge" = "Ridge";
 "particleDebug.colorParameters" = "Color Parameters";
 "particleDebug.importDR" = "Import DR";
 "particleDebug.save" = "Save";
@@ -39,7 +40,11 @@
 "particleDebug.parameter.pointSizeScale" = "Particle Size";
 "particleDebug.parameter.brightness" = "Brightness";
 "particleDebug.parameter.alphaScale" = "Alpha";
-"particleDebug.parameter.ridgeBrightness" = "Ridge Brightness";
+"particleDebug.parameter.ridgeStrength" = "Ridge Strength";
+"particleDebug.parameter.ridgeWidth" = "Ridge Width";
+"particleDebug.parameter.ridgeBreakup" = "Ridge Breakup";
+"particleDebug.parameter.ridgeSeed" = "Ridge Seed";
+"particleDebug.parameter.ridgeFlowBinding" = "Flow Binding";
 "particleDebug.parameter.breathingAmount" = "Breathing Amount";
 "particleDebug.parameter.breathingSpeed" = "Breathing Speed";
 "particleDebug.parameter.flowSpeed" = "Surface Flow Speed";

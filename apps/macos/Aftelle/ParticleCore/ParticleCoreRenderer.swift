@@ -26,7 +26,11 @@ struct ParticleCoreFrameUniforms {
     var pointSizeScale: Float
     var brightness: Float
     var alphaScale: Float
-    var ridgeBrightness: Float
+    var ridgeStrength: Float
+    var ridgeWidth: Float
+    var ridgeBreakup: Float
+    var ridgeSeed: Float
+    var ridgeFlowBinding: Float
     var breathingAmount: Float
     var flowStrength: Float
     var flowSpeed: Float
@@ -207,7 +211,11 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             pointSizeScale: Float(tuning.pointSizeScale),
             brightness: Float(tuning.brightness),
             alphaScale: Float(tuning.alphaScale),
-            ridgeBrightness: Float(tuning.ridgeBrightness),
+            ridgeStrength: Float(tuning.ridgeBrightness),
+            ridgeWidth: Float(tuning.ridgeWidth),
+            ridgeBreakup: Float(tuning.ridgeBreakup),
+            ridgeSeed: Float(tuning.ridgeSeed),
+            ridgeFlowBinding: Float(tuning.ridgeFlowBinding),
             breathingAmount: Float(tuning.breathingAmount),
             flowStrength: Float(tuning.flowStrength),
             flowSpeed: Float(tuning.flowSpeed),

@@ -509,6 +509,7 @@ private enum ParticleTuningGroup: String, CaseIterable, Identifiable {
     case surface
     case motion
     case edge
+    case ridge
 
     var id: String { rawValue }
 
@@ -523,7 +524,7 @@ private enum ParticleTuningGroup: String, CaseIterable, Identifiable {
         case .shape:
             return [.shapeStyle, .shapeStrength, .shapeFeatureScale, .shapeSeed]
         case .surface:
-            return [.ridgeBrightness, .surfaceLightStrength]
+            return [.surfaceLightStrength]
         case .motion:
             return [
                 .breathingAmount,
@@ -538,6 +539,8 @@ private enum ParticleTuningGroup: String, CaseIterable, Identifiable {
             ]
         case .edge:
             return [.scatterStrength, .scatterSeed, .edgeDustAmount, .edgeFrayAmount]
+        case .ridge:
+            return [.ridgeStrength, .ridgeWidth, .ridgeBreakup, .ridgeSeed, .ridgeFlowBinding]
         }
     }
 }

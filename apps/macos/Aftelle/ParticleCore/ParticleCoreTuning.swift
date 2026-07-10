@@ -7,6 +7,10 @@ struct ParticleCoreTuning: Codable, Equatable {
     var brightness: Double
     var alphaScale: Double
     var ridgeBrightness: Double
+    var ridgeWidth: Double
+    var ridgeBreakup: Double
+    var ridgeSeed: Double
+    var ridgeFlowBinding: Double
     var breathingAmount: Double
     var breathingSpeed: Double
     var flowStrength: Double
@@ -32,6 +36,10 @@ struct ParticleCoreTuning: Codable, Equatable {
         brightness: Double,
         alphaScale: Double,
         ridgeBrightness: Double,
+        ridgeWidth: Double,
+        ridgeBreakup: Double,
+        ridgeSeed: Double,
+        ridgeFlowBinding: Double,
         breathingAmount: Double,
         breathingSpeed: Double,
         flowStrength: Double,
@@ -56,6 +64,10 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.brightness = brightness
         self.alphaScale = alphaScale
         self.ridgeBrightness = ridgeBrightness
+        self.ridgeWidth = ridgeWidth
+        self.ridgeBreakup = ridgeBreakup
+        self.ridgeSeed = ridgeSeed
+        self.ridgeFlowBinding = ridgeFlowBinding
         self.breathingAmount = breathingAmount
         self.breathingSpeed = breathingSpeed
         self.flowStrength = flowStrength
@@ -82,6 +94,10 @@ struct ParticleCoreTuning: Codable, Equatable {
         brightness: 0.5,
         alphaScale: 0.5,
         ridgeBrightness: 0.5,
+        ridgeWidth: 0.5,
+        ridgeBreakup: 0.5,
+        ridgeSeed: 0.5,
+        ridgeFlowBinding: 0.35,
         breathingAmount: 0.5,
         breathingSpeed: 0.5,
         flowStrength: 0.5,
@@ -108,6 +124,10 @@ struct ParticleCoreTuning: Codable, Equatable {
         case brightness
         case alphaScale
         case ridgeBrightness
+        case ridgeWidth
+        case ridgeBreakup
+        case ridgeSeed
+        case ridgeFlowBinding
         case breathingAmount
         case breathingSpeed
         case flowStrength
@@ -137,6 +157,10 @@ struct ParticleCoreTuning: Codable, Equatable {
             brightness: try container.decodeIfPresent(Double.self, forKey: .brightness) ?? defaults.brightness,
             alphaScale: try container.decodeIfPresent(Double.self, forKey: .alphaScale) ?? defaults.alphaScale,
             ridgeBrightness: try container.decodeIfPresent(Double.self, forKey: .ridgeBrightness) ?? defaults.ridgeBrightness,
+            ridgeWidth: try container.decodeIfPresent(Double.self, forKey: .ridgeWidth) ?? defaults.ridgeWidth,
+            ridgeBreakup: try container.decodeIfPresent(Double.self, forKey: .ridgeBreakup) ?? defaults.ridgeBreakup,
+            ridgeSeed: try container.decodeIfPresent(Double.self, forKey: .ridgeSeed) ?? defaults.ridgeSeed,
+            ridgeFlowBinding: try container.decodeIfPresent(Double.self, forKey: .ridgeFlowBinding) ?? defaults.ridgeFlowBinding,
             breathingAmount: try container.decodeIfPresent(Double.self, forKey: .breathingAmount) ?? defaults.breathingAmount,
             breathingSpeed: try container.decodeIfPresent(Double.self, forKey: .breathingSpeed) ?? defaults.breathingSpeed,
             flowStrength: try container.decodeIfPresent(Double.self, forKey: .flowStrength) ?? defaults.flowStrength,
@@ -195,7 +219,11 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case pointSizeScale
     case brightness
     case alphaScale
-    case ridgeBrightness
+    case ridgeStrength
+    case ridgeWidth
+    case ridgeBreakup
+    case ridgeSeed
+    case ridgeFlowBinding
     case breathingAmount
     case breathingSpeed
     case flowSpeed
@@ -231,8 +259,16 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.brightness
         case .alphaScale:
             return \.alphaScale
-        case .ridgeBrightness:
+        case .ridgeStrength:
             return \.ridgeBrightness
+        case .ridgeWidth:
+            return \.ridgeWidth
+        case .ridgeBreakup:
+            return \.ridgeBreakup
+        case .ridgeSeed:
+            return \.ridgeSeed
+        case .ridgeFlowBinding:
+            return \.ridgeFlowBinding
         case .breathingAmount:
             return \.breathingAmount
         case .breathingSpeed:

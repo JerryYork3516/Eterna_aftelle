@@ -31,6 +31,7 @@
 "particleDebug.tuningGroup.surface" = "表面";
 "particleDebug.tuningGroup.motion" = "动效";
 "particleDebug.tuningGroup.edge" = "边缘";
+"particleDebug.tuningGroup.ridge" = "背脊";
 "particleDebug.colorParameters" = "颜色参数";
 "particleDebug.importDR" = "导入 DR";
 "particleDebug.save" = "保存";
@@ -39,7 +40,11 @@
 "particleDebug.parameter.pointSizeScale" = "粒子大小";
 "particleDebug.parameter.brightness" = "整体亮度";
 "particleDebug.parameter.alphaScale" = "整体透明度";
-"particleDebug.parameter.ridgeBrightness" = "亮脊强度";
+"particleDebug.parameter.ridgeStrength" = "背脊强度";
+"particleDebug.parameter.ridgeWidth" = "背脊宽度";
+"particleDebug.parameter.ridgeBreakup" = "背脊断续度";
+"particleDebug.parameter.ridgeSeed" = "背脊 Seed";
+"particleDebug.parameter.ridgeFlowBinding" = "背脊流动绑定";
 "particleDebug.parameter.breathingAmount" = "呼吸幅度";
 "particleDebug.parameter.breathingSpeed" = "呼吸速度";
 "particleDebug.parameter.flowSpeed" = "表面流动速度";

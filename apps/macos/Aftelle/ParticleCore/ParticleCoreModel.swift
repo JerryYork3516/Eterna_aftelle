@@ -105,7 +105,15 @@ struct ParticleCoreModel {
             let threadB = pow(max(0, 0.5 + 0.5 * sin(theta * 5.0 - z * 3.1)), 5)
             let grain = 0.5 + 0.5 * sin(theta * 13.0 + z * 8.7 + baseDepth * 3.1)
             let thread = max(threadA, threadB)
-            let ridge = min(1, silhouette * 0.24 + thread * 0.08 + outlineBand * 0.22 + grain * 0.10)
+            let shapeRidge = min(1, abs(shapeComponents.foldOffset) * 4.6) * min(1, tunedShapeStrength)
+            let ridge = min(
+                1,
+                shapeRidge * 0.52
+                    + silhouette * 0.10
+                    + thread * 0.05
+                    + outlineBand * 0.14
+                    + grain * 0.04
+            )
             let edgeWeight = max(0, min(1, 0.18 + abs(baseDepth) * 0.72 + (1 - silhouette) * 0.34 + outlineBand * 0.16))
             let ridgeKeep = 0.36 + Double(silhouette) * 0.10 + Double(outlineBand) * 0.24
             if generator.nextUnit() > ridgeKeep && candidateIndex < candidateCount * 3 {
