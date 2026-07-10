@@ -344,15 +344,13 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float loadingCycleA = 0.5 + 0.5 * sin(t * 0.68 + localPhase * 0.12 + angle * 1.10 + depth * 1.60);
     float loadingCycleB = 0.5 + 0.5 * cos(t * 0.52 + phaseB * 0.10 - angle * 0.72 + seedB * 1.80);
     float loadingCycle = smoothstep(0.30, 0.88, loadingCycleA * 0.54 + loadingCycleB * 0.46);
+    float loadingGlobalPulse = 0.5 + 0.5 * sin(t * 0.92);
     float errorInterruptA = 0.5 + 0.5 * sin(t * 0.86 + localPhase * 0.22 + angle * 2.90 + depth * 1.90);
     float errorInterruptB = 0.5 + 0.5 * cos(t * 0.64 + phaseB * 0.20 - angle * 5.20 + seedB * 2.80);
     float errorInterrupt = smoothstep(0.42, 0.84, errorInterruptA * 0.55 + errorInterruptB * 0.45);
     float errorFracture = smoothstep(0.48, 0.90, 0.5 + 0.5 * sin(t * 0.72 + angle * 9.40 - depth * 3.80 + particleSeed * 3.60));
     float errorEdgePulse = smoothstep(0.50, 0.91, 0.5 + 0.5 * cos(t * 0.78 + angle * 11.40 + phaseB * 0.22));
-    float errorJitterA = sin(t * 2.25 + localPhase * 0.42 + angle * 6.80 + depth * 2.20);
-    float errorJitterB = cos(t * 1.74 + phaseB * 0.38 - angle * 4.10 + seedB * 5.60);
-    float errorJitter = errorJitterA * 0.64 + errorJitterB * 0.36;
-    float errorJitterPulse = smoothstep(0.30, 0.82, 0.5 + 0.5 * sin(t * 1.18 + angle * 3.80 + particleSeed * 4.10));
+    float errorGlobalPulse = smoothstep(0.22, 0.86, 0.5 + 0.5 * sin(t * 1.34 + 0.4));
     float speakingEdgeLift = mix(1.0, 1.24 + speakingPulse * 0.24, speaking * edge);
     float loadingEdgeSettle = mix(1.0, 0.68, loading * edge);
     float fieldSpeed = mix(1.0, 0.60, thinking) * mix(1.0, 1.16, speaking) * mix(1.0, 0.96, previewPlaceholder);
@@ -495,29 +493,28 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * mix(1.0, 1.20, speaking)
         * tuneFlowStructure;
     float focusGate = thinking
-        * frontSurfaceGate
-        * (0.28 + interior * 0.34 + midBand * 0.74)
-        * (1.0 - smoothstep(0.68, 0.90, stableRadius));
+        * (0.46 + interior * 0.34 + midBand * 0.54 + edge * 0.08)
+        * (1.0 - smoothstep(0.78, 0.98, stableRadius));
     float focusWave = sin(sheetTravel * 3.8 - sheetCross * 0.85 + viewBody.z * 2.2 - fieldTime * 0.42 + globalWave);
-    p += surfaceFlowAxis * focusWave * (0.006 + midBand * 0.018 + interior * 0.010) * focusGate;
-    p -= normalize(p + float2(0.001, 0.001)) * (0.008 + midBand * 0.013 + interior * 0.006) * focusGate;
+    p += surfaceFlowAxis * focusWave * (0.008 + midBand * 0.022 + interior * 0.014) * focusGate;
+    p -= normalize(p + float2(0.001, 0.001)) * (0.014 + midBand * 0.020 + interior * 0.011) * focusGate;
     float loadingLoopGate = loading
-        * (0.30 + interior * 0.56 + midBand * 0.66 + frontSheetGate * 0.22)
-        * (1.0 - smoothstep(0.78, 1.00, stableRadius));
-    float loadingRing = sin(sheetTravel * 2.7 - sheetCross * 1.4 + viewBody.z * 2.2 - loadingFlowTime * 0.52 + phaseB * 0.08);
-    float loadingLayer = cos(sheetCross * 2.4 + sheetTravel * 1.1 + viewBody.z * 3.0 + loadingFlowTime * 0.42 + localPhase * 0.05);
+        * (0.44 + interior * 0.42 + midBand * 0.54 + edge * 0.12)
+        * (1.0 - smoothstep(0.86, 1.04, stableRadius));
+    float loadingRing = sin(sheetTravel * 2.7 - sheetCross * 1.4 + viewBody.z * 2.2 - loadingFlowTime * 0.52);
+    float loadingLayer = cos(sheetCross * 2.4 + sheetTravel * 1.1 + viewBody.z * 3.0 + loadingFlowTime * 0.42);
     float loadingLane = smoothstep(0.24, 0.90, 0.5 + 0.5 * (loadingRing * 0.62 + loadingLayer * 0.38));
     p += surfaceFlowSide
         * loadingRing
-        * (0.006 + interior * 0.013 + midBand * 0.025 + frontSheetGate * 0.011)
+        * (0.010 + interior * 0.018 + midBand * 0.034 + frontSheetGate * 0.012)
         * loadingLoopGate;
     p += surfaceFlowAxis
         * loadingLayer
-        * (0.004 + interior * 0.009 + midBand * 0.019 + frontSpreadGate * 0.008)
+        * (0.007 + interior * 0.014 + midBand * 0.027 + frontSpreadGate * 0.009)
         * loadingLoopGate;
     p += normalize(p + float2(0.001, 0.001))
         * (loadingCycle - 0.5)
-        * (0.003 + midBand * 0.009 + interior * 0.007)
+        * (0.005 + midBand * 0.013 + interior * 0.010)
         * loadingLoopGate;
     float errorDisruptionGate = error
         * frontSurfaceGate
@@ -525,7 +522,6 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * (1.0 - smoothstep(0.88, 1.06, stableRadius));
     float errorStall = errorInterrupt * (0.52 + errorFracture * 0.48);
     float errorShear = sin(sheetTravel * 5.2 - sheetCross * 2.1 + viewBody.z * 2.8 - fieldTime * 0.36 + phaseB * 0.10);
-    float errorJitterGate = errorDisruptionGate * errorJitterPulse * (0.36 + midBand * 0.56 + edge * 0.28);
     p += surfaceFlowSide
         * errorShear
         * (0.009 + interior * 0.014 + midBand * 0.038 + frontSheetGate * 0.019)
@@ -538,20 +534,17 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * (errorFracture - 0.5)
         * (0.007 + interior * 0.008 + midBand * 0.022)
         * errorDisruptionGate;
-    p += (surfaceFlowSide * errorJitter + surfaceFlowAxis * errorJitterB * 0.54)
-        * (0.006 + interior * 0.008 + midBand * 0.024 + frontSheetGate * 0.012)
-        * errorJitterGate;
     float errorEdgeGate = error
         * edge
         * smoothstep(0.48, 0.78, stableRadius)
         * (1.0 - smoothstep(0.86, 1.08, stableRadius))
         * errorEdgePulse;
-    p += normalize(p + float2(0.001, 0.001)) * errorEdgeGate * (0.014 + 0.026 * seedB);
+    p += normalize(p + float2(0.001, 0.001)) * errorEdgeGate * (0.006 + 0.010 * seedB);
     p += surfaceFlowSide
         * errorEdgeGate
         * sin(fieldTime * 0.34 + angle * 2.7 + phaseB)
-        * (0.010 + 0.014 * particleSeed);
-    edgeFrayField = saturate(edgeFrayField + errorEdgeGate * 0.34);
+        * (0.003 + 0.006 * particleSeed);
+    edgeFrayField = saturate(edgeFrayField + errorEdgeGate * 0.22);
     float speakingSurfaceGate = mix(0.48, 1.0, frontSurfaceGate);
     float speakingFlowGate = speaking
         * speakingSurfaceGate
@@ -567,9 +560,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * (0.006 + interior * 0.008 + midBand * 0.016 + frontSpreadGate * 0.016)
         * speakingFlowGate;
     float speakingExpansion = speaking * (0.026 + speakingPulse * 0.018 + midBand * 0.010 + edge * 0.010);
-    float loadingHold = loading * (0.016 + midBand * 0.007 - loadingCycle * 0.003);
-    float placeholderScale = 1.0 - error * 0.004 - exitState * 0.008;
-    p *= (1.0 - thinking * 0.058 + speakingExpansion - loadingHold) * placeholderScale;
+    float loadingHold = loading * (0.024 + midBand * 0.009 - loadingGlobalPulse * 0.008);
+    float errorHold = error * (0.018 + errorGlobalPulse * 0.018);
+    float placeholderScale = 1.0 - errorHold - exitState * 0.008;
+    p *= (1.0 - thinking * 0.092 + speakingExpansion - loadingHold) * placeholderScale;
     float centerExitZone = 1.0 - smoothstep(0.16, 0.38, lengthP);
     float midExitZone = smoothstep(0.18, 0.42, lengthP) * (1.0 - smoothstep(0.58, 0.82, lengthP));
     float edgeExitZone = smoothstep(0.48, 0.76, lengthP);
@@ -593,22 +587,22 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float edgeRelease = edgeExitZone * (exitRingRelease * 0.30 + exitDisperse * 0.58 + exitFade * 0.12);
     float dustRelease = outerDustZone * (exitRingRelease * 0.18 + exitDisperse * 0.22 + exitFade * 0.60);
     p -= exitOutward * exitState * exitContract * (0.046 * centerExitZone + 0.030 * midExitZone + 0.012 * edgeExitZone);
-    p += exitDirection * exitState * (centerRelease * 0.150 + midSlide * (0.315 + 0.080 * exitBreakPattern) + edgeRelease * 0.470);
-    p += exitOutward * exitState * (centerRelease * 0.065 + midSlide * 0.135 + edgeRelease * 0.385 + dustRelease * 0.200);
-    p += tangent * exitState * exitRingRelease * (0.030 + 0.030 * seedB) * sin(angle * 2.0 + phaseB + exitElapsed * 0.36);
-    p += exitRandom * exitState * dustRelease * 0.135;
+    p += exitDirection * exitState * (centerRelease * 0.105 + midSlide * (0.205 + 0.045 * exitBreakPattern) + edgeRelease * 0.285);
+    p += exitOutward * exitState * (centerRelease * 0.040 + midSlide * 0.085 + edgeRelease * 0.215 + dustRelease * 0.105);
+    p += tangent * exitState * exitRingRelease * (0.018 + 0.018 * seedB) * sin(angle * 2.0 + phaseB + exitElapsed * 0.36);
+    p += exitRandom * exitState * dustRelease * 0.060;
     p += surfaceFlowSide * exitState * exitBreakAmount * sin(phaseB + exitElapsed * 0.42) * 0.022;
     float2 mouseDelta = p - uniforms.mousePosition;
     float mouseDistance = length(mouseDelta);
     float2 mouseRadial = mouseDelta / max(mouseDistance, 0.001);
     float2 mouseTangent = float2(-mouseRadial.y, mouseRadial.x);
-    float mouseShellResponse = smoothstep(0.18, 0.58, stableRadius) * (0.24 + edge * 0.76);
-    float interactionScale = mix(1.0, 0.44, thinking) * mix(1.0, 0.86, previewPlaceholder);
-    float radialMouseField = (1.0 - smoothstep(0.08, 0.96, mouseDistance)) * uniforms.mouseInfluence * mouseShellResponse * interactionScale;
-    float swirlMouseField = (1.0 - smoothstep(0.03, 0.36, mouseDistance)) * uniforms.mouseInfluence * mouseShellResponse * interactionScale;
+    float mouseBodyResponse = saturate(0.68 + interior * 0.30 + midBand * 0.20 + edge * 0.12);
+    float interactionScale = mix(1.0, 0.72, thinking) * mix(1.0, 0.90, previewPlaceholder);
+    float radialMouseField = (1.0 - smoothstep(0.04, 1.28, mouseDistance)) * uniforms.mouseInfluence * mouseBodyResponse * interactionScale;
+    float swirlMouseField = (1.0 - smoothstep(0.02, 0.78, mouseDistance)) * uniforms.mouseInfluence * mouseBodyResponse * interactionScale;
     float mouseSwirl = clamp(dot(uniforms.mouseVelocity, mouseTangent) * 0.18, -1.0, 1.0);
-    p += mouseRadial * radialMouseField * 0.035;
-    p += mouseTangent * swirlMouseField * mouseSwirl * 0.018;
+    p += mouseRadial * radialMouseField * 0.046;
+    p += mouseTangent * swirlMouseField * mouseSwirl * 0.026;
     float screenEdge = smoothstep(0.34, 0.66, length(p));
     float edgeDustA = 0.5 + 0.5 * sin(angle * 17.0 + depth * 6.4 + particleSeed * 9.7 - fieldTime * 0.20);
     float edgeDustB = 0.5 + 0.5 * cos(angle * 23.0 - depth * 5.1 + seedB * 8.3 + fieldTime * 0.18);
@@ -755,14 +749,14 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float visibleStructuralSpine = structuralSpine * ridgeVisibility;
     float visibleRidgeFlow = ridgeFlow * ridgeVisibility;
     float thinkingRidgeGate = thinking * frontDepthGate * (0.30 + midBand * 0.70 + interior * 0.22);
-    visibleLayerDensity = saturate(visibleLayerDensity * mix(1.0, 0.92, thinking) + visibleDenseSection * 0.07 * thinkingRidgeGate);
-    visibleLocalRidge = saturate(visibleLocalRidge + (visibleStructuralSpine * 0.06 + visibleRidgeFlow * 0.10) * thinkingRidgeGate);
+    visibleLayerDensity = saturate(visibleLayerDensity * mix(1.0, 0.84, thinking) + visibleDenseSection * 0.13 * thinkingRidgeGate);
+    visibleLocalRidge = saturate(visibleLocalRidge + (visibleStructuralSpine * 0.10 + visibleRidgeFlow * 0.16) * thinkingRidgeGate);
     float loadingRidgeGate = loading
         * frontDepthGate
         * (0.24 + midBand * 0.72 + interior * 0.42 + edge * 0.04)
         * (0.34 + loadingCycle * 0.34 + loadingLane * 0.32);
-    visibleLayerDensity = saturate(visibleLayerDensity * mix(1.0, 0.955, loading) + visibleDenseSection * 0.095 * loadingRidgeGate);
-    visibleLocalRidge = saturate(visibleLocalRidge + (visibleStructuralSpine * 0.07 + visibleRidgeFlow * 0.14 + ridgeFlow * 0.06) * loadingRidgeGate);
+    visibleLayerDensity = saturate(visibleLayerDensity * mix(1.0, 0.92, loading) + visibleDenseSection * 0.16 * loadingRidgeGate);
+    visibleLocalRidge = saturate(visibleLocalRidge + (visibleStructuralSpine * 0.10 + visibleRidgeFlow * 0.20 + ridgeFlow * 0.08) * loadingRidgeGate);
     float speakingRidgeGate = speaking
         * frontDepthGate
         * (0.24 + midBand * 0.54 + interior * 0.28 + edge * 0.18)
@@ -775,8 +769,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * (0.40 + errorFracture * 0.46 + errorInterrupt * 0.30);
     float errorDarkGap = error
         * smoothstep(0.42, 0.90, 0.5 + 0.5 * sin(animatedTravel * 6.8 - animatedCross * 3.6 + flowSpace.z * 4.2 - fieldTime * 0.80 + phaseB * 0.18));
-    visibleLayerDensity = saturate(visibleLayerDensity * mix(1.0, 0.76, errorBreakGate) + visibleDenseSection * 0.052 * errorBreakGate);
-    visibleLocalRidge = saturate(visibleLocalRidge * mix(1.0, 0.54, errorDarkGap * errorBreakGate) + visibleRidgeFlow * 0.10 * errorBreakGate);
+    visibleLayerDensity = saturate(visibleLayerDensity * mix(1.0, 0.62, errorBreakGate) + visibleDenseSection * 0.075 * errorBreakGate);
+    visibleLocalRidge = saturate(visibleLocalRidge * mix(1.0, 0.42, errorDarkGap * errorBreakGate) + visibleRidgeFlow * 0.14 * errorBreakGate);
     visibleStructuralSpine *= mix(1.0, 0.60, errorDarkGap * error);
     visibleIonCluster *= mix(1.0, 0.76, errorInterrupt * error);
     float exitDim = exitLocalFade;
@@ -956,17 +950,17 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
         smoothstep(0.42, 0.10, in.frontness) * (1.0 - ridge * 0.48),
         in.edgePresence * (0.64 + backPresence * 0.18) * (1.0 - ridge * 0.22)
     ));
-    coverage *= mix(1.0, 0.72, thinking * outerDim);
+    coverage *= mix(1.0, 0.58, thinking * outerDim);
     float loadingRidgeLight = loading * frontLight * saturate((loadingCycle * 0.48 + loadingLane * 0.52) * (ridge * 0.76 + in.flow * 0.58 + surfaceLight * 0.22));
-    coverage *= mix(1.0, 1.160, loadingRidgeLight);
-    coverage = saturate(coverage + loadingRidgeLight * 0.050);
-    coverage *= mix(1.0, 0.900, loading * outerDim * (1.0 - ridge * 0.52));
+    coverage *= mix(1.0, 1.28, loadingRidgeLight);
+    coverage = saturate(coverage + loadingRidgeLight * 0.080);
+    coverage *= mix(1.0, 0.82, loading * outerDim * (1.0 - ridge * 0.52));
     float speakingRidgeLight = speaking * speakingPulse * frontLight * saturate(ridge * 0.68 + in.flow * 0.40 + surfaceLight * 0.22);
     coverage *= mix(1.0, 1.080, speakingRidgeLight);
     coverage *= mix(1.0, 0.98, speaking * outerDim * (1.0 - ridge * 0.46));
     float errorRidgeShadow = error * frontLight * saturate((errorInterrupt * 0.52 + errorFracture * 0.58) * (ridge * 0.78 + in.flow * 0.36 + surfaceLight * 0.30));
-    coverage *= mix(1.0, 0.68, errorRidgeShadow);
-    coverage *= mix(1.0, 0.82, error * outerDim * (1.0 - ridge * 0.44));
+    coverage *= mix(1.0, 0.50, errorRidgeShadow);
+    coverage *= mix(1.0, 0.70, error * outerDim * (1.0 - ridge * 0.44));
     coverage = saturate(coverage + error * errorFracture * ridge * frontLight * 0.030);
     coverage *= mix(1.0, 0.66, exitBreak);
     coverage *= mix(1.0, 0.24 + exitDust * 0.16, exitLocalFade);
