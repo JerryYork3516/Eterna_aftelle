@@ -423,7 +423,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float stableRadius = length(stableScreenPosition);
     float3 shellNormalView = normalize(rotateY(normalize(shapeLocal), earthSpinAngle));
     float silhouetteGrazing = 1.0 - abs(shellNormalView.z);
-    float base360Rim = smoothstep(0.42, 0.88, silhouetteGrazing);
+    float base360Rim = smoothstep(0.34, 0.82, silhouetteGrazing);
     float3 axis3 = rotateY(float3(globalAxis.x, globalAxis.y, 0.0), earthSpinAngle);
     float2 turnedAxis = normalize(axis3.xy + float2(0.001, 0.001));
     float2 turnedSide = float2(-turnedAxis.y, turnedAxis.x);
@@ -593,13 +593,22 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float edgeDustA = 0.5 + 0.5 * sin(angle * 17.0 + depth * 6.4 + particleSeed * 9.7 - fieldTime * 0.20);
     float edgeDustB = 0.5 + 0.5 * cos(angle * 23.0 - depth * 5.1 + seedB * 8.3 + fieldTime * 0.18);
     float2 screenNormal = normalize(p + float2(0.001, 0.001));
+    float2 rimScatterNormal = normalize(shellNormalView.xy + screenNormal * 0.24 + float2(0.001, 0.001));
+    float2 rimScatterTangent = float2(-rimScatterNormal.y, rimScatterNormal.x);
     float edgeDustVariation = smoothstep(0.28, 0.84, edgeDustA * 0.48 + edgeDustB * 0.36 + seedB * 0.16);
     float edgeDustField = base360Rim
         * mix(0.70, 1.0, edgeDustVariation)
         * (0.72 + screenEdge * 0.18 + edge * 0.10);
-    edgeDustField *= (1.0 - turnWakeEnergy * 0.42) * edgeSettle * speakingEdgeLift * tuneEdgeDust;
-    p += screenNormal * edgeDustField * (0.006 + 0.016 * seedB);
-    p += turnedSide * edgeDustField * sin(angle * 3.4 + phaseB + fieldTime * 0.28) * (0.002 + 0.005 * particleSeed);
+    edgeDustField *= edgeSettle * speakingEdgeLift * tuneEdgeDust;
+    float edgeScatterSeed = hash11(particleSeed * 173.0 + seedB * 47.0 + 5.3);
+    float farScatterMask = smoothstep(0.75, 0.92, edgeScatterSeed);
+    float nearScatterDistance = mix(0.008, 0.018, seedB);
+    float farScatterDistance = farScatterMask * mix(0.007, 0.017, hash11(seedB * 229.0 + particleSeed * 61.0));
+    float edgeScatterDistance = min(0.035, nearScatterDistance + farScatterDistance);
+    p += rimScatterNormal * edgeDustField * edgeScatterDistance;
+    p += rimScatterTangent * edgeDustField * sin(angle * 3.4 + phaseB + fieldTime * 0.28)
+        * mix(0.002, 0.007, particleSeed)
+        * mix(0.72, 1.0, farScatterMask);
     edgeFrayField = saturate(edgeFrayField * 0.26 * tuneEdgeFray + edgeDustField * 0.20 + exitBreakAmount * 0.42 + exitState * dustRelease * 0.24);
 
     float aspect = uniforms.resolution.x / max(uniforms.resolution.y, 1.0);
@@ -760,7 +769,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + visibleCloudDensity * 0.22);
     float baseStructuralDensity = saturate(bodyEnvelope * 0.24
         + ridge * 0.10
-        + base360Rim * 0.055
+        + base360Rim * 0.10
         - visibleSparseCavity * 0.055);
     float baseDepthGate = smoothstep(-0.48, 0.46, viewDepth);
     float frontSizeLift = baseDepthGate * 0.34
@@ -796,7 +805,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float exitPointScale = mix(1.0, 0.56 + dustRelease * 0.16, exitDim);
     exitPointScale *= mix(1.0, 0.84, exitState * exitBreakAmount);
     float flowPointSizeGain = mix(1.0, 1.42, flowBrightnessMask);
-    float rimPointSizeGain = mix(1.0, 1.08, base360Rim);
+    float rimPointSizeGain = mix(1.0, 1.18, base360Rim);
     out.pointSize = clamp(layeredPointSize, 1.70 + frontSizeLift * 0.24, pointCeiling + ridgeSizeLift * 1.12) * 1.24 * flowPointSizeGain * rimPointSizeGain * exitPointScale * tunePointSize;
     out.ridge = saturate(visibleLocalRidge * tuneRidgeBrightness);
     out.depth = viewDepth;
@@ -866,7 +875,7 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float frontSurfaceContrast = mix(0.42, 1.18, litSurface);
     float backPresence = 1.0 - smoothstep(-0.54, 0.06, in.depth);
     float frontPresence = smoothstep(-0.22, 0.46, in.depth);
-    float backMute = mix(0.34 + in.edgePresence * 0.12, 1.0, frontPresence);
+    float backMute = mix(0.34 + in.edgePresence * 0.24, 1.0, frontPresence);
     float sparseDim = 1.0 - smoothstep(0.18, 0.58, density);
     float particleFill = saturate(0.12 + densityLight * 0.18 + ridge * 0.075 + ionPresence * 0.10 + in.flow * 0.020);
     float litFront = frontLight * litSurface;
