@@ -387,7 +387,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float rotationTime = t * 0.76 * tuneRotationSpeed;
     float spinDirection = (tuneRotationDirection.x + tuneRotationDirection.y) < -0.25 ? -1.0 : 1.0;
     float earthSpinAngle = rotationTime * spinDirection * 3.0;
-    float bodyDepth = depth * 0.46 + globalWave * (0.018 + midBand * 0.052 + edge * 0.050) + centerFollow * 0.012;
+    float centerReliefGate = 1.0 - smoothstep(0.26, 0.62, lengthP);
+    float centerDepthRelief = (globalWave * 0.78 + localMorph * 0.22) * centerReliefGate * 0.032;
+    float bodyDepth = depth * 0.52 + centerDepthRelief + globalWave * (0.018 + midBand * 0.052 + edge * 0.050) + centerFollow * 0.012;
     float3 shapeLocal = float3(p.x, p.y, bodyDepth);
     float activeInterior = interior * centerMotionGate;
     float3 materialFlow = materialFlowField(shapeLocal, fieldTime, particleSeed, seedB, edge, activeInterior, midBand, globalWave, globalAxis, globalSide);
