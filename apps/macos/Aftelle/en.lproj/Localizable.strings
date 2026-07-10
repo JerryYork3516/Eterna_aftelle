@@ -52,7 +52,9 @@
 "particleDebug.parameter.edgeDustAmount" = "Edge Dust";
 "particleDebug.parameter.edgeFrayAmount" = "Edge Fray";
 "particleDebug.parameter.surfaceLightStrength" = "Surface Light";
+"particleDebug.parameter.shapeStyle" = "Shape Style";
 "particleDebug.parameter.shapeStrength" = "Shape Strength";
+"particleDebug.parameter.shapeFeatureScale" = "Structure Scale";
 "particleDebug.parameter.shapeSeed" = "Shape Seed";
 "particleDebug.parameter.scatterStrength" = "Scatter Strength";
 "particleDebug.parameter.scatterSeed" = "Scatter Seed";
@@ -60,6 +62,9 @@
 "particleDebug.direction.down" = "Down";
 "particleDebug.direction.left" = "Left";
 "particleDebug.direction.right" = "Right";
+"particleDebug.shapeStyle.organicShell" = "Organic";
+"particleDebug.shapeStyle.broadFoldShell" = "Broad Fold";
+"particleDebug.shapeStyle.layeredShell" = "Layered";
 "particleDebug.color.baseRed" = "Base Red";
 "particleDebug.color.baseGreen" = "Base Green";
 "particleDebug.color.baseBlue" = "Base Blue";

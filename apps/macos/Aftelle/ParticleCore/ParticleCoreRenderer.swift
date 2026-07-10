@@ -268,7 +268,9 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
 
     func setTuning(_ tuning: ParticleCoreTuning) {
         let value = tuning.clamped()
-        let requiresModelRebuild = self.tuning.shapeStrength != value.shapeStrength
+        let requiresModelRebuild = self.tuning.shapeStyle != value.shapeStyle
+            || self.tuning.shapeStrength != value.shapeStrength
+            || self.tuning.shapeFeatureScale != value.shapeFeatureScale
             || self.tuning.shapeSeed != value.shapeSeed
             || self.tuning.scatterStrength != value.scatterStrength
             || self.tuning.scatterSeed != value.scatterSeed
@@ -298,7 +300,9 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private func rebuildParticles(using tuning: ParticleCoreTuning) {
         let rebuiltModel = ParticleCoreModel(
             seed: modelSeed,
+            shapeStyle: ParticleCoreShapeStyle.nearest(to: tuning.shapeStyle),
             shapeStrength: Float(tuning.shapeStrength * 2),
+            shapeFeatureScale: Float(tuning.shapeFeatureScale),
             shapeSeed: Float(tuning.shapeSeed),
             scatterStrength: Float(tuning.scatterStrength * 2),
             scatterSeed: Float(tuning.scatterSeed)
@@ -319,7 +323,9 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         model = rebuiltModel
         particleBuffer = rebuiltBuffer
         print(
-            "[ParticleCore] model rebuilt shapeStrength=\(String(format: "%.2f", tuning.shapeStrength)) "
+            "[ParticleCore] model rebuilt shapeStyle=\(ParticleCoreShapeStyle.nearest(to: tuning.shapeStyle).id) "
+                + "shapeStrength=\(String(format: "%.2f", tuning.shapeStrength)) "
+                + "shapeFeatureScale=\(String(format: "%.2f", tuning.shapeFeatureScale)) "
                 + "shapeSeed=\(String(format: "%.2f", tuning.shapeSeed)) "
                 + "scatterStrength=\(String(format: "%.2f", tuning.scatterStrength)) "
                 + "scatterSeed=\(String(format: "%.2f", tuning.scatterSeed))"

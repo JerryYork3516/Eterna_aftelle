@@ -521,7 +521,7 @@ private enum ParticleTuningGroup: String, CaseIterable, Identifiable {
         case .basics:
             return [.globalScale, .pointSizeScale, .brightness, .alphaScale]
         case .shape:
-            return [.shapeStrength, .shapeSeed]
+            return [.shapeStyle, .shapeStrength, .shapeFeatureScale, .shapeSeed]
         case .surface:
             return [.ridgeBrightness, .surfaceLightStrength]
         case .motion:
@@ -628,7 +628,9 @@ private struct ParticleDebugPanel: View {
                         )
                     case .particle:
                         ForEach(tuningGroup.parameters) { parameter in
-                            if parameter == .rotationDirection || parameter == .flowDirection {
+                            if parameter == .shapeStyle {
+                                ParticleShapeStyleRow(tuning: $tuning)
+                            } else if parameter == .rotationDirection || parameter == .flowDirection {
                                 ParticleDirectionRow(parameter: parameter, tuning: $tuning)
                             } else {
                                 ParticleParameterRow(parameter: parameter, tuning: $tuning)
@@ -984,6 +986,34 @@ private struct ParticleDirectionRow: View {
             ParticleCoreRotationDirection.nearest(to: tuning[keyPath: parameter.keyPath])
         } set: { newValue in
             tuning[keyPath: parameter.keyPath] = newValue.tuningValue
+        }
+    }
+}
+
+private struct ParticleShapeStyleRow: View {
+    @Binding var tuning: ParticleCoreTuning
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(String(localized: "particleDebug.parameter.shapeStyle"))
+                .font(.system(size: 12))
+                .frame(width: 116, alignment: .leading)
+
+            Picker("", selection: style) {
+                ForEach(ParticleCoreShapeStyle.allCases) { style in
+                    Text(String(localized: String.LocalizationValue(style.localizedKey)))
+                        .tag(style)
+                }
+            }
+            .pickerStyle(.segmented)
+        }
+    }
+
+    private var style: Binding<ParticleCoreShapeStyle> {
+        Binding {
+            ParticleCoreShapeStyle.nearest(to: tuning.shapeStyle)
+        } set: { newValue in
+            tuning.shapeStyle = newValue.tuningValue
         }
     }
 }

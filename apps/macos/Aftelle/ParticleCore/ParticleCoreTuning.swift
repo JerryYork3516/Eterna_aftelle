@@ -19,7 +19,9 @@ struct ParticleCoreTuning: Codable, Equatable {
     var edgeDustAmount: Double
     var edgeFrayAmount: Double
     var surfaceLightStrength: Double
+    var shapeStyle: Double
     var shapeStrength: Double
+    var shapeFeatureScale: Double
     var shapeSeed: Double
     var scatterStrength: Double
     var scatterSeed: Double
@@ -42,7 +44,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         edgeDustAmount: Double,
         edgeFrayAmount: Double,
         surfaceLightStrength: Double,
+        shapeStyle: Double,
         shapeStrength: Double,
+        shapeFeatureScale: Double,
         shapeSeed: Double,
         scatterStrength: Double,
         scatterSeed: Double
@@ -64,7 +68,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.edgeDustAmount = edgeDustAmount
         self.edgeFrayAmount = edgeFrayAmount
         self.surfaceLightStrength = surfaceLightStrength
+        self.shapeStyle = shapeStyle
         self.shapeStrength = shapeStrength
+        self.shapeFeatureScale = shapeFeatureScale
         self.shapeSeed = shapeSeed
         self.scatterStrength = scatterStrength
         self.scatterSeed = scatterSeed
@@ -88,7 +94,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         edgeDustAmount: 0.5,
         edgeFrayAmount: 0.5,
         surfaceLightStrength: 0.5,
+        shapeStyle: 0.0,
         shapeStrength: 0.5,
+        shapeFeatureScale: 0.5,
         shapeSeed: 0.5,
         scatterStrength: 0.5,
         scatterSeed: 0.5
@@ -112,7 +120,9 @@ struct ParticleCoreTuning: Codable, Equatable {
         case edgeDustAmount
         case edgeFrayAmount
         case surfaceLightStrength
+        case shapeStyle
         case shapeStrength
+        case shapeFeatureScale
         case shapeSeed
         case scatterStrength
         case scatterSeed
@@ -139,7 +149,9 @@ struct ParticleCoreTuning: Codable, Equatable {
             edgeDustAmount: try container.decodeIfPresent(Double.self, forKey: .edgeDustAmount) ?? defaults.edgeDustAmount,
             edgeFrayAmount: try container.decodeIfPresent(Double.self, forKey: .edgeFrayAmount) ?? defaults.edgeFrayAmount,
             surfaceLightStrength: try container.decodeIfPresent(Double.self, forKey: .surfaceLightStrength) ?? defaults.surfaceLightStrength,
+            shapeStyle: try container.decodeIfPresent(Double.self, forKey: .shapeStyle) ?? defaults.shapeStyle,
             shapeStrength: try container.decodeIfPresent(Double.self, forKey: .shapeStrength) ?? defaults.shapeStrength,
+            shapeFeatureScale: try container.decodeIfPresent(Double.self, forKey: .shapeFeatureScale) ?? defaults.shapeFeatureScale,
             shapeSeed: try container.decodeIfPresent(Double.self, forKey: .shapeSeed) ?? defaults.shapeSeed,
             scatterStrength: try container.decodeIfPresent(Double.self, forKey: .scatterStrength) ?? defaults.scatterStrength,
             scatterSeed: try container.decodeIfPresent(Double.self, forKey: .scatterSeed) ?? defaults.scatterSeed
@@ -196,7 +208,9 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case edgeDustAmount
     case edgeFrayAmount
     case surfaceLightStrength
+    case shapeStyle
     case shapeStrength
+    case shapeFeatureScale
     case shapeSeed
     case scatterStrength
     case scatterSeed
@@ -243,8 +257,12 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.edgeFrayAmount
         case .surfaceLightStrength:
             return \.surfaceLightStrength
+        case .shapeStyle:
+            return \.shapeStyle
         case .shapeStrength:
             return \.shapeStrength
+        case .shapeFeatureScale:
+            return \.shapeFeatureScale
         case .shapeSeed:
             return \.shapeSeed
         case .scatterStrength:
@@ -252,6 +270,40 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
         case .scatterSeed:
             return \.scatterSeed
         }
+    }
+}
+
+enum ParticleCoreShapeStyle: CaseIterable, Identifiable {
+    case organicShell
+    case broadFoldShell
+    case layeredShell
+
+    var id: String { localizedKey }
+
+    var localizedKey: String {
+        switch self {
+        case .organicShell:
+            return "particleDebug.shapeStyle.organicShell"
+        case .broadFoldShell:
+            return "particleDebug.shapeStyle.broadFoldShell"
+        case .layeredShell:
+            return "particleDebug.shapeStyle.layeredShell"
+        }
+    }
+
+    var tuningValue: Double {
+        switch self {
+        case .organicShell:
+            return 0.0
+        case .broadFoldShell:
+            return 0.5
+        case .layeredShell:
+            return 1.0
+        }
+    }
+
+    static func nearest(to value: Double) -> ParticleCoreShapeStyle {
+        allCases.min { abs($0.tuningValue - value) < abs($1.tuningValue - value) } ?? .organicShell
     }
 }
 
