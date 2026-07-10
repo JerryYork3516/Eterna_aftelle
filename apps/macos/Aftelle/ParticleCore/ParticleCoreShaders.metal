@@ -390,7 +390,20 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float centerReliefGate = 1.0 - smoothstep(0.26, 0.62, lengthP);
     float centerDepthRelief = (globalWave * 0.78 + localMorph * 0.22) * centerReliefGate * 0.032;
     float bodyDepth = depth * 0.52 + centerDepthRelief + globalWave * (0.018 + midBand * 0.052 + edge * 0.050) + centerFollow * 0.012;
-    float3 shapeLocal = float3(p.x, p.y, bodyDepth);
+    float3 baseShapeLocal = float3(p.x, p.y, bodyDepth);
+    float3 shellNormalLocal = normalize(baseShapeLocal + float3(0.0001));
+    float contourSeed = float(uniforms.seed) * 0.00037;
+    float contourLowA = sin(dot(shellNormalLocal, float3(2.3, 1.7, 2.0)) + contourSeed);
+    float contourLowB = cos(dot(shellNormalLocal, float3(-1.4, 2.5, 1.8)) - contourSeed * 1.3 + 0.8);
+    float contourMid = sin(dot(shellNormalLocal, float3(4.6, -3.8, 5.2)) + contourSeed * 1.7 + 1.4);
+    float shellContourSignal = contourLowA * 0.52 + contourLowB * 0.30 + contourMid * 0.18;
+    float sparseContourSource = sin(dot(shellNormalLocal, float3(7.1, 5.8, -6.4))
+        + contourSeed * 2.1
+        + (particleSeed - 0.5) * 0.35);
+    float sparseContour = copysign(pow(abs(sparseContourSource), 6.0), sparseContourSource);
+    float contourDrift = 1.0 + sin(fieldTime * 0.12 + contourSeed + shellNormalLocal.y * 1.4) * 0.16;
+    float shellContourOffset = clamp((shellContourSignal * 0.018 + sparseContour * 0.012) * contourDrift, -0.030, 0.030);
+    float3 shapeLocal = baseShapeLocal + shellNormalLocal * shellContourOffset;
     float activeInterior = interior * centerMotionGate;
     float3 materialFlow = materialFlowField(shapeLocal, fieldTime, particleSeed, seedB, edge, activeInterior, midBand, globalWave, globalAxis, globalSide);
     float3 cloudFlow = volumetricCloudFlowField(shapeLocal + materialFlow * 0.35, fieldTime, particleSeed, seedB, edge, activeInterior, midBand, globalWave, globalAxis, globalSide);
@@ -443,7 +456,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float edgeFrayVariation = smoothstep(0.34, 0.78, edgeFrayA * 0.56 + edgeFrayB * 0.34 + seedB * 0.10);
     float edgeFrayField = base360Rim * mix(0.70, 1.0, edgeFrayVariation) * (0.82 + edge * 0.18);
     float2 edgeNormal = normalize(shellNormalView.xy + normalize(p + float2(0.001, 0.001)) * 0.35);
-    float edgeFrayAmount = edgeFrayField * (0.006 + 0.016 * seedB) * (0.76 + 0.24 * abs(globalWave)) * edgeSettle * speakingEdgeLift * tuneEdgeFray;
+    float edgeFrayAmount = edgeFrayField * (0.006 + 0.016 * seedB) * (0.76 + 0.24 * abs(globalWave)) * edgeSettle * speakingEdgeLift * tuneEdgeFray * 0.42;
     p += edgeNormal * edgeFrayAmount;
     p += turnedSide * edgeFrayField * sin(fieldTime * 0.41 + phaseB + angle * 2.0) * (0.001 + 0.004 * particleSeed) * edgeSettle * speakingEdgeLift;
     float screenCloudRoll = sin(dot(p, turnedAxis) * 3.2 + viewBody.z * 4.4 - fieldTime * 0.86 + globalWave);
