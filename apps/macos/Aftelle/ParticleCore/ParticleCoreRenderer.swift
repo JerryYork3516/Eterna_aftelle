@@ -221,7 +221,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         encoder.setVertexBuffer(particleBuffer, offset: 0, index: 0)
         encoder.setVertexBuffer(uniformsBuffer, offset: 0, index: 1)
         encoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: model.particles.count)
-        publishDebugMetricsIfNeeded(view: view, stateElapsedTime: stateAge)
+        publishDebugMetricsIfNeeded(view: view, renderElapsedTime: elapsed, motionElapsedTime: motionElapsed, stateElapsedTime: stateAge)
         encoder.endEncoding()
 
         commandBuffer.present(drawable)
@@ -296,7 +296,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         smoothExitStrength += (visualState.targetStrength(for: .exit) - smoothExitStrength) * exitAlpha
     }
 
-    private func publishDebugMetricsIfNeeded(view: MTKView, stateElapsedTime: Float) {
+    private func publishDebugMetricsIfNeeded(view: MTKView, renderElapsedTime: Float, motionElapsedTime: Float, stateElapsedTime: Float) {
         let now = CACurrentMediaTime()
         let interval = now - metricsStartTime
         guard interval >= 1 else { return }
@@ -313,6 +313,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             preferredFramesPerSecond: view.preferredFramesPerSecond,
             currentVisualState: String(describing: visualState),
             previousVisualState: String(describing: previousVisualState),
+            renderElapsedTime: Double(renderElapsedTime),
+            motionElapsedTime: Double(motionElapsedTime),
             stateElapsedTime: Double(stateElapsedTime),
             lastTransitionReason: lastTransitionReason,
             mouseInfluenceEnabled: true,

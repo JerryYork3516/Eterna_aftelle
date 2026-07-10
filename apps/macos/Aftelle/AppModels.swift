@@ -218,6 +218,8 @@ public struct ParticleRenderMetrics: Equatable {
     public var preferredFramesPerSecond: Int
     public var currentVisualState: String
     public var previousVisualState: String
+    public var renderElapsedTime: Double
+    public var motionElapsedTime: Double
     public var stateElapsedTime: Double
     public var lastTransitionReason: String
     public var mouseInfluenceEnabled: Bool
@@ -231,6 +233,8 @@ public struct ParticleRenderMetrics: Equatable {
         preferredFramesPerSecond: 0,
         currentVisualState: "idle",
         previousVisualState: "idle",
+        renderElapsedTime: 0,
+        motionElapsedTime: 0,
         stateElapsedTime: 0,
         lastTransitionReason: "startup",
         mouseInfluenceEnabled: true,
