@@ -527,7 +527,14 @@ private enum ParticleTuningGroup: String, CaseIterable, Identifiable {
                 .rotationDirection
             ]
         case .edge:
-            return [.scatterStrength, .scatterSeed, .edgeDustAmount, .edgeFrayAmount]
+            return [
+                .scatterStrength,
+                .scatterClusterStrength,
+                .scatterClusterScale,
+                .scatterSeed,
+                .edgeDustAmount,
+                .edgeFrayAmount
+            ]
         case .ridge:
             return [.ridgeStrength, .ridgeWidth, .ridgeBreakup, .ridgeSeed, .ridgeFlowBinding]
         }

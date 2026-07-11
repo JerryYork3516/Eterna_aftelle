@@ -61,6 +61,8 @@
 "particleDebug.parameter.shapeFeatureScale" = "Structure Scale";
 "particleDebug.parameter.shapeSeed" = "Shape Seed";
 "particleDebug.parameter.scatterStrength" = "Scatter Strength";
+"particleDebug.parameter.scatterClusterStrength" = "Scatter Clustering";
+"particleDebug.parameter.scatterClusterScale" = "Scatter Cluster Scale";
 "particleDebug.parameter.scatterSeed" = "Scatter Seed";
 "particleDebug.direction.up" = "Up";
 "particleDebug.direction.down" = "Down";

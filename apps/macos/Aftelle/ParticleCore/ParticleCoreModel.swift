@@ -42,6 +42,8 @@ struct ParticleCoreModel {
         shapeFeatureScale: Float = 0.5,
         shapeSeed: Float = 0.5,
         scatterStrength: Float = 1,
+        scatterClusterStrength: Float = 0.5,
+        scatterClusterScale: Float = 0.5,
         scatterSeed: Float = 0.5
     ) {
         self.seed = seed
@@ -50,10 +52,14 @@ struct ParticleCoreModel {
         values.reserveCapacity(count)
         let tunedShapeStrength = min(2, max(0, shapeStrength))
         let tunedScatterStrength = min(2, max(0, scatterStrength))
+        let tunedScatterClusterStrength = min(1, max(0, scatterClusterStrength))
+        let tunedScatterClusterScale = min(1, max(0, scatterClusterScale))
         let tunedFeatureScale = min(1, max(0, shapeFeatureScale))
         let featureFrequency = pow(Float(1.8), 1 - tunedFeatureScale * 2)
         let shapePhase = (min(1, max(0, shapeSeed)) - 0.5) * Float.pi * 2
         let scatterOffset = Double(min(1, max(0, scatterSeed)) - 0.5)
+        let scatterPhase = Float(scatterOffset) * Float.pi * 2
+        let scatterClusterFrequency = 3.4 - tunedScatterClusterScale * 2.0
 
         let candidateCount = Int(Double(count) * 1.8)
         var candidateIndex = 0
@@ -87,9 +93,36 @@ struct ParticleCoreModel {
             let strongScatterSample = Self.wrappedUnit(generator.nextUnit() + scatterOffset)
             let radialScatterSample = Self.wrappedUnit(generator.nextUnit() + scatterOffset * 1.73)
             let tangentialScatterSample = Self.wrappedUnit(generator.nextUnit() + scatterOffset * 2.37)
-            let strongScatter = strongScatterSample < 0.46
-            let radialScatter = (strongScatter ? 0.105 : 0.034) * pow(Float(radialScatterSample), 1.45) * tunedScatterStrength
-            let tangentialScatter = (Float(tangentialScatterSample) - 0.5) * 0.048 * tunedScatterStrength
+            let scatterClusterA = 0.5 + 0.5 * sin(
+                theta * scatterClusterFrequency
+                    + z * 2.1
+                    - baseDepth * 1.3
+                    + scatterPhase
+            )
+            let scatterClusterB = 0.5 + 0.5 * cos(
+                theta * (scatterClusterFrequency * 0.63)
+                    - z * 2.7
+                    + baseDepth * 1.1
+                    - scatterPhase * 0.71
+            )
+            let rawScatterCluster = min(1, max(0, scatterClusterA * 0.64 + scatterClusterB * 0.36))
+            let scatterCluster = rawScatterCluster * rawScatterCluster * (3 - 2 * rawScatterCluster)
+            let clusteredStrongProbability = 0.12 + Double(scatterCluster) * 0.66
+            let strongScatterProbability = 0.46
+                + (clusteredStrongProbability - 0.46) * Double(tunedScatterClusterStrength)
+            let scatterClusterAmplitude = 1
+                + (0.60 + scatterCluster * 0.80 - 1) * tunedScatterClusterStrength
+            let tangentialClusterAmplitude = 1
+                + (0.80 + scatterCluster * 0.40 - 1) * tunedScatterClusterStrength
+            let strongScatter = strongScatterSample < strongScatterProbability
+            let radialScatter = (strongScatter ? 0.105 : 0.034)
+                * pow(Float(radialScatterSample), 1.45)
+                * tunedScatterStrength
+                * scatterClusterAmplitude
+            let tangentialScatter = (Float(tangentialScatterSample) - 0.5)
+                * 0.048
+                * tunedScatterStrength
+                * tangentialClusterAmplitude
             bodyPosition += shellNormal * radialScatter + shellTangent * tangentialScatter
             x = bodyPosition.x
             y = bodyPosition.y

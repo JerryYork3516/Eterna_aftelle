@@ -27,6 +27,8 @@ struct ParticleCoreTuning: Codable, Equatable {
     var shapeFeatureScale: Double
     var shapeSeed: Double
     var scatterStrength: Double
+    var scatterClusterStrength: Double
+    var scatterClusterScale: Double
     var scatterSeed: Double
 
     init(
@@ -55,6 +57,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         shapeFeatureScale: Double,
         shapeSeed: Double,
         scatterStrength: Double,
+        scatterClusterStrength: Double,
+        scatterClusterScale: Double,
         scatterSeed: Double
     ) {
         self.globalScale = globalScale
@@ -82,6 +86,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         self.shapeFeatureScale = shapeFeatureScale
         self.shapeSeed = shapeSeed
         self.scatterStrength = scatterStrength
+        self.scatterClusterStrength = scatterClusterStrength
+        self.scatterClusterScale = scatterClusterScale
         self.scatterSeed = scatterSeed
     }
 
@@ -111,6 +117,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         shapeFeatureScale: 0.5,
         shapeSeed: 0.5,
         scatterStrength: 0.5,
+        scatterClusterStrength: 0.5,
+        scatterClusterScale: 0.5,
         scatterSeed: 0.5
     )
 
@@ -140,6 +148,8 @@ struct ParticleCoreTuning: Codable, Equatable {
         case shapeFeatureScale
         case shapeSeed
         case scatterStrength
+        case scatterClusterStrength
+        case scatterClusterScale
         case scatterSeed
     }
 
@@ -172,6 +182,8 @@ struct ParticleCoreTuning: Codable, Equatable {
             shapeFeatureScale: try container.decodeIfPresent(Double.self, forKey: .shapeFeatureScale) ?? defaults.shapeFeatureScale,
             shapeSeed: try container.decodeIfPresent(Double.self, forKey: .shapeSeed) ?? defaults.shapeSeed,
             scatterStrength: try container.decodeIfPresent(Double.self, forKey: .scatterStrength) ?? defaults.scatterStrength,
+            scatterClusterStrength: try container.decodeIfPresent(Double.self, forKey: .scatterClusterStrength) ?? defaults.scatterClusterStrength,
+            scatterClusterScale: try container.decodeIfPresent(Double.self, forKey: .scatterClusterScale) ?? defaults.scatterClusterScale,
             scatterSeed: try container.decodeIfPresent(Double.self, forKey: .scatterSeed) ?? defaults.scatterSeed
         )
     }
@@ -234,6 +246,8 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
     case shapeFeatureScale
     case shapeSeed
     case scatterStrength
+    case scatterClusterStrength
+    case scatterClusterScale
     case scatterSeed
 
     var id: String { rawValue }
@@ -294,6 +308,10 @@ enum ParticleCoreTuningParameter: String, CaseIterable, Identifiable {
             return \.shapeSeed
         case .scatterStrength:
             return \.scatterStrength
+        case .scatterClusterStrength:
+            return \.scatterClusterStrength
+        case .scatterClusterScale:
+            return \.scatterClusterScale
         case .scatterSeed:
             return \.scatterSeed
         }

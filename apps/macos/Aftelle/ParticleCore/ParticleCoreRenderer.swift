@@ -282,6 +282,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             || self.tuning.shapeFeatureScale != value.shapeFeatureScale
             || self.tuning.shapeSeed != value.shapeSeed
             || self.tuning.scatterStrength != value.scatterStrength
+            || self.tuning.scatterClusterStrength != value.scatterClusterStrength
+            || self.tuning.scatterClusterScale != value.scatterClusterScale
             || self.tuning.scatterSeed != value.scatterSeed
         self.tuning = value
         guard requiresModelRebuild else { return }
@@ -313,6 +315,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             shapeFeatureScale: Float(tuning.shapeFeatureScale),
             shapeSeed: Float(tuning.shapeSeed),
             scatterStrength: Float(tuning.scatterStrength * 2),
+            scatterClusterStrength: Float(tuning.scatterClusterStrength),
+            scatterClusterScale: Float(tuning.scatterClusterScale),
             scatterSeed: Float(tuning.scatterSeed)
         )
         let payloads = rebuiltModel.vertexPayloads
@@ -335,6 +339,8 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
                 + "shapeFeatureScale=\(String(format: "%.2f", tuning.shapeFeatureScale)) "
                 + "shapeSeed=\(String(format: "%.2f", tuning.shapeSeed)) "
                 + "scatterStrength=\(String(format: "%.2f", tuning.scatterStrength)) "
+                + "scatterClusterStrength=\(String(format: "%.2f", tuning.scatterClusterStrength)) "
+                + "scatterClusterScale=\(String(format: "%.2f", tuning.scatterClusterScale)) "
                 + "scatterSeed=\(String(format: "%.2f", tuning.scatterSeed))"
         )
     }

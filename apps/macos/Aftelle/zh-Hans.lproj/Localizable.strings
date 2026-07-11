@@ -61,6 +61,8 @@
 "particleDebug.parameter.shapeFeatureScale" = "形态结构尺度";
 "particleDebug.parameter.shapeSeed" = "形体 Seed";
 "particleDebug.parameter.scatterStrength" = "散射强度";
+"particleDebug.parameter.scatterClusterStrength" = "散射聚散强度";
+"particleDebug.parameter.scatterClusterScale" = "散射聚散尺度";
 "particleDebug.parameter.scatterSeed" = "散射 Seed";
 "particleDebug.direction.up" = "上";
 "particleDebug.direction.down" = "下";
