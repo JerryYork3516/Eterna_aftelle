@@ -110,7 +110,12 @@ public final class DRLoader {
         guard manifestResidentID == identityResidentID else {
             throw DRLoaderError.invalidFixture
         }
-        guard let displayName = identity["name"] as? String else {
+        let payloadDisplayName = identity["name"] as? String
+        let manifestDisplayName = manifest["resident_name"] as? String
+        if let payloadDisplayName, let manifestDisplayName, payloadDisplayName != manifestDisplayName {
+            throw DRLoaderError.conflictingField("resident_name")
+        }
+        guard let displayName = payloadDisplayName ?? manifestDisplayName else {
             throw DRLoaderError.missingField("payload.resident_identity.name")
         }
         guard let primaryLanguage = identity["primary_language"] as? String else {

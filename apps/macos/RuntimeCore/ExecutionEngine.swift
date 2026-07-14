@@ -16,6 +16,14 @@ public final class ExecutionEngine {
     }
 
     public func step(request: RuntimeStepRequest, cancellationState: RuntimeCancellationState = .none) -> RuntimeStepResponse {
+        step(request: request, residentDisplayName: "", cancellationState: cancellationState)
+    }
+
+    func step(
+        request: RuntimeStepRequest,
+        residentDisplayName: String,
+        cancellationState: RuntimeCancellationState = .none
+    ) -> RuntimeStepResponse {
         let hasInput = !request.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let traceEvents = [
             TraceEvent(type: .runtimeStep, message: hasInput ? "Received runtime step request." : "Received empty runtime step request."),
@@ -30,7 +38,7 @@ public final class ExecutionEngine {
         let avatarState = visualStateMapper.mapAvatarState(
             visualState: visualState,
             residentID: request.residentID,
-            displayName: "Schema Canvas"
+            displayName: residentDisplayName
         )
         let residentState = RuntimeResidentState(
             residentID: request.residentID,

@@ -207,6 +207,28 @@ public struct RuntimeSessionContext: Equatable {
     }
 }
 
+struct RuntimeResidentIdentityProjection: Equatable {
+    let residentID: String
+    let displayName: String
+    let primaryLanguage: String
+    let citySymbol: String?
+    let personalitySummary: String?
+    let domainFocus: [String]
+    let residentDescription: String?
+    let residentDisclosure: String?
+
+    init(loadedDR: LoadedDR) {
+        residentID = loadedDR.residentID
+        displayName = loadedDR.displayName
+        primaryLanguage = loadedDR.primaryLanguage
+        citySymbol = loadedDR.citySymbol
+        personalitySummary = loadedDR.personalitySummary
+        domainFocus = loadedDR.domainFocus
+        residentDescription = loadedDR.residentDescription
+        residentDisclosure = loadedDR.residentDisclosure
+    }
+}
+
 public struct RuntimeClockState: Equatable {
     public var tickCount: Int
     public var lastTickAt: Date?
@@ -321,6 +343,7 @@ public final class RuntimeCore {
     private let memoryController: MemoryController
     private var cancellationState = RuntimeCancellationState.none
     private var sessionContext: RuntimeSessionContext?
+    private(set) var currentResidentIdentity: RuntimeResidentIdentityProjection?
     private var clockState = RuntimeClockState()
 
     public init(
@@ -356,7 +379,9 @@ public final class RuntimeCore {
             }
 
             let sessionID = RuntimeSessionID.make()
+            let identityProjection = RuntimeResidentIdentityProjection(loadedDR: loadedDR)
             sessionContext = RuntimeSessionContext(residentID: loadedDR.residentID, sessionID: sessionID)
+            currentResidentIdentity = identityProjection
             memoryController.setActiveResidentID(loadedDR.residentID)
             let avatarState = AvatarState(
                 residentID: loadedDR.residentID,
@@ -571,7 +596,14 @@ public final class RuntimeCore {
     public func step(request: RuntimeStepRequest) -> RuntimeStepResponse {
         let pendingCancellation = cancellationState
         cancellationState = .none
-        let response = executionEngine.step(request: request, cancellationState: pendingCancellation)
+        let displayName = currentResidentIdentity?.residentID == request.residentID
+            ? currentResidentIdentity?.displayName ?? ""
+            : ""
+        let response = executionEngine.step(
+            request: request,
+            residentDisplayName: displayName,
+            cancellationState: pendingCancellation
+        )
         sessionContext = RuntimeSessionContext(residentID: request.residentID, sessionID: sessionContext?.sessionID ?? .make())
         markSessionUnclean(
             lastUserInput: request.inputText,
