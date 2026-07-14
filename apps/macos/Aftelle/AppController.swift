@@ -127,18 +127,10 @@ final class AppController: ObservableObject {
             return
         }
 
-        guard let fixtureURL = Bundle.main.url(forResource: "Freezev03.calibration_fixture", withExtension: "json") else {
-            applyFailure(runtimeMessage: "Runtime status: DR load failed", diagnosticsMessage: "Fixture not found")
-            return
-        }
-
-        guard let fixtureData = try? Data(contentsOf: fixtureURL) else {
-            applyFailure(runtimeMessage: "Runtime status: DR load failed", diagnosticsMessage: "Fixture unreadable")
-            return
-        }
-
-        let result = orchestrationKernel.loadResident(fixtureData: fixtureData)
-        applyLoadResult(result, drData: fixtureData, sourceLabel: "DR fixture")
+        startupState = .idle
+        runtimeState = .idle
+        refreshParticleVisualState()
+        refreshParticleDebugSnapshot()
     }
 
     func updateParticleRenderMetrics(_ metrics: ParticleRenderMetrics) {
