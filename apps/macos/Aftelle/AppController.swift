@@ -3,6 +3,8 @@ import Foundation
 
 @MainActor
 final class AppController: ObservableObject {
+    private static let residentBookmarkKey = "aftelle.activeResidentBookmark.v1"
+
     @Published private(set) var startupState: AppStartupState = .idle
     @Published private(set) var runtimeStatus = "Runtime status: not loaded"
     @Published private(set) var fixtureStatus = "DR fixture: not loaded"
@@ -55,8 +57,20 @@ final class AppController: ObservableObject {
         refreshParticleVisualState()
         refreshParticleDebugSnapshot()
 
+        let bookmarkedResident = loadBookmarkedResident()
+        if let bookmarkedResident {
+            applyLoadResult(
+                bookmarkedResident.result,
+                drData: bookmarkedResident.data,
+                sourceLabel: "Debug DR"
+            )
+        }
+
         let restoreResult = orchestrationKernel.restoreMostRecentSession()
         if restoreResult.didRestore {
+            let restoredDisplayName = avatarState.residentID == restoreResult.residentID
+                ? avatarState.displayName
+                : ""
             loadedResidentID = restoreResult.residentID
             loadedSessionID = restoreResult.sessionID
             dialogueEntries = restoreResult.dialogueEntries.map {
@@ -70,7 +84,7 @@ final class AppController: ObservableObject {
             runtimeStatus = "Runtime status: session restored"
             fixtureStatus = "DR fixture: loaded"
             residentID = "resident_id: \(restoreResult.residentID.isEmpty ? "-" : restoreResult.residentID)"
-            displayName = "display_name: restored session"
+            displayName = "display_name: \(restoredDisplayName.isEmpty ? "restored session" : restoredDisplayName)"
             sessionState = AppSessionState(
                 residentID: restoreResult.residentID,
                 sessionID: restoreResult.sessionID,
@@ -93,7 +107,7 @@ final class AppController: ObservableObject {
             )
             avatarState = AppAvatarState(
                 residentID: restoreResult.residentID,
-                displayName: "restored session",
+                displayName: restoredDisplayName,
                 mode: restoreResult.avatarMode,
                 presence: restoreResult.avatarPresence,
                 moodHint: restoreResult.avatarMoodHint,
@@ -106,6 +120,10 @@ final class AppController: ObservableObject {
             startupState = .loaded
             refreshParticleVisualState()
             refreshParticleDebugSnapshot()
+            return
+        }
+
+        if bookmarkedResident != nil {
             return
         }
 
@@ -208,6 +226,9 @@ final class AppController: ObservableObject {
         }
 
         let result = orchestrationKernel.loadResident(fixtureData: drData)
+        if result.isLoaded {
+            saveResidentBookmark(for: url)
+        }
         applyLoadResult(result, drData: drData, sourceLabel: "Debug DR")
     }
 
@@ -222,14 +243,27 @@ final class AppController: ObservableObject {
     #endif
 
     private func applyLoadResult(_ result: RuntimeLoadResult, drData: Data, sourceLabel: String) {
-        loadedResidentID = result.isLoaded ? result.residentID : ""
+        guard result.isLoaded else {
+            runtimeStatus = "Runtime status: \(result.statusMessage)"
+            fixtureStatus = "\(sourceLabel): not loaded"
+            diagnostics = result.diagnostics
+            traceState = RuntimeTraceViewState(summary: result.diagnostics, entries: [])
+            runtimeState = .idle
+            refreshDebugPanelState()
+            startupState = .failed
+            refreshParticleVisualState()
+            refreshParticleDebugSnapshot()
+            return
+        }
+
+        loadedResidentID = result.residentID
         loadedSessionID = result.sessionID?.rawValue ?? ""
-        particleColorProfile = result.isLoaded ? ParticleCoreColorProfile.make(fromDRData: drData) : .systemDefault
+        particleColorProfile = ParticleCoreColorProfile.make(fromDRData: drData)
         effectiveParticleColorProfile = particleColorProfile
-        effectiveColorProfileFallbackUsed = !result.isLoaded || particleColorProfile == .systemDefault
+        effectiveColorProfileFallbackUsed = particleColorProfile == .systemDefault
         effectiveColorProfileSource = effectiveColorProfileFallbackUsed ? "systemDefault" : "\(sourceLabel) lattice_config.color_palette"
         runtimeStatus = "Runtime status: \(result.statusMessage)"
-        fixtureStatus = result.isLoaded ? "\(sourceLabel): loaded" : "\(sourceLabel): not loaded"
+        fixtureStatus = "\(sourceLabel): loaded"
         residentID = "resident_id: \(result.residentID.isEmpty ? "-" : result.residentID)"
         displayName = "display_name: \(result.displayName.isEmpty ? "-" : result.displayName)"
         sessionState = AppSessionState(
@@ -263,7 +297,7 @@ final class AppController: ObservableObject {
         diagnostics = result.diagnostics
         traceState = RuntimeTraceViewState(summary: result.diagnostics, entries: [])
         refreshDebugPanelState()
-        startupState = result.isLoaded ? .loaded : .failed
+        startupState = .loaded
         refreshParticleVisualState()
         refreshParticleDebugSnapshot()
     }
@@ -317,6 +351,10 @@ final class AppController: ObservableObject {
             dialogueEntries: dialogueEntries
         )
         loadedSessionID = response.residentState.sessionID
+        particleSubtitleState = response.outputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? .hidden
+            : ParticleSubtitleState(text: response.outputText, phase: .showing)
+        startupState = .loaded
         traceState = RuntimeTraceViewState(
             summary: response.diagnostics.cancellationState,
             entries: response.traceEvents.enumerated().map {
@@ -503,6 +541,19 @@ final class AppController: ObservableObject {
     }
 
     private func applyFailure(runtimeMessage: String, diagnosticsMessage: String) {
+        if !loadedResidentID.isEmpty {
+            runtimeStatus = runtimeMessage
+            fixtureStatus = "DR fixture: not loaded"
+            traceState = RuntimeTraceViewState(summary: diagnosticsMessage, entries: [])
+            runtimeState = .idle
+            diagnostics = diagnosticsMessage
+            refreshDebugPanelState()
+            startupState = .failed
+            refreshParticleVisualState()
+            refreshParticleDebugSnapshot()
+            return
+        }
+
         runtimeStatus = runtimeMessage
         fixtureStatus = "DR fixture: not loaded"
         loadedResidentID = ""
@@ -523,5 +574,43 @@ final class AppController: ObservableObject {
         startupState = .failed
         refreshParticleVisualState()
         refreshParticleDebugSnapshot()
+    }
+
+    private func saveResidentBookmark(for url: URL) {
+        guard let data = try? url.bookmarkData(
+            options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess],
+            includingResourceValuesForKeys: nil,
+            relativeTo: nil
+        ) else { return }
+        UserDefaults.standard.set(data, forKey: Self.residentBookmarkKey)
+    }
+
+    private func loadBookmarkedResident() -> (result: RuntimeLoadResult, data: Data)? {
+        guard let bookmarkData = UserDefaults.standard.data(forKey: Self.residentBookmarkKey) else {
+            return nil
+        }
+
+        var isStale = false
+        guard let url = try? URL(
+            resolvingBookmarkData: bookmarkData,
+            options: [.withSecurityScope, .withoutUI],
+            relativeTo: nil,
+            bookmarkDataIsStale: &isStale
+        ) else { return nil }
+
+        let hasScopedAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if hasScopedAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        guard let drData = try? Data(contentsOf: url) else { return nil }
+        let result = orchestrationKernel.loadResident(fixtureData: drData)
+        guard result.isLoaded else { return nil }
+        if isStale {
+            saveResidentBookmark(for: url)
+        }
+        return (result, drData)
     }
 }

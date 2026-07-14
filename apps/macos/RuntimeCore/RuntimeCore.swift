@@ -472,6 +472,9 @@ public final class RuntimeCore {
         guard record.schemaVersion == SessionStore.schemaVersion else {
             return RuntimeSessionRestoreResult(didRestore: false)
         }
+        if let currentResidentIdentity, currentResidentIdentity.residentID != record.residentID {
+            return RuntimeSessionRestoreResult(didRestore: false)
+        }
         let dialogueEntries = (try? sessionStore.loadMostRecentDialogueEntries()) ?? []
         let avatarMode = displayCache?.avatarMode ?? "idle"
         let avatarPresence = displayCache?.avatarPresence ?? "unknown"
@@ -633,12 +636,18 @@ public final class RuntimeCore {
         let displayName = currentResidentIdentity?.residentID == request.residentID
             ? currentResidentIdentity?.displayName ?? ""
             : ""
-        let response = executionEngine.step(
+        var response = executionEngine.step(
             request: request,
             residentDisplayName: displayName,
             cancellationState: pendingCancellation
         )
-        sessionContext = RuntimeSessionContext(residentID: request.residentID, sessionID: sessionContext?.sessionID ?? .make())
+        guard !request.residentID.isEmpty else {
+            return response
+        }
+
+        let sessionID = sessionContext?.sessionID ?? .make()
+        sessionContext = RuntimeSessionContext(residentID: request.residentID, sessionID: sessionID)
+        response.residentState.sessionID = sessionID.rawValue
         markSessionUnclean(
             lastUserInput: request.inputText,
             lastResidentOutput: response.outputText,
