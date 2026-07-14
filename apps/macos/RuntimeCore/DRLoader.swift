@@ -153,6 +153,10 @@ public final class DRLoader {
         let memoryPolicySource = memoryPolicyExtensions != nil
             ? "memory_policy_extensions"
             : (memoryPolicy != nil ? "memory_policy" : "none")
+        let memorySupportLevels = try resolveMemorySupportLevels(
+            memoryPolicy: memoryPolicy,
+            extensions: memoryPolicyExtensions
+        )
         let payloadModules = payload["modules"] as? [Any]
         let topLevelModules = object["modules"] as? [Any]
         if let payloadModules, let topLevelModules {
@@ -184,8 +188,50 @@ public final class DRLoader {
             slotCount: (object["slots"] as? [Any])?.count ?? 0,
             memoryPolicySource: memoryPolicySource,
             memoryPolicyData: memoryPolicyData,
-            memorySupportLevels: memoryPolicyExtensions?["memory_support_levels"] as? [String: String] ?? [:]
+            memorySupportLevels: memorySupportLevels
         )
+    }
+
+    private func resolveMemorySupportLevels(
+        memoryPolicy: [String: Any]?,
+        extensions: [String: Any]?
+    ) throws -> [String: String] {
+        if let extensions {
+            let levels = extensions["memory_support_levels"] as? [String: Any] ?? [:]
+            let allowedLevelsByCapability: [String: Set<String>] = [
+                "short_term_memory": ["none", "policy_only", "supported"],
+                "preference_memory": ["none", "policy_only", "supported_minimal_kv"],
+                "event_memory": ["none", "policy_only"],
+                "relationship_memory": ["none", "policy_only"],
+                "interaction_log": ["none", "policy_only", "display_cache_only"]
+            ]
+            var validatedLevels: [String: String] = [:]
+            for (capability, allowedLevels) in allowedLevelsByCapability {
+                guard let rawLevel = levels[capability] else { continue }
+                guard let level = rawLevel as? String, allowedLevels.contains(level) else {
+                    throw DRLoaderError.unsupportedVersion("memory policy level")
+                }
+                validatedLevels[capability] = level
+            }
+            return validatedLevels
+        }
+
+        guard let memoryPolicy else { return [:] }
+        let memoryTypes = Set(memoryPolicy["memory_types"] as? [String] ?? [])
+        var levels: [String: String] = [:]
+        if memoryTypes.contains("short_term_memory") {
+            levels["short_term_memory"] = "supported"
+        }
+        if memoryTypes.contains("preference_memory"),
+           let preferenceMemory = memoryPolicy["preference_memory"] as? [String: Any],
+           preferenceMemory["type"] as? String == "kv" {
+            levels["preference_memory"] = "supported_minimal_kv"
+        }
+        if memoryTypes.contains("interaction_log"),
+           memoryPolicy["interaction_log"] as? [String: Any] != nil {
+            levels["interaction_log"] = "display_cache_only"
+        }
+        return levels
     }
 
     private func diagnostics(for error: DRLoaderError) -> String {

@@ -229,6 +229,37 @@ struct RuntimeResidentIdentityProjection: Equatable {
     }
 }
 
+enum RuntimeMemorySupportLevel: String, Equatable {
+    case none
+    case supported
+    case supportedMinimalKV = "supported_minimal_kv"
+    case policyOnly = "policy_only"
+    case displayCacheOnly = "display_cache_only"
+}
+
+struct RuntimeMemoryPolicyProjection: Equatable {
+    let source: String
+    let shortTermMemory: RuntimeMemorySupportLevel
+    let preferenceMemory: RuntimeMemorySupportLevel
+    let eventMemory: RuntimeMemorySupportLevel
+    let relationshipMemory: RuntimeMemorySupportLevel
+    let interactionLog: RuntimeMemorySupportLevel
+
+    init(loadedDR: LoadedDR) {
+        source = loadedDR.memoryPolicySource
+        shortTermMemory = Self.level(for: "short_term_memory", in: loadedDR)
+        preferenceMemory = Self.level(for: "preference_memory", in: loadedDR)
+        eventMemory = Self.level(for: "event_memory", in: loadedDR)
+        relationshipMemory = Self.level(for: "relationship_memory", in: loadedDR)
+        interactionLog = Self.level(for: "interaction_log", in: loadedDR)
+    }
+
+    private static func level(for capability: String, in loadedDR: LoadedDR) -> RuntimeMemorySupportLevel {
+        guard let rawValue = loadedDR.memorySupportLevels[capability] else { return .none }
+        return RuntimeMemorySupportLevel(rawValue: rawValue) ?? .none
+    }
+}
+
 public struct RuntimeClockState: Equatable {
     public var tickCount: Int
     public var lastTickAt: Date?
@@ -344,6 +375,7 @@ public final class RuntimeCore {
     private var cancellationState = RuntimeCancellationState.none
     private var sessionContext: RuntimeSessionContext?
     private(set) var currentResidentIdentity: RuntimeResidentIdentityProjection?
+    private(set) var currentMemoryPolicy: RuntimeMemoryPolicyProjection?
     private var clockState = RuntimeClockState()
 
     public init(
@@ -380,8 +412,10 @@ public final class RuntimeCore {
 
             let sessionID = RuntimeSessionID.make()
             let identityProjection = RuntimeResidentIdentityProjection(loadedDR: loadedDR)
+            let memoryPolicyProjection = RuntimeMemoryPolicyProjection(loadedDR: loadedDR)
             sessionContext = RuntimeSessionContext(residentID: loadedDR.residentID, sessionID: sessionID)
             currentResidentIdentity = identityProjection
+            currentMemoryPolicy = memoryPolicyProjection
             memoryController.setActiveResidentID(loadedDR.residentID)
             let avatarState = AvatarState(
                 residentID: loadedDR.residentID,
@@ -619,11 +653,22 @@ public final class RuntimeCore {
     }
 
     public func readMemoryValue(for key: String, residentID: String) -> String? {
-        memoryController.loadValue(for: key, residentID: residentID)
+        guard canAccessPreferenceMemory(residentID: residentID) else { return nil }
+        return memoryController.loadValue(for: key, residentID: residentID)
     }
 
     public func saveMemoryValue(_ value: String, for key: String, residentID: String) {
+        guard canAccessPreferenceMemory(residentID: residentID) else { return }
         memoryController.saveValue(value, for: key, residentID: residentID)
+    }
+
+    private func canAccessPreferenceMemory(residentID: String) -> Bool {
+        guard currentResidentIdentity?.residentID == residentID,
+              sessionContext?.residentID == residentID,
+              currentMemoryPolicy?.preferenceMemory == .supportedMinimalKV else {
+            return false
+        }
+        return true
     }
 
     public func cancelCurrentStep() {
