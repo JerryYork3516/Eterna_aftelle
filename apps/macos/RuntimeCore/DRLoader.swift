@@ -42,6 +42,7 @@ public enum DRLoaderError: Error {
     case invalidFixture
     case missingField(String)
     case unsupportedVersion(String)
+    case conflictingField(String)
 }
 
 public final class DRLoader {
@@ -147,6 +148,15 @@ public final class DRLoader {
         let memoryPolicySource = memoryPolicyExtensions != nil
             ? "memory_policy_extensions"
             : (memoryPolicy != nil ? "memory_policy" : "none")
+        let payloadModules = payload["modules"] as? [Any]
+        let topLevelModules = object["modules"] as? [Any]
+        if let payloadModules, let topLevelModules {
+            let normalizedPayloadModules = try JSONSerialization.data(withJSONObject: payloadModules, options: [.sortedKeys])
+            let normalizedTopLevelModules = try JSONSerialization.data(withJSONObject: topLevelModules, options: [.sortedKeys])
+            guard normalizedPayloadModules == normalizedTopLevelModules else {
+                throw DRLoaderError.conflictingField("modules")
+            }
+        }
 
         return LoadedDR(
             drVersion: drVersion,
@@ -164,8 +174,8 @@ public final class DRLoader {
             residentDisclosure: resident?["disclosure"] as? String,
             sourceData: drData,
             layerCount: (object["layers"] as? [Any])?.count ?? 0,
-            payloadModuleCount: (payload["modules"] as? [Any])?.count ?? 0,
-            topLevelModuleCount: (object["modules"] as? [Any])?.count,
+            payloadModuleCount: payloadModules?.count ?? 0,
+            topLevelModuleCount: topLevelModules?.count,
             slotCount: (object["slots"] as? [Any])?.count ?? 0,
             memoryPolicySource: memoryPolicySource,
             memoryPolicyData: memoryPolicyData,
@@ -181,6 +191,8 @@ public final class DRLoader {
             return "DR load failed: missing \(field)"
         case .unsupportedVersion(let field):
             return "DR load failed: unsupported \(field)"
+        case .conflictingField(let field):
+            return "DR load failed: conflicting \(field)"
         }
     }
 }
