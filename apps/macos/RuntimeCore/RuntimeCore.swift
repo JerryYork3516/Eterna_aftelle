@@ -260,6 +260,35 @@ struct RuntimeMemoryPolicyProjection: Equatable {
     }
 }
 
+struct RuntimeFirstAppearanceProjection: Equatable {
+    let interaction: FirstInteractionPolicy?
+    let greeting: FirstGreetingConfig?
+    let presence: FirstPresenceConfig?
+    let relationship: InitialRelationshipConfig?
+
+    init?(loadedDR: LoadedDR) {
+        guard loadedDR.firstInteractionPolicy != nil
+                || loadedDR.firstGreetingConfig != nil
+                || loadedDR.firstPresenceConfig != nil
+                || loadedDR.initialRelationshipConfig != nil else {
+            return nil
+        }
+        interaction = loadedDR.firstInteractionPolicy
+        greeting = loadedDR.firstGreetingConfig
+        presence = loadedDR.firstPresenceConfig
+        relationship = loadedDR.initialRelationshipConfig
+    }
+}
+
+struct RuntimeFirstAppearanceResult: Equatable {
+    let residentID: String
+    let greetingText: String
+    let particleState: String?
+    let motion: String?
+    let energy: String?
+    let subtitleMode: String?
+}
+
 public struct RuntimeClockState: Equatable {
     public var tickCount: Int
     public var lastTickAt: Date?
@@ -376,6 +405,8 @@ public final class RuntimeCore {
     private var sessionContext: RuntimeSessionContext?
     private(set) var currentResidentIdentity: RuntimeResidentIdentityProjection?
     private(set) var currentMemoryPolicy: RuntimeMemoryPolicyProjection?
+    private(set) var currentFirstAppearance: RuntimeFirstAppearanceProjection?
+    private var handledFirstAppearanceResidentIDs: Set<String> = []
     private var clockState = RuntimeClockState()
 
     public init(
@@ -413,9 +444,11 @@ public final class RuntimeCore {
             let sessionID = RuntimeSessionID.make()
             let identityProjection = RuntimeResidentIdentityProjection(loadedDR: loadedDR)
             let memoryPolicyProjection = RuntimeMemoryPolicyProjection(loadedDR: loadedDR)
+            let firstAppearanceProjection = RuntimeFirstAppearanceProjection(loadedDR: loadedDR)
             sessionContext = RuntimeSessionContext(residentID: loadedDR.residentID, sessionID: sessionID)
             currentResidentIdentity = identityProjection
             currentMemoryPolicy = memoryPolicyProjection
+            currentFirstAppearance = firstAppearanceProjection
             memoryController.setActiveResidentID(loadedDR.residentID)
             let avatarState = AvatarState(
                 residentID: loadedDR.residentID,
@@ -464,6 +497,36 @@ public final class RuntimeCore {
         loadDR(from: request.drData)
     }
 
+    func consumeFirstAppearance(
+        for residentID: String,
+        userInitiated: Bool
+    ) -> RuntimeFirstAppearanceResult? {
+        guard !residentID.isEmpty,
+              currentResidentIdentity?.residentID == residentID,
+              !handledFirstAppearanceResidentIDs.contains(residentID) else {
+            return nil
+        }
+        handledFirstAppearanceResidentIDs.insert(residentID)
+        guard userInitiated,
+              let projection = currentFirstAppearance,
+              projection.interaction?.enabled == true,
+              projection.interaction?.firstLoadEnabled == true,
+              projection.greeting?.contentStatus == "authored",
+              let greetingText = projection.greeting?.variants.first(where: {
+                  !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+              }) else {
+            return nil
+        }
+        return RuntimeFirstAppearanceResult(
+            residentID: residentID,
+            greetingText: greetingText,
+            particleState: projection.presence?.particleState,
+            motion: projection.presence?.motion,
+            energy: projection.presence?.energy,
+            subtitleMode: projection.presence?.subtitleMode
+        )
+    }
+
     public func restoreMostRecentSession() -> RuntimeSessionRestoreResult {
         guard let record = try? sessionStore.loadMostRecentRecord() else {
             return RuntimeSessionRestoreResult(didRestore: false)
@@ -485,6 +548,7 @@ public final class RuntimeCore {
             residentID: record.residentID,
             sessionID: RuntimeSessionID(rawValue: record.sessionID)
         )
+        handledFirstAppearanceResidentIDs.insert(record.residentID)
         memoryController.setActiveResidentID(record.residentID)
         let recoveredAt = Date()
         let recoveryRequired = record.shutdownState == .unclean

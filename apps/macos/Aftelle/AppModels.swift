@@ -639,6 +639,13 @@ public final class OrchestrationKernel {
         return result
     }
 
+    func consumeFirstAppearance(
+        for residentID: String,
+        userInitiated: Bool
+    ) -> RuntimeFirstAppearanceResult? {
+        runtimeCore.consumeFirstAppearance(for: residentID, userInitiated: userInitiated)
+    }
+
     func saveCurrentSession(
         lastUserInput: String,
         lastResidentOutput: String,

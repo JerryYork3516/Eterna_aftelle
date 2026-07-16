@@ -8,6 +8,37 @@ public struct DRLoadRequest {
     }
 }
 
+struct FirstInteractionPolicy: Equatable {
+    let enabled: Bool?
+    let firstLoadEnabled: Bool?
+    let repeatIntroduction: Bool?
+}
+
+struct FirstGreetingConfig: Equatable {
+    let locale: String?
+    let contentStatus: String?
+    let variants: [String]
+    let repeatOnReturn: Bool?
+}
+
+struct FirstPresenceConfig: Equatable {
+    let particleState: String?
+    let motion: String?
+    let energy: String?
+    let subtitleMode: String?
+}
+
+struct InitialRelationshipConfig: Equatable {
+    let defaultMode: String?
+    let intimacyLevel: String?
+    let trustBuilding: String?
+    let romanticAssumption: Bool?
+}
+
+private struct InvalidDRFieldError: Error {
+    let path: String
+}
+
 public struct LoadedDR {
     public let drVersion: String
     public let drSchemaVersion: String
@@ -30,6 +61,10 @@ public struct LoadedDR {
     public let memoryPolicySource: String
     public let memoryPolicyData: Data?
     public let memorySupportLevels: [String: String]
+    let firstInteractionPolicy: FirstInteractionPolicy?
+    let firstGreetingConfig: FirstGreetingConfig?
+    let firstPresenceConfig: FirstPresenceConfig?
+    let initialRelationshipConfig: InitialRelationshipConfig?
 }
 
 public struct DRLoadResult {
@@ -52,6 +87,8 @@ public final class DRLoader {
         do {
             let loadedDR = try loadValidatedDR(drData: request.drData)
             return DRLoadResult(isLoaded: true, loadedDR: loadedDR, diagnostics: "DR load ok")
+        } catch let error as InvalidDRFieldError {
+            return DRLoadResult(isLoaded: false, loadedDR: nil, diagnostics: "DR load failed: invalid \(error.path)")
         } catch let error as DRLoaderError {
             return DRLoadResult(isLoaded: false, loadedDR: nil, diagnostics: diagnostics(for: error))
         } catch {
@@ -157,6 +194,10 @@ public final class DRLoader {
             memoryPolicy: memoryPolicy,
             extensions: memoryPolicyExtensions
         )
+        let firstInteractionPolicy = try parseFirstInteractionPolicy(from: payload)
+        let firstGreetingConfig = try parseFirstGreetingConfig(from: payload)
+        let firstPresenceConfig = try parseFirstPresenceConfig(from: payload)
+        let initialRelationshipConfig = try parseInitialRelationshipConfig(from: payload)
         let payloadModules = payload["modules"] as? [Any]
         let topLevelModules = object["modules"] as? [Any]
         if let payloadModules, let topLevelModules {
@@ -188,8 +229,96 @@ public final class DRLoader {
             slotCount: (object["slots"] as? [Any])?.count ?? 0,
             memoryPolicySource: memoryPolicySource,
             memoryPolicyData: memoryPolicyData,
-            memorySupportLevels: memorySupportLevels
+            memorySupportLevels: memorySupportLevels,
+            firstInteractionPolicy: firstInteractionPolicy,
+            firstGreetingConfig: firstGreetingConfig,
+            firstPresenceConfig: firstPresenceConfig,
+            initialRelationshipConfig: initialRelationshipConfig
         )
+    }
+
+    private func parseFirstInteractionPolicy(from payload: [String: Any]) throws -> FirstInteractionPolicy? {
+        guard let behavior = try optionalObject("behavior", in: payload, path: "payload.behavior"),
+              let config = try optionalObject("first_interaction", in: behavior, path: "payload.behavior.first_interaction") else {
+            return nil
+        }
+        let scenes = try optionalObject("scenes", in: config, path: "payload.behavior.first_interaction.scenes")
+        let firstLoad = try scenes.flatMap {
+            try optionalObject("first_load", in: $0, path: "payload.behavior.first_interaction.scenes.first_load")
+        }
+        return FirstInteractionPolicy(
+            enabled: try optionalValue("enabled", in: config, as: Bool.self, path: "payload.behavior.first_interaction.enabled"),
+            firstLoadEnabled: try firstLoad.flatMap {
+                try optionalValue("enabled", in: $0, as: Bool.self, path: "payload.behavior.first_interaction.scenes.first_load.enabled")
+            },
+            repeatIntroduction: try firstLoad.flatMap {
+                try optionalValue("repeat_introduction", in: $0, as: Bool.self, path: "payload.behavior.first_interaction.scenes.first_load.repeat_introduction")
+            }
+        )
+    }
+
+    private func parseFirstGreetingConfig(from payload: [String: Any]) throws -> FirstGreetingConfig? {
+        guard let expression = try optionalObject("expression", in: payload, path: "payload.expression"),
+              let config = try optionalObject("first_greeting", in: expression, path: "payload.expression.first_greeting") else {
+            return nil
+        }
+        return FirstGreetingConfig(
+            locale: try optionalValue("locale", in: config, as: String.self, path: "payload.expression.first_greeting.locale"),
+            contentStatus: try optionalValue("content_status", in: config, as: String.self, path: "payload.expression.first_greeting.content_status"),
+            variants: try optionalValue("variants", in: config, as: [String].self, path: "payload.expression.first_greeting.variants") ?? [],
+            repeatOnReturn: try optionalValue("repeat_on_return", in: config, as: Bool.self, path: "payload.expression.first_greeting.repeat_on_return")
+        )
+    }
+
+    private func parseFirstPresenceConfig(from payload: [String: Any]) throws -> FirstPresenceConfig? {
+        guard let expression = try optionalObject("expression", in: payload, path: "payload.expression"),
+              let config = try optionalObject("first_presence", in: expression, path: "payload.expression.first_presence") else {
+            return nil
+        }
+        return FirstPresenceConfig(
+            particleState: try optionalValue("particle_state", in: config, as: String.self, path: "payload.expression.first_presence.particle_state"),
+            motion: try optionalValue("motion", in: config, as: String.self, path: "payload.expression.first_presence.motion"),
+            energy: try optionalValue("energy", in: config, as: String.self, path: "payload.expression.first_presence.energy"),
+            subtitleMode: try optionalValue("subtitle_mode", in: config, as: String.self, path: "payload.expression.first_presence.subtitle_mode")
+        )
+    }
+
+    private func parseInitialRelationshipConfig(from payload: [String: Any]) throws -> InitialRelationshipConfig? {
+        guard let relationship = try optionalObject("relationship", in: payload, path: "payload.relationship"),
+              let config = try optionalObject("initial_relationship", in: relationship, path: "payload.relationship.initial_relationship") else {
+            return nil
+        }
+        return InitialRelationshipConfig(
+            defaultMode: try optionalValue("default", in: config, as: String.self, path: "payload.relationship.initial_relationship.default"),
+            intimacyLevel: try optionalValue("intimacy_level", in: config, as: String.self, path: "payload.relationship.initial_relationship.intimacy_level"),
+            trustBuilding: try optionalValue("trust_building", in: config, as: String.self, path: "payload.relationship.initial_relationship.trust_building"),
+            romanticAssumption: try optionalValue("romantic_assumption", in: config, as: Bool.self, path: "payload.relationship.initial_relationship.romantic_assumption")
+        )
+    }
+
+    private func optionalObject(
+        _ key: String,
+        in object: [String: Any],
+        path: String
+    ) throws -> [String: Any]? {
+        guard let rawValue = object[key] else { return nil }
+        guard let value = rawValue as? [String: Any] else {
+            throw InvalidDRFieldError(path: path)
+        }
+        return value
+    }
+
+    private func optionalValue<Value>(
+        _ key: String,
+        in object: [String: Any],
+        as type: Value.Type,
+        path: String
+    ) throws -> Value? {
+        guard let rawValue = object[key] else { return nil }
+        guard let value = rawValue as? Value else {
+            throw InvalidDRFieldError(path: path)
+        }
+        return value
     }
 
     private func resolveMemorySupportLevels(

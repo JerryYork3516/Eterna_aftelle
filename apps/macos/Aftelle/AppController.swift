@@ -62,7 +62,8 @@ final class AppController: ObservableObject {
             applyLoadResult(
                 bookmarkedResident.result,
                 drData: bookmarkedResident.data,
-                sourceLabel: "Debug DR"
+                sourceLabel: "Debug DR",
+                shouldPresentFirstGreeting: false
             )
         }
 
@@ -221,7 +222,12 @@ final class AppController: ObservableObject {
         if result.isLoaded {
             saveResidentBookmark(for: url)
         }
-        applyLoadResult(result, drData: drData, sourceLabel: "Debug DR")
+        applyLoadResult(
+            result,
+            drData: drData,
+            sourceLabel: "Debug DR",
+            shouldPresentFirstGreeting: true
+        )
     }
 
     private func showDebugSubtitle(at index: Int) {
@@ -234,7 +240,12 @@ final class AppController: ObservableObject {
     }
     #endif
 
-    private func applyLoadResult(_ result: RuntimeLoadResult, drData: Data, sourceLabel: String) {
+    private func applyLoadResult(
+        _ result: RuntimeLoadResult,
+        drData: Data,
+        sourceLabel: String,
+        shouldPresentFirstGreeting: Bool
+    ) {
         guard result.isLoaded else {
             runtimeStatus = "Runtime status: \(result.statusMessage)"
             fixtureStatus = "\(sourceLabel): not loaded"
@@ -290,7 +301,24 @@ final class AppController: ObservableObject {
         traceState = RuntimeTraceViewState(summary: result.diagnostics, entries: [])
         refreshDebugPanelState()
         startupState = .loaded
-        refreshParticleVisualState()
+        if shouldPresentFirstGreeting {
+            particleSubtitleState = .hidden
+        }
+        let firstAppearance = orchestrationKernel.consumeFirstAppearance(
+            for: result.residentID,
+            userInitiated: shouldPresentFirstGreeting
+        )
+        if let firstAppearance {
+            particleSubtitleState = ParticleSubtitleState(
+                text: firstAppearance.greetingText,
+                phase: .showing
+            )
+            refreshParticleVisualState(
+                visualStateMode: firstAppearance.particleState == "calm" ? "idle" : nil
+            )
+        } else {
+            refreshParticleVisualState()
+        }
         refreshParticleDebugSnapshot()
     }
 
