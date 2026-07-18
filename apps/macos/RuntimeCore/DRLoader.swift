@@ -35,6 +35,111 @@ struct InitialRelationshipConfig: Equatable {
     let romanticAssumption: Bool?
 }
 
+struct RuntimeDialogueInstruction: Equatable {
+    let instruction: String
+    let sourceRuleRefs: [String]
+}
+
+struct RuntimeDialogueSourceRuleCoverage: Equatable {
+    let selectedSemanticRuleCount: Int
+    let translatedRuleCount: Int
+    let unmappedRuleRefs: [String]
+    let validationRuleCountExcluded: Int
+}
+
+struct RuntimeDialogueScenario: Equatable {
+    let sceneID: String
+    let intent: String
+    let responseStrategy: String
+    let followUpAllowed: Bool
+    let adviceAllowed: Bool
+    let recommendedLength: String
+    let prohibitedBehaviors: [String]
+    let linkedPolicyIDs: [String]
+    let sourceRuleRefs: [String]
+}
+
+struct RuntimeDialogueExampleTurn: Equatable {
+    let role: String
+    let text: String
+}
+
+struct RuntimeDialogueFewShotExample: Equatable {
+    let exampleID: String
+    let label: String
+    let sceneID: String
+    let turns: [RuntimeDialogueExampleTurn]
+    let usage: String
+    let notFixedResponse: Bool
+    let notKeywordMatching: Bool
+}
+
+struct RuntimeDialogueFewShotSelection: Equatable {
+    let usage: String
+    let notFixedResponse: Bool
+    let notKeywordMatching: Bool
+    let selectionMode: String
+    let recommendedMaxExamplesPerRequest: Int
+    let studioPerformsTokenTrimming: Bool
+}
+
+struct RuntimeDialogueProhibitedPattern: Equatable {
+    let patternID: String
+    let reason: String
+    let examples: [String]
+    let sourceRuleRefs: [String]
+    let status: String
+}
+
+struct RuntimeDialogueContextSourceRule: Equatable {
+    let sourceID: String
+    let instruction: String
+}
+
+struct RuntimeDialogueContextUsagePolicy: Equatable {
+    let allowedSources: [RuntimeDialogueContextSourceRule]
+    let forbiddenSources: [RuntimeDialogueContextSourceRule]
+    let studioBoundary: String
+}
+
+struct RuntimeDialogueFallbackBehavior: Equatable {
+    let trigger: String
+    let locale: String
+    let text: String
+    let constraints: [String]
+}
+
+struct RuntimeDialogueProjection: Equatable {
+    let schemaVersion: String
+    let projectionType: String
+    let derived: Bool
+    let readOnly: Bool
+    let primarySourcePath: String
+    let supportingSourcePaths: [String]
+    let locale: String
+    let usage: String
+    let notFixedResponse: Bool
+    let notKeywordMatching: Bool
+    let systemInstruction: String
+    let languagePolicy: RuntimeDialogueInstruction
+    let responseStyle: RuntimeDialogueInstruction
+    let responseOrder: RuntimeDialogueInstruction
+    let followUpPolicy: RuntimeDialogueInstruction
+    let advicePolicy: RuntimeDialogueInstruction
+    let silencePolicy: RuntimeDialogueInstruction
+    let relationshipPolicy: RuntimeDialogueInstruction
+    let memoryUsagePolicy: RuntimeDialogueInstruction
+    let selfDisclosurePolicy: RuntimeDialogueInstruction
+    let endingPolicy: RuntimeDialogueInstruction
+    let sourceRuleCoverage: RuntimeDialogueSourceRuleCoverage
+    let scenarios: [RuntimeDialogueScenario]
+    let fewShotSelection: RuntimeDialogueFewShotSelection
+    let fewShotExamples: [RuntimeDialogueFewShotExample]
+    let prohibitedPatterns: [RuntimeDialogueProhibitedPattern]
+    let contextUsagePolicy: RuntimeDialogueContextUsagePolicy
+    let fallbackBehavior: RuntimeDialogueFallbackBehavior
+}
+
 private struct InvalidDRFieldError: Error {
     let path: String
 }
@@ -65,6 +170,7 @@ public struct LoadedDR {
     let firstGreetingConfig: FirstGreetingConfig?
     let firstPresenceConfig: FirstPresenceConfig?
     let initialRelationshipConfig: InitialRelationshipConfig?
+    let runtimeDialogueProjection: RuntimeDialogueProjection?
 }
 
 public struct DRLoadResult {
@@ -198,6 +304,7 @@ public final class DRLoader {
         let firstGreetingConfig = try parseFirstGreetingConfig(from: payload)
         let firstPresenceConfig = try parseFirstPresenceConfig(from: payload)
         let initialRelationshipConfig = try parseInitialRelationshipConfig(from: payload)
+        let runtimeDialogueProjection = try parseRuntimeDialogueProjection(from: payload)
         let payloadModules = payload["modules"] as? [Any]
         let topLevelModules = object["modules"] as? [Any]
         if let payloadModules, let topLevelModules {
@@ -233,7 +340,8 @@ public final class DRLoader {
             firstInteractionPolicy: firstInteractionPolicy,
             firstGreetingConfig: firstGreetingConfig,
             firstPresenceConfig: firstPresenceConfig,
-            initialRelationshipConfig: initialRelationshipConfig
+            initialRelationshipConfig: initialRelationshipConfig,
+            runtimeDialogueProjection: runtimeDialogueProjection
         )
     }
 
@@ -294,6 +402,295 @@ public final class DRLoader {
             trustBuilding: try optionalValue("trust_building", in: config, as: String.self, path: "payload.relationship.initial_relationship.trust_building"),
             romanticAssumption: try optionalValue("romantic_assumption", in: config, as: Bool.self, path: "payload.relationship.initial_relationship.romantic_assumption")
         )
+    }
+
+    private func parseRuntimeDialogueProjection(from payload: [String: Any]) throws -> RuntimeDialogueProjection? {
+        let path = "payload.runtime_dialogue_projection"
+        guard let projection = try optionalObject("runtime_dialogue_projection", in: payload, path: path) else {
+            return nil
+        }
+        _ = try requiredObject("behavior_policy", in: payload, path: "payload.behavior_policy")
+
+        let derived = try requiredValue("derived", in: projection, as: Bool.self, path: "\(path).derived")
+        let readOnly = try requiredValue("read_only", in: projection, as: Bool.self, path: "\(path).read_only")
+        let primarySourcePath = try requiredValue("primary_source_path", in: projection, as: String.self, path: "\(path).primary_source_path")
+        let usage = try requiredValue("usage", in: projection, as: String.self, path: "\(path).usage")
+        let notFixedResponse = try requiredValue("not_fixed_response", in: projection, as: Bool.self, path: "\(path).not_fixed_response")
+        let notKeywordMatching = try requiredValue("not_keyword_matching", in: projection, as: Bool.self, path: "\(path).not_keyword_matching")
+
+        guard derived else { throw DRLoaderError.conflictingField("\(path).derived") }
+        guard readOnly else { throw DRLoaderError.conflictingField("\(path).read_only") }
+        guard primarySourcePath == "payload.behavior_policy" else {
+            throw DRLoaderError.conflictingField("\(path).primary_source_path")
+        }
+        guard usage == "llm_system_context" else {
+            throw DRLoaderError.conflictingField("\(path).usage")
+        }
+        guard notFixedResponse else { throw DRLoaderError.conflictingField("\(path).not_fixed_response") }
+        guard notKeywordMatching else { throw DRLoaderError.conflictingField("\(path).not_keyword_matching") }
+
+        let fewShotSelection = try parseFewShotSelection(from: projection, path: path)
+        guard fewShotSelection.usage == "behavior_guidance_only" else {
+            throw DRLoaderError.conflictingField("\(path).few_shot_selection.usage")
+        }
+        guard fewShotSelection.notFixedResponse else {
+            throw DRLoaderError.conflictingField("\(path).few_shot_selection.not_fixed_response")
+        }
+        guard fewShotSelection.notKeywordMatching else {
+            throw DRLoaderError.conflictingField("\(path).few_shot_selection.not_keyword_matching")
+        }
+
+        return RuntimeDialogueProjection(
+            schemaVersion: try requiredValue("schema_version", in: projection, as: String.self, path: "\(path).schema_version"),
+            projectionType: try requiredValue("projection_type", in: projection, as: String.self, path: "\(path).projection_type"),
+            derived: derived,
+            readOnly: readOnly,
+            primarySourcePath: primarySourcePath,
+            supportingSourcePaths: try requiredValue(
+                "supporting_source_paths",
+                in: projection,
+                as: [String].self,
+                path: "\(path).supporting_source_paths"
+            ),
+            locale: try requiredValue("locale", in: projection, as: String.self, path: "\(path).locale"),
+            usage: usage,
+            notFixedResponse: notFixedResponse,
+            notKeywordMatching: notKeywordMatching,
+            systemInstruction: try requiredValue("system_instruction", in: projection, as: String.self, path: "\(path).system_instruction"),
+            languagePolicy: try parseDialogueInstruction("language_policy", from: projection, path: path),
+            responseStyle: try parseDialogueInstruction("response_style", from: projection, path: path),
+            responseOrder: try parseDialogueInstruction("response_order", from: projection, path: path),
+            followUpPolicy: try parseDialogueInstruction("follow_up_policy", from: projection, path: path),
+            advicePolicy: try parseDialogueInstruction("advice_policy", from: projection, path: path),
+            silencePolicy: try parseDialogueInstruction("silence_policy", from: projection, path: path),
+            relationshipPolicy: try parseDialogueInstruction("relationship_policy", from: projection, path: path),
+            memoryUsagePolicy: try parseDialogueInstruction("memory_usage_policy", from: projection, path: path),
+            selfDisclosurePolicy: try parseDialogueInstruction("self_disclosure_policy", from: projection, path: path),
+            endingPolicy: try parseDialogueInstruction("ending_policy", from: projection, path: path),
+            sourceRuleCoverage: try parseSourceRuleCoverage(from: projection, path: path),
+            scenarios: try parseDialogueScenarios(from: projection, path: path),
+            fewShotSelection: fewShotSelection,
+            fewShotExamples: try parseFewShotExamples(from: projection, path: path),
+            prohibitedPatterns: try parseProhibitedPatterns(from: projection, path: path),
+            contextUsagePolicy: try parseContextUsagePolicy(from: projection, path: path),
+            fallbackBehavior: try parseFallbackBehavior(from: projection, path: path)
+        )
+    }
+
+    private func parseDialogueInstruction(
+        _ key: String,
+        from projection: [String: Any],
+        path: String
+    ) throws -> RuntimeDialogueInstruction {
+        let instructionPath = "\(path).\(key)"
+        let object = try requiredObject(key, in: projection, path: instructionPath)
+        return RuntimeDialogueInstruction(
+            instruction: try requiredValue("instruction", in: object, as: String.self, path: "\(instructionPath).instruction"),
+            sourceRuleRefs: try requiredValue("source_rule_refs", in: object, as: [String].self, path: "\(instructionPath).source_rule_refs")
+        )
+    }
+
+    private func parseSourceRuleCoverage(
+        from projection: [String: Any],
+        path: String
+    ) throws -> RuntimeDialogueSourceRuleCoverage {
+        let coveragePath = "\(path).source_rule_coverage"
+        let object = try requiredObject("source_rule_coverage", in: projection, path: coveragePath)
+        return RuntimeDialogueSourceRuleCoverage(
+            selectedSemanticRuleCount: try requiredValue(
+                "selected_semantic_rule_count",
+                in: object,
+                as: Int.self,
+                path: "\(coveragePath).selected_semantic_rule_count"
+            ),
+            translatedRuleCount: try requiredValue("translated_rule_count", in: object, as: Int.self, path: "\(coveragePath).translated_rule_count"),
+            unmappedRuleRefs: try requiredValue("unmapped_rule_refs", in: object, as: [String].self, path: "\(coveragePath).unmapped_rule_refs"),
+            validationRuleCountExcluded: try requiredValue(
+                "validation_rule_count_excluded",
+                in: object,
+                as: Int.self,
+                path: "\(coveragePath).validation_rule_count_excluded"
+            )
+        )
+    }
+
+    private func parseDialogueScenarios(
+        from projection: [String: Any],
+        path: String
+    ) throws -> [RuntimeDialogueScenario] {
+        let scenariosPath = "\(path).scenarios"
+        let objects = try requiredObjectArray("scenarios", in: projection, path: scenariosPath)
+        return try objects.enumerated().map { index, object in
+            let itemPath = "\(scenariosPath).\(index)"
+            return RuntimeDialogueScenario(
+                sceneID: try requiredValue("scene_id", in: object, as: String.self, path: "\(itemPath).scene_id"),
+                intent: try requiredValue("intent", in: object, as: String.self, path: "\(itemPath).intent"),
+                responseStrategy: try requiredValue("response_strategy", in: object, as: String.self, path: "\(itemPath).response_strategy"),
+                followUpAllowed: try requiredValue("follow_up_allowed", in: object, as: Bool.self, path: "\(itemPath).follow_up_allowed"),
+                adviceAllowed: try requiredValue("advice_allowed", in: object, as: Bool.self, path: "\(itemPath).advice_allowed"),
+                recommendedLength: try requiredValue("recommended_length", in: object, as: String.self, path: "\(itemPath).recommended_length"),
+                prohibitedBehaviors: try requiredValue(
+                    "prohibited_behaviors",
+                    in: object,
+                    as: [String].self,
+                    path: "\(itemPath).prohibited_behaviors"
+                ),
+                linkedPolicyIDs: try requiredValue("linked_policy_ids", in: object, as: [String].self, path: "\(itemPath).linked_policy_ids"),
+                sourceRuleRefs: try requiredValue("source_rule_refs", in: object, as: [String].self, path: "\(itemPath).source_rule_refs")
+            )
+        }
+    }
+
+    private func parseFewShotSelection(
+        from projection: [String: Any],
+        path: String
+    ) throws -> RuntimeDialogueFewShotSelection {
+        let selectionPath = "\(path).few_shot_selection"
+        let object = try requiredObject("few_shot_selection", in: projection, path: selectionPath)
+        return RuntimeDialogueFewShotSelection(
+            usage: try requiredValue("usage", in: object, as: String.self, path: "\(selectionPath).usage"),
+            notFixedResponse: try requiredValue("not_fixed_response", in: object, as: Bool.self, path: "\(selectionPath).not_fixed_response"),
+            notKeywordMatching: try requiredValue("not_keyword_matching", in: object, as: Bool.self, path: "\(selectionPath).not_keyword_matching"),
+            selectionMode: try requiredValue("selection_mode", in: object, as: String.self, path: "\(selectionPath).selection_mode"),
+            recommendedMaxExamplesPerRequest: try requiredValue(
+                "recommended_max_examples_per_request",
+                in: object,
+                as: Int.self,
+                path: "\(selectionPath).recommended_max_examples_per_request"
+            ),
+            studioPerformsTokenTrimming: try requiredValue(
+                "studio_performs_token_trimming",
+                in: object,
+                as: Bool.self,
+                path: "\(selectionPath).studio_performs_token_trimming"
+            )
+        )
+    }
+
+    private func parseFewShotExamples(
+        from projection: [String: Any],
+        path: String
+    ) throws -> [RuntimeDialogueFewShotExample] {
+        let examplesPath = "\(path).few_shot_examples"
+        let objects = try requiredObjectArray("few_shot_examples", in: projection, path: examplesPath)
+        return try objects.enumerated().map { index, object in
+            let itemPath = "\(examplesPath).\(index)"
+            let turnObjects = try requiredObjectArray("turns", in: object, path: "\(itemPath).turns")
+            let turns = try turnObjects.enumerated().map { turnIndex, turn in
+                let turnPath = "\(itemPath).turns.\(turnIndex)"
+                return RuntimeDialogueExampleTurn(
+                    role: try requiredValue("role", in: turn, as: String.self, path: "\(turnPath).role"),
+                    text: try requiredValue("text", in: turn, as: String.self, path: "\(turnPath).text")
+                )
+            }
+            return RuntimeDialogueFewShotExample(
+                exampleID: try requiredValue("example_id", in: object, as: String.self, path: "\(itemPath).example_id"),
+                label: try requiredValue("label", in: object, as: String.self, path: "\(itemPath).label"),
+                sceneID: try requiredValue("scene_id", in: object, as: String.self, path: "\(itemPath).scene_id"),
+                turns: turns,
+                usage: try requiredValue("usage", in: object, as: String.self, path: "\(itemPath).usage"),
+                notFixedResponse: try requiredValue("not_fixed_response", in: object, as: Bool.self, path: "\(itemPath).not_fixed_response"),
+                notKeywordMatching: try requiredValue("not_keyword_matching", in: object, as: Bool.self, path: "\(itemPath).not_keyword_matching")
+            )
+        }
+    }
+
+    private func parseProhibitedPatterns(
+        from projection: [String: Any],
+        path: String
+    ) throws -> [RuntimeDialogueProhibitedPattern] {
+        let patternsPath = "\(path).prohibited_patterns"
+        let objects = try requiredObjectArray("prohibited_patterns", in: projection, path: patternsPath)
+        return try objects.enumerated().map { index, object in
+            let itemPath = "\(patternsPath).\(index)"
+            return RuntimeDialogueProhibitedPattern(
+                patternID: try requiredValue("pattern_id", in: object, as: String.self, path: "\(itemPath).pattern_id"),
+                reason: try requiredValue("reason", in: object, as: String.self, path: "\(itemPath).reason"),
+                examples: try requiredValue("examples", in: object, as: [String].self, path: "\(itemPath).examples"),
+                sourceRuleRefs: try requiredValue("source_rule_refs", in: object, as: [String].self, path: "\(itemPath).source_rule_refs"),
+                status: try requiredValue("status", in: object, as: String.self, path: "\(itemPath).status")
+            )
+        }
+    }
+
+    private func parseContextUsagePolicy(
+        from projection: [String: Any],
+        path: String
+    ) throws -> RuntimeDialogueContextUsagePolicy {
+        let policyPath = "\(path).context_usage_policy"
+        let object = try requiredObject("context_usage_policy", in: projection, path: policyPath)
+        return RuntimeDialogueContextUsagePolicy(
+            allowedSources: try parseContextSourceRules("allowed_sources", from: object, path: policyPath),
+            forbiddenSources: try parseContextSourceRules("forbidden_sources", from: object, path: policyPath),
+            studioBoundary: try requiredValue("studio_boundary", in: object, as: String.self, path: "\(policyPath).studio_boundary")
+        )
+    }
+
+    private func parseContextSourceRules(
+        _ key: String,
+        from policy: [String: Any],
+        path: String
+    ) throws -> [RuntimeDialogueContextSourceRule] {
+        let rulesPath = "\(path).\(key)"
+        let objects = try requiredObjectArray(key, in: policy, path: rulesPath)
+        return try objects.enumerated().map { index, object in
+            let itemPath = "\(rulesPath).\(index)"
+            return RuntimeDialogueContextSourceRule(
+                sourceID: try requiredValue("source_id", in: object, as: String.self, path: "\(itemPath).source_id"),
+                instruction: try requiredValue("instruction", in: object, as: String.self, path: "\(itemPath).instruction")
+            )
+        }
+    }
+
+    private func parseFallbackBehavior(
+        from projection: [String: Any],
+        path: String
+    ) throws -> RuntimeDialogueFallbackBehavior {
+        let fallbackPath = "\(path).fallback_behavior"
+        let object = try requiredObject("fallback_behavior", in: projection, path: fallbackPath)
+        return RuntimeDialogueFallbackBehavior(
+            trigger: try requiredValue("trigger", in: object, as: String.self, path: "\(fallbackPath).trigger"),
+            locale: try requiredValue("locale", in: object, as: String.self, path: "\(fallbackPath).locale"),
+            text: try requiredValue("text", in: object, as: String.self, path: "\(fallbackPath).text"),
+            constraints: try requiredValue("constraints", in: object, as: [String].self, path: "\(fallbackPath).constraints")
+        )
+    }
+
+    private func requiredObject(
+        _ key: String,
+        in object: [String: Any],
+        path: String
+    ) throws -> [String: Any] {
+        guard let value = try optionalObject(key, in: object, path: path) else {
+            throw DRLoaderError.missingField(path)
+        }
+        return value
+    }
+
+    private func requiredObjectArray(
+        _ key: String,
+        in object: [String: Any],
+        path: String
+    ) throws -> [[String: Any]] {
+        let values = try requiredValue(key, in: object, as: [Any].self, path: path)
+        return try values.enumerated().map { index, value in
+            guard let object = value as? [String: Any] else {
+                throw InvalidDRFieldError(path: "\(path).\(index)")
+            }
+            return object
+        }
+    }
+
+    private func requiredValue<Value>(
+        _ key: String,
+        in object: [String: Any],
+        as type: Value.Type,
+        path: String
+    ) throws -> Value {
+        guard let value = try optionalValue(key, in: object, as: type, path: path) else {
+            throw DRLoaderError.missingField(path)
+        }
+        return value
     }
 
     private func optionalObject(

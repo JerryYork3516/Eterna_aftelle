@@ -289,6 +289,182 @@ struct RuntimeFirstAppearanceResult: Equatable {
     let subtitleMode: String?
 }
 
+struct ResidentDialogueMessage: Equatable {
+    let role: String
+    let text: String
+    let timestamp: Date
+}
+
+struct ResidentDialogueContextSummary: Equatable {
+    let instructionCount: Int
+    let scenarioCount: Int
+    let selectedFewShotCount: Int
+    let recentMessageCount: Int
+    let approvedPreferenceCount: Int
+    let prohibitedPatternCount: Int
+    let estimatedCharacterCount: Int
+}
+
+struct ResidentDialogueContext: Equatable {
+    let identity: RuntimeResidentIdentityProjection
+    let locale: String
+    let systemInstruction: String
+    let languagePolicy: RuntimeDialogueInstruction
+    let responseStyle: RuntimeDialogueInstruction
+    let responseOrder: RuntimeDialogueInstruction
+    let followUpPolicy: RuntimeDialogueInstruction
+    let advicePolicy: RuntimeDialogueInstruction
+    let silencePolicy: RuntimeDialogueInstruction
+    let endingPolicy: RuntimeDialogueInstruction
+    let relationshipPolicy: RuntimeDialogueInstruction
+    let selfDisclosurePolicy: RuntimeDialogueInstruction
+    let memoryUsagePolicy: RuntimeDialogueInstruction
+    let initialRelationship: InitialRelationshipConfig?
+    let memoryPolicy: RuntimeMemoryPolicyProjection
+    let scenarios: [RuntimeDialogueScenario]
+    let selectedFewShots: [RuntimeDialogueFewShotExample]
+    let requestedFewShotSelectionMode: String
+    let appliedFewShotSelectionMode: String
+    let prohibitedPatterns: [RuntimeDialogueProhibitedPattern]
+    let contextUsagePolicy: RuntimeDialogueContextUsagePolicy
+    let recentMessages: [ResidentDialogueMessage]
+    let approvedPreferences: [String: String]
+    let currentUserInput: String
+    let fallbackText: String
+    let summary: ResidentDialogueContextSummary
+}
+
+struct ResidentDialogueContextSource: Equatable {
+    let identity: RuntimeResidentIdentityProjection
+    let projection: RuntimeDialogueProjection
+    let memoryPolicy: RuntimeMemoryPolicyProjection
+    let initialRelationship: InitialRelationshipConfig?
+
+    func compile(
+        currentUserInput: String,
+        recentMessages: [ResidentDialogueMessage],
+        recentMessageLimit: Int,
+        fewShotLimit: Int
+    ) -> ResidentDialogueContext {
+        let selectedFewShots = Array(
+            projection.fewShotExamples
+                .filter {
+                    $0.usage == "behavior_guidance_only"
+                        && $0.notFixedResponse
+                        && $0.notKeywordMatching
+                }
+                .prefix(max(0, min(fewShotLimit, projection.fewShotSelection.recommendedMaxExamplesPerRequest)))
+        )
+        let prohibitedPatterns = projection.prohibitedPatterns.filter { $0.status == "forbidden" }
+        let boundedRecentMessages = Array(recentMessages.suffix(max(0, recentMessageLimit)))
+        let instructionTexts = [
+            projection.systemInstruction,
+            projection.languagePolicy.instruction,
+            projection.responseStyle.instruction,
+            projection.responseOrder.instruction,
+            projection.followUpPolicy.instruction,
+            projection.advicePolicy.instruction,
+            projection.silencePolicy.instruction,
+            projection.endingPolicy.instruction,
+            projection.relationshipPolicy.instruction,
+            projection.selfDisclosurePolicy.instruction,
+            projection.memoryUsagePolicy.instruction
+        ]
+        let estimatedCharacterCount = contextCharacterCount(
+            instructionTexts: instructionTexts,
+            selectedFewShots: selectedFewShots,
+            prohibitedPatterns: prohibitedPatterns,
+            recentMessages: boundedRecentMessages,
+            currentUserInput: currentUserInput
+        )
+
+        return ResidentDialogueContext(
+            identity: identity,
+            locale: projection.locale,
+            systemInstruction: projection.systemInstruction,
+            languagePolicy: projection.languagePolicy,
+            responseStyle: projection.responseStyle,
+            responseOrder: projection.responseOrder,
+            followUpPolicy: projection.followUpPolicy,
+            advicePolicy: projection.advicePolicy,
+            silencePolicy: projection.silencePolicy,
+            endingPolicy: projection.endingPolicy,
+            relationshipPolicy: projection.relationshipPolicy,
+            selfDisclosurePolicy: projection.selfDisclosurePolicy,
+            memoryUsagePolicy: projection.memoryUsagePolicy,
+            initialRelationship: initialRelationship,
+            memoryPolicy: memoryPolicy,
+            scenarios: projection.scenarios,
+            selectedFewShots: selectedFewShots,
+            requestedFewShotSelectionMode: projection.fewShotSelection.selectionMode,
+            appliedFewShotSelectionMode: "deterministic_baseline",
+            prohibitedPatterns: prohibitedPatterns,
+            contextUsagePolicy: projection.contextUsagePolicy,
+            recentMessages: boundedRecentMessages,
+            approvedPreferences: [:],
+            currentUserInput: currentUserInput,
+            fallbackText: projection.fallbackBehavior.text,
+            summary: ResidentDialogueContextSummary(
+                instructionCount: instructionTexts.count,
+                scenarioCount: projection.scenarios.count,
+                selectedFewShotCount: selectedFewShots.count,
+                recentMessageCount: boundedRecentMessages.count,
+                approvedPreferenceCount: 0,
+                prohibitedPatternCount: prohibitedPatterns.count,
+                estimatedCharacterCount: estimatedCharacterCount
+            )
+        )
+    }
+
+    private func contextCharacterCount(
+        instructionTexts: [String],
+        selectedFewShots: [RuntimeDialogueFewShotExample],
+        prohibitedPatterns: [RuntimeDialogueProhibitedPattern],
+        recentMessages: [ResidentDialogueMessage],
+        currentUserInput: String
+    ) -> Int {
+        let identityTexts = [
+            identity.residentID,
+            identity.displayName,
+            identity.primaryLanguage,
+            identity.citySymbol,
+            identity.personalitySummary,
+            identity.residentDescription,
+            identity.residentDisclosure
+        ].compactMap { $0 } + identity.domainFocus
+        let scenarioTexts = projection.scenarios.flatMap {
+            [$0.sceneID, $0.intent, $0.responseStrategy, $0.recommendedLength]
+                + $0.prohibitedBehaviors
+        }
+        let fewShotTexts = selectedFewShots.flatMap { example in
+            [example.exampleID, example.label, example.sceneID]
+                + example.turns.flatMap { [$0.role, $0.text] }
+        }
+        let prohibitedTexts = prohibitedPatterns.flatMap {
+            [$0.patternID, $0.reason] + $0.examples
+        }
+        let relationshipTexts = [
+            initialRelationship?.defaultMode,
+            initialRelationship?.intimacyLevel,
+            initialRelationship?.trustBuilding
+        ].compactMap { $0 }
+        let contextBoundaryTexts = (
+            projection.contextUsagePolicy.allowedSources
+                + projection.contextUsagePolicy.forbiddenSources
+        ).flatMap { [$0.sourceID, $0.instruction] }
+        let allTexts = identityTexts
+            + instructionTexts
+            + scenarioTexts
+            + fewShotTexts
+            + prohibitedTexts
+            + relationshipTexts
+            + contextBoundaryTexts
+            + recentMessages.flatMap { [$0.role, $0.text] }
+            + [currentUserInput, projection.fallbackBehavior.text]
+        return allTexts.reduce(0) { $0 + $1.count }
+    }
+}
+
 public struct RuntimeClockState: Equatable {
     public var tickCount: Int
     public var lastTickAt: Date?
@@ -395,6 +571,9 @@ public struct RuntimeSessionRestoreResult {
 }
 
 public final class RuntimeCore {
+    static let recentDialogueMessageLimit = 8
+    static let fewShotSelectionLimit = 4
+
     private let drLoader: DRLoader
     private let executionEngine: ExecutionEngine
     private let providerRouter: ProviderRouter
@@ -406,6 +585,7 @@ public final class RuntimeCore {
     private(set) var currentResidentIdentity: RuntimeResidentIdentityProjection?
     private(set) var currentMemoryPolicy: RuntimeMemoryPolicyProjection?
     private(set) var currentFirstAppearance: RuntimeFirstAppearanceProjection?
+    private(set) var currentDialogueContextSource: ResidentDialogueContextSource?
     private var handledFirstAppearanceResidentIDs: Set<String> = []
     private var clockState = RuntimeClockState()
 
@@ -445,10 +625,19 @@ public final class RuntimeCore {
             let identityProjection = RuntimeResidentIdentityProjection(loadedDR: loadedDR)
             let memoryPolicyProjection = RuntimeMemoryPolicyProjection(loadedDR: loadedDR)
             let firstAppearanceProjection = RuntimeFirstAppearanceProjection(loadedDR: loadedDR)
+            let dialogueContextSource = loadedDR.runtimeDialogueProjection.map {
+                ResidentDialogueContextSource(
+                    identity: identityProjection,
+                    projection: $0,
+                    memoryPolicy: memoryPolicyProjection,
+                    initialRelationship: loadedDR.initialRelationshipConfig
+                )
+            }
             sessionContext = RuntimeSessionContext(residentID: loadedDR.residentID, sessionID: sessionID)
             currentResidentIdentity = identityProjection
             currentMemoryPolicy = memoryPolicyProjection
             currentFirstAppearance = firstAppearanceProjection
+            currentDialogueContextSource = dialogueContextSource
             memoryController.setActiveResidentID(loadedDR.residentID)
             let avatarState = AvatarState(
                 residentID: loadedDR.residentID,
@@ -723,6 +912,32 @@ public final class RuntimeCore {
             ]
         )
         return response
+    }
+
+    func compileResidentDialogueContext(currentUserInput: String) -> ResidentDialogueContext? {
+        guard let source = currentDialogueContextSource,
+              sessionContext?.residentID == source.identity.residentID else {
+            return nil
+        }
+        return source.compile(
+            currentUserInput: currentUserInput,
+            recentMessages: recentDialogueMessages(limit: Self.recentDialogueMessageLimit),
+            recentMessageLimit: Self.recentDialogueMessageLimit,
+            fewShotLimit: Self.fewShotSelectionLimit
+        )
+    }
+
+    private func recentDialogueMessages(limit: Int) -> [ResidentDialogueMessage] {
+        guard let sessionContext,
+              let record = try? sessionStore.loadMostRecentRecord(),
+              record.residentID == sessionContext.residentID,
+              record.sessionID == sessionContext.sessionID.rawValue,
+              let entries = try? sessionStore.loadMostRecentDialogueEntries(limit: limit) else {
+            return []
+        }
+        return entries.map {
+            ResidentDialogueMessage(role: $0.role, text: $0.text, timestamp: $0.timestamp)
+        }
     }
 
     public func readMemoryValue(for key: String, residentID: String) -> String? {
