@@ -14,11 +14,338 @@ public struct ProviderRoutingDiagnostics: Equatable {
     }
 }
 
+struct ProviderProfile: Codable, Equatable {
+    var profileID: String
+    var providerID: String
+    var adapterType: String
+    var modelID: String
+    var baseURL: String
+    var keyRef: String
+    var enabled: Bool
+    var timeout: TimeInterval
+    var stream: Bool
+    var thinkingMode: String
+
+    enum CodingKeys: String, CodingKey {
+        case profileID = "profile_id"
+        case providerID = "provider_id"
+        case adapterType = "adapter_type"
+        case modelID = "model_id"
+        case baseURL = "base_url"
+        case keyRef = "key_ref"
+        case enabled
+        case timeout
+        case stream
+        case thinkingMode = "thinking_mode"
+    }
+}
+
+enum ProviderRequestError: Error, Equatable {
+    case unconfigured
+    case missingCredential
+    case invalidURL
+    case unauthorized
+    case rateLimited
+    case serverUnavailable
+    case timedOut
+    case cancelled
+    case networkFailure
+    case invalidResponse
+    case emptyReply
+    case residentUnavailable
+
+    var diagnosticMessage: String {
+        switch self {
+        case .unconfigured:
+            return "Provider unavailable: not configured"
+        case .missingCredential:
+            return "Provider unavailable: missing credential"
+        case .invalidURL:
+            return "Provider unavailable: invalid HTTPS URL"
+        case .unauthorized:
+            return "Provider request failed: unauthorized"
+        case .rateLimited:
+            return "Provider request failed: rate limited"
+        case .serverUnavailable:
+            return "Provider request failed: server unavailable"
+        case .timedOut:
+            return "Provider request failed: timed out"
+        case .cancelled:
+            return "Provider request cancelled"
+        case .networkFailure:
+            return "Provider request failed: network unavailable"
+        case .invalidResponse:
+            return "Provider request failed: invalid response"
+        case .emptyReply:
+            return "Provider request failed: empty reply"
+        case .residentUnavailable:
+            return "Provider unavailable: resident not loaded"
+        }
+    }
+}
+
+protocol ProviderCredentialReading {
+    func readCredential(for keyRef: String) throws -> String?
+}
+
+struct UnavailableProviderCredentialReader: ProviderCredentialReading {
+    func readCredential(for keyRef: String) throws -> String? {
+        nil
+    }
+}
+
+protocol ProviderHTTPTransport {
+    func data(for request: URLRequest) async throws -> (Data, URLResponse)
+}
+
+final class URLSessionProviderHTTPTransport: ProviderHTTPTransport {
+    private let session: URLSession
+
+    init(session: URLSession? = nil) {
+        if let session {
+            self.session = session
+            return
+        }
+
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.urlCache = nil
+        configuration.httpCookieStorage = nil
+        self.session = URLSession(configuration: configuration)
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        try await session.data(for: request)
+    }
+}
+
+final class OpenAICompatibleAdapter {
+    private let credentialReader: ProviderCredentialReading
+    private let transport: ProviderHTTPTransport
+
+    init(
+        credentialReader: ProviderCredentialReading,
+        transport: ProviderHTTPTransport
+    ) {
+        self.credentialReader = credentialReader
+        self.transport = transport
+    }
+
+    func reply(
+        profile: ProviderProfile,
+        context: ResidentDialogueContext
+    ) async -> Result<String, ProviderRequestError> {
+        let credential: String
+        do {
+            guard let storedCredential = try credentialReader.readCredential(for: profile.keyRef),
+                  !storedCredential.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return .failure(.missingCredential)
+            }
+            credential = storedCredential.trimmingCharacters(in: .whitespacesAndNewlines)
+        } catch {
+            return .failure(.missingCredential)
+        }
+
+        guard let endpoint = Self.endpoint(for: profile.baseURL) else {
+            return .failure(.invalidURL)
+        }
+
+        let body = ChatCompletionRequest(
+            model: profile.modelID,
+            messages: Self.messages(for: context),
+            stream: profile.stream,
+            thinking: ChatCompletionThinking(type: profile.thinkingMode)
+        )
+        guard let encodedBody = try? JSONEncoder().encode(body) else {
+            return .failure(.invalidResponse)
+        }
+
+        var request = URLRequest(
+            url: endpoint,
+            cachePolicy: .reloadIgnoringLocalCacheData,
+            timeoutInterval: profile.timeout
+        )
+        request.httpMethod = "POST"
+        request.httpShouldHandleCookies = false
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(credential)", forHTTPHeaderField: "Authorization")
+        request.httpBody = encodedBody
+
+        do {
+            let (data, response) = try await transport.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.url?.scheme?.lowercased() == "https" else {
+                return .failure(.invalidResponse)
+            }
+            switch httpResponse.statusCode {
+            case 200..<300:
+                break
+            case 401:
+                return .failure(.unauthorized)
+            case 429:
+                return .failure(.rateLimited)
+            case 500..<600:
+                return .failure(.serverUnavailable)
+            default:
+                return .failure(.invalidResponse)
+            }
+
+            guard let decoded = try? JSONDecoder().decode(ChatCompletionResponse.self, from: data) else {
+                return .failure(.invalidResponse)
+            }
+            guard let content = decoded.choices.first?.message.content?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+                  !content.isEmpty else {
+                return .failure(.emptyReply)
+            }
+            return .success(content)
+        } catch is CancellationError {
+            return .failure(.cancelled)
+        } catch let error as URLError {
+            switch error.code {
+            case .cancelled:
+                return .failure(.cancelled)
+            case .timedOut:
+                return .failure(.timedOut)
+            default:
+                return .failure(.networkFailure)
+            }
+        } catch {
+            return .failure(.networkFailure)
+        }
+    }
+
+    fileprivate static func endpoint(for baseURL: String) -> URL? {
+        guard let components = URLComponents(string: baseURL),
+              components.scheme?.lowercased() == "https",
+              !(components.host?.isEmpty ?? true),
+              components.user == nil,
+              components.password == nil,
+              components.query == nil,
+              components.fragment == nil,
+              let url = components.url else {
+            return nil
+        }
+        return url.appendingPathComponent("chat/completions", isDirectory: false)
+    }
+
+    private static func messages(for context: ResidentDialogueContext) -> [ChatCompletionMessage] {
+        var result = [ChatCompletionMessage(role: "system", content: systemMessage(for: context))]
+
+        for example in context.selectedFewShots.prefix(4) {
+            result.append(contentsOf: example.turns.compactMap { turn in
+                guard let role = providerRole(for: turn.role) else { return nil }
+                return ChatCompletionMessage(role: role, content: turn.text)
+            })
+        }
+        result.append(contentsOf: context.recentMessages.suffix(8).compactMap { message in
+            guard let role = providerRole(for: message.role) else { return nil }
+            return ChatCompletionMessage(role: role, content: message.text)
+        })
+        result.append(ChatCompletionMessage(role: "user", content: context.currentUserInput))
+        return result
+    }
+
+    private static func systemMessage(for context: ResidentDialogueContext) -> String {
+        var sections = [
+            context.systemInstruction,
+            context.languagePolicy.instruction,
+            context.responseStyle.instruction,
+            context.responseOrder.instruction,
+            context.followUpPolicy.instruction,
+            context.advicePolicy.instruction,
+            context.silencePolicy.instruction,
+            context.endingPolicy.instruction,
+            context.relationshipPolicy.instruction,
+            context.selfDisclosurePolicy.instruction,
+            context.memoryUsagePolicy.instruction
+        ]
+
+        let identity = context.identity
+        sections.append("Resident display name: \(identity.displayName)")
+        if !identity.primaryLanguage.isEmpty {
+            sections.append("Primary language: \(identity.primaryLanguage)")
+        }
+        if let citySymbol = identity.citySymbol {
+            sections.append("City symbol: \(citySymbol)")
+        }
+        if let personalitySummary = identity.personalitySummary {
+            sections.append("Personality summary: \(personalitySummary)")
+        }
+        if !identity.domainFocus.isEmpty {
+            sections.append("Domain focus: \(identity.domainFocus.joined(separator: ", "))")
+        }
+        if let residentDescription = identity.residentDescription {
+            sections.append("Resident description: \(residentDescription)")
+        }
+        if let residentDisclosure = identity.residentDisclosure {
+            sections.append("Resident disclosure: \(residentDisclosure)")
+        }
+        sections.append(contentsOf: context.prohibitedPatterns.map {
+            "Prohibited response pattern: \($0.reason)"
+        })
+        sections.append(contentsOf: context.contextUsagePolicy.allowedSources.map(\.instruction))
+        sections.append(contentsOf: context.contextUsagePolicy.forbiddenSources.map(\.instruction))
+        sections.append("When the available context is insufficient: \(context.fallbackText)")
+
+        return sections
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
+    }
+
+    private static func providerRole(for role: String) -> String? {
+        switch role {
+        case "user":
+            return "user"
+        case "assistant", "resident":
+            return "assistant"
+        default:
+            return nil
+        }
+    }
+}
+
 public final class ProviderRouter {
-    public init() {}
+    private let adapter: OpenAICompatibleAdapter
+    private var profile: ProviderProfile?
+
+    public convenience init() {
+        self.init(
+            credentialReader: UnavailableProviderCredentialReader(),
+            transport: URLSessionProviderHTTPTransport()
+        )
+    }
+
+    init(
+        credentialReader: ProviderCredentialReading,
+        transport: ProviderHTTPTransport = URLSessionProviderHTTPTransport()
+    ) {
+        adapter = OpenAICompatibleAdapter(
+            credentialReader: credentialReader,
+            transport: transport
+        )
+    }
 
     public func routeMockProvider() -> String {
         "Mock response received."
+    }
+
+    func configure(profile: ProviderProfile) -> ProviderRequestError? {
+        if let validationError = Self.validationError(for: profile) {
+            return validationError
+        }
+        self.profile = profile
+        return nil
+    }
+
+    func routeResidentReply(
+        context: ResidentDialogueContext
+    ) async -> Result<String, ProviderRequestError> {
+        guard let profile, profile.enabled else {
+            return .failure(.unconfigured)
+        }
+        return await adapter.reply(profile: profile, context: context)
     }
 
     public func diagnostics(for config: ProviderRuntimeConfig, secretState: SecretReferenceState) -> ProviderRoutingDiagnostics {
@@ -29,4 +356,52 @@ public final class ProviderRouter {
             mode: config.isEnabled ? "mock-enabled" : "disabled"
         )
     }
+
+    private static func validationError(for profile: ProviderProfile) -> ProviderRequestError? {
+        let keyRef = profile.keyRef.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !profile.profileID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !profile.providerID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              profile.adapterType == "openai_compatible",
+              !profile.modelID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              keyRef.hasPrefix("keychain://"),
+              !keyRef.lowercased().contains("sk-"),
+              profile.timeout.isFinite,
+              profile.timeout > 0,
+              !profile.stream,
+              profile.thinkingMode == "disabled" else {
+            return .unconfigured
+        }
+        guard OpenAICompatibleAdapter.endpoint(for: profile.baseURL) != nil else {
+            return .invalidURL
+        }
+        return nil
+    }
+}
+
+private struct ChatCompletionMessage: Codable, Equatable {
+    let role: String
+    let content: String
+}
+
+private struct ChatCompletionThinking: Encodable {
+    let type: String
+}
+
+private struct ChatCompletionRequest: Encodable {
+    let model: String
+    let messages: [ChatCompletionMessage]
+    let stream: Bool
+    let thinking: ChatCompletionThinking
+}
+
+private struct ChatCompletionResponse: Decodable {
+    let choices: [ChatCompletionChoice]
+}
+
+private struct ChatCompletionChoice: Decodable {
+    let message: ChatCompletionResponseMessage
+}
+
+private struct ChatCompletionResponseMessage: Decodable {
+    let content: String?
 }

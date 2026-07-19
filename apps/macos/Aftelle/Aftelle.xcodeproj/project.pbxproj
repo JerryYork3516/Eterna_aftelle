@@ -17,6 +17,7 @@
 		A070C0000000000000000112 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000113 /* Localizable.strings */; };
 		A070C0000000000000000026 /* AppModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000027 /* AppModels.swift */; };
 		A070C0000000000000000028 /* AppController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000029 /* AppController.swift */; };
+		A070C0000000000000000120 /* ProviderKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000121 /* ProviderKeychainStore.swift */; };
 		A070C0000000000000000013 /* RuntimeCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000014 /* RuntimeCore.swift */; };
 		A070C0000000000000000015 /* DRLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000016 /* DRLoader.swift */; };
 		A070C0000000000000000018 /* ExecutionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070C0000000000000000019 /* ExecutionEngine.swift */; };
@@ -43,6 +44,7 @@
 		A070C0000000000000000115 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = "en.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		A070C0000000000000000027 /* AppModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModels.swift; sourceTree = "<group>"; };
 		A070C0000000000000000029 /* AppController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppController.swift; sourceTree = "<group>"; };
+		A070C0000000000000000121 /* ProviderKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderKeychainStore.swift; sourceTree = "<group>"; };
 		A070C0000000000000000006 /* Aftelle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Aftelle.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A070C0000000000000000014 /* RuntimeCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/RuntimeCore.swift; sourceTree = SOURCE_ROOT; };
 		A070C0000000000000000016 /* DRLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../RuntimeCore/DRLoader.swift; sourceTree = SOURCE_ROOT; };
@@ -73,6 +75,7 @@
 			children = (
 				A070C0000000000000000002 /* AftelleApp.swift */,
 				A070C0000000000000000005 /* ContentView.swift */,
+				A070C0000000000000000121 /* ProviderKeychainStore.swift */,
 				A070C0000000000000000116 /* Aftelle.entitlements */,
 				A070C0000000000000000107 /* ParticleCore */,
 				A070C0000000000000000113 /* Localizable.strings */,
@@ -205,6 +208,7 @@
 				A070C0000000000000000001 /* AftelleApp.swift in Sources */,
 				A070C0000000000000000003 /* ContentView.swift in Sources */,
 				A070C0000000000000000028 /* AppController.swift in Sources */,
+				A070C0000000000000000120 /* ProviderKeychainStore.swift in Sources */,
 				A070C0000000000000000026 /* AppModels.swift in Sources */,
 				A070C0000000000000000101 /* ParticleCoreModel.swift in Sources */,
 				A070C0000000000000000103 /* ParticleCoreRenderer.swift in Sources */,

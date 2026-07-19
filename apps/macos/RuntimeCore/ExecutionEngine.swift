@@ -15,6 +15,14 @@ public final class ExecutionEngine {
         self.visualStateMapper = visualStateMapper
     }
 
+    func configureTextProvider(profile: ProviderProfile) -> ProviderRequestError? {
+        providerRouter.configure(profile: profile)
+    }
+
+    func testResidentReply(context: ResidentDialogueContext) async -> Result<String, ProviderRequestError> {
+        await providerRouter.routeResidentReply(context: context)
+    }
+
     public func step(request: RuntimeStepRequest, cancellationState: RuntimeCancellationState = .none) -> RuntimeStepResponse {
         step(request: request, residentDisplayName: "", cancellationState: cancellationState)
     }

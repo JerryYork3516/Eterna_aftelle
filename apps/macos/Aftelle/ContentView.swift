@@ -432,6 +432,7 @@ private struct ParticleOrientationDebugOverlay: View {
 
 private enum ParticleDebugSection {
     case diagnostics
+    case provider
     case shell
     case renderAdapter
     case particle
@@ -447,6 +448,7 @@ struct ParticleDebugWindow: View {
     var body: some View {
         ParticleDebugPanel(
             snapshot: controller.particleDebugSnapshot,
+            providerState: controller.providerDebugState,
             shellMode: controller.particleShellMode,
             renderKind: controller.particleRenderKind,
             tuning: $presentationSettings.tuning,
@@ -461,7 +463,11 @@ struct ParticleDebugWindow: View {
                     savedOverride: ParticleCoreColorProfile.hasSavedProfile()
                 )
             },
-            importDR: openDebugDRImportPanel
+            importDR: openDebugDRImportPanel,
+            saveProviderConfiguration: controller.saveProviderConfiguration,
+            saveProviderCredential: controller.saveProviderCredential,
+            deleteProviderCredential: controller.deleteProviderCredential,
+            testResidentReply: controller.testResidentReply
         )
         .onAppear {
             controller.setParticleDebugPanelPresented(true)
@@ -543,6 +549,7 @@ private enum ParticleTuningGroup: String, CaseIterable, Identifiable {
 
 private struct ParticleDebugPanel: View {
     let snapshot: ParticleDebugSnapshot
+    let providerState: ProviderDebugViewState
     let shellMode: ParticleShellMode
     let renderKind: ParticleRenderKind
     @Binding var tuning: ParticleCoreTuning
@@ -553,6 +560,10 @@ private struct ParticleDebugPanel: View {
     let setRenderKind: (ParticleRenderKind) -> Void
     let refreshColorProfileSnapshot: () -> Void
     let importDR: () -> Void
+    let saveProviderConfiguration: (ProviderProfile) -> Void
+    let saveProviderCredential: (String) -> Void
+    let deleteProviderCredential: () -> Void
+    let testResidentReply: (String) async -> Void
     @State private var section: ParticleDebugSection = .diagnostics
     @State private var tuningGroup: ParticleTuningGroup = .basics
 
@@ -572,6 +583,8 @@ private struct ParticleDebugPanel: View {
             Picker("", selection: $section) {
                 Text(String(localized: "particleDebug.diagnostics"))
                     .tag(ParticleDebugSection.diagnostics)
+                Text(String(localized: "particleDebug.provider"))
+                    .tag(ParticleDebugSection.provider)
                 Text(String(localized: "particleDebug.shellMode"))
                     .tag(ParticleDebugSection.shell)
                 Text(String(localized: "particleDebug.renderAdapter"))
@@ -613,6 +626,14 @@ private struct ParticleDebugPanel: View {
                     switch section {
                     case .diagnostics:
                         ParticleDiagnosticsView(snapshot: snapshot)
+                    case .provider:
+                        TextProviderDebugView(
+                            state: providerState,
+                            saveConfiguration: saveProviderConfiguration,
+                            saveCredential: saveProviderCredential,
+                            deleteCredential: deleteProviderCredential,
+                            testReply: testResidentReply
+                        )
                     case .shell:
                         ParticleShellModeView(
                             snapshot: snapshot,
@@ -669,6 +690,8 @@ private struct ParticleDebugPanel: View {
         switch section {
         case .diagnostics:
             return String(localized: "particleDebug.diagnostics")
+        case .provider:
+            return String(localized: "particleDebug.provider")
         case .shell:
             return String(localized: "particleDebug.shellMode")
         case .renderAdapter:
@@ -684,6 +707,8 @@ private struct ParticleDebugPanel: View {
         switch section {
         case .diagnostics:
             return String(localized: "particleDebug.diagnosticsCaption")
+        case .provider:
+            return String(localized: "particleDebug.providerCaption")
         case .shell:
             return String(localized: "particleDebug.shellModeCaption")
         case .renderAdapter:
@@ -698,6 +723,8 @@ private struct ParticleDebugPanel: View {
     private func restoreDefault() {
         switch section {
         case .diagnostics:
+            break
+        case .provider:
             break
         case .shell:
             break
@@ -717,6 +744,8 @@ private struct ParticleDebugPanel: View {
         switch section {
         case .diagnostics:
             break
+        case .provider:
+            break
         case .shell:
             break
         case .renderAdapter:
@@ -727,6 +756,145 @@ private struct ParticleDebugPanel: View {
             colorProfile.save()
             refreshColorProfileSnapshot()
         }
+    }
+}
+
+private struct TextProviderDebugView: View {
+    let state: ProviderDebugViewState
+    let saveConfiguration: (ProviderProfile) -> Void
+    let saveCredential: (String) -> Void
+    let deleteCredential: () -> Void
+    let testReply: (String) async -> Void
+
+    @State private var profile: ProviderProfile
+    @State private var credentialInput = ""
+    @State private var testInput = ""
+
+    init(
+        state: ProviderDebugViewState,
+        saveConfiguration: @escaping (ProviderProfile) -> Void,
+        saveCredential: @escaping (String) -> Void,
+        deleteCredential: @escaping () -> Void,
+        testReply: @escaping (String) async -> Void
+    ) {
+        self.state = state
+        self.saveConfiguration = saveConfiguration
+        self.saveCredential = saveCredential
+        self.deleteCredential = deleteCredential
+        self.testReply = testReply
+        _profile = State(initialValue: state.profile)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            GroupBox(String(localized: "particleDebug.provider.configuration")) {
+                VStack(alignment: .leading, spacing: 10) {
+                    TextField(String(localized: "particleDebug.provider.providerID"), text: $profile.providerID)
+                    TextField(String(localized: "particleDebug.provider.modelID"), text: $profile.modelID)
+                    TextField(String(localized: "particleDebug.provider.baseURL"), text: $profile.baseURL)
+                    Toggle(String(localized: "particleDebug.provider.enabled"), isOn: $profile.enabled)
+
+                    ParticleDiagnosticsRow(
+                        labelKey: "particleDebug.provider.adapterType",
+                        value: profile.adapterType
+                    )
+                    ParticleDiagnosticsRow(
+                        labelKey: "particleDebug.provider.timeout",
+                        value: "\(Int(profile.timeout))s"
+                    )
+                    ParticleDiagnosticsRow(
+                        labelKey: "particleDebug.provider.stream",
+                        value: profile.stream ? "true" : "false"
+                    )
+                    ParticleDiagnosticsRow(
+                        labelKey: "particleDebug.provider.thinkingMode",
+                        value: profile.thinkingMode
+                    )
+
+                    HStack {
+                        Text(configurationStatus)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button(String(localized: "particleDebug.provider.saveConfiguration")) {
+                            saveConfiguration(profile)
+                        }
+                    }
+                }
+                .padding(.top, 4)
+            }
+
+            GroupBox(String(localized: "particleDebug.provider.credential")) {
+                VStack(alignment: .leading, spacing: 10) {
+                    SecureField(
+                        String(localized: "particleDebug.provider.credentialPlaceholder"),
+                        text: $credentialInput
+                    )
+                    HStack {
+                        Text(credentialStatus)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button(String(localized: "particleDebug.provider.deleteCredential")) {
+                            credentialInput = ""
+                            deleteCredential()
+                        }
+                        Button(String(localized: "particleDebug.provider.saveCredential")) {
+                            let value = credentialInput
+                            credentialInput = ""
+                            saveCredential(value)
+                        }
+                    }
+                }
+                .padding(.top, 4)
+            }
+
+            GroupBox(String(localized: "particleDebug.provider.test")) {
+                VStack(alignment: .leading, spacing: 10) {
+                    TextField(
+                        String(localized: "particleDebug.provider.testPlaceholder"),
+                        text: $testInput
+                    )
+                    HStack {
+                        Text(String(localized: String.LocalizationValue(state.statusKey)))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        if state.isTesting {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                        Button(String(localized: "particleDebug.provider.testReply")) {
+                            let input = testInput
+                            Task {
+                                await testReply(input)
+                            }
+                        }
+                        .disabled(state.isTesting)
+                    }
+                    if !state.replyText.isEmpty {
+                        Text(state.replyText)
+                            .font(.body)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(.top, 4)
+            }
+        }
+    }
+
+    private var configurationStatus: String {
+        let isSaved = state.configurationSaved && profile == state.profile
+        return String(localized: isSaved
+            ? "particleDebug.provider.status.saved"
+            : "particleDebug.provider.status.notSaved")
+    }
+
+    private var credentialStatus: String {
+        String(localized: state.credentialSaved
+            ? "particleDebug.provider.status.credentialPresent"
+            : "particleDebug.provider.status.credentialMissing")
     }
 }
 

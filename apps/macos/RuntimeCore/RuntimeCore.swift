@@ -605,6 +605,14 @@ public final class RuntimeCore {
         self.memoryController = memoryController
     }
 
+    convenience init(providerCredentialReader: ProviderCredentialReading) {
+        let router = ProviderRouter(credentialReader: providerCredentialReader)
+        self.init(
+            executionEngine: ExecutionEngine(providerRouter: router),
+            providerRouter: router
+        )
+    }
+
     public func loadDR(from data: Data) -> RuntimeLoadResult {
         do {
             let result = try drLoader.load(request: DRLoadRequest(drData: data))
@@ -925,6 +933,17 @@ public final class RuntimeCore {
             recentMessageLimit: Self.recentDialogueMessageLimit,
             fewShotLimit: Self.fewShotSelectionLimit
         )
+    }
+
+    func configureTextProvider(profile: ProviderProfile) -> ProviderRequestError? {
+        executionEngine.configureTextProvider(profile: profile)
+    }
+
+    func testResidentReply(inputText: String) async -> Result<String, ProviderRequestError> {
+        guard let context = compileResidentDialogueContext(currentUserInput: inputText) else {
+            return .failure(.residentUnavailable)
+        }
+        return await executionEngine.testResidentReply(context: context)
     }
 
     private func recentDialogueMessages(limit: Int) -> [ResidentDialogueMessage] {

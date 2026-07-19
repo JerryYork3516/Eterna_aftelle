@@ -1,6 +1,22 @@
 import Combine
 import Foundation
 
+private enum DefaultTextProviderConfiguration {
+    static let profileDefaultsKey = "aftelle.textProviderProfile.v1"
+    static let profile = ProviderProfile(
+        profileID: "primary-text-llm",
+        providerID: "deepseek",
+        adapterType: "openai_compatible",
+        modelID: "deepseek-v4-flash",
+        baseURL: "https://api.deepseek.com",
+        keyRef: ProviderKeychainStore.keyRef,
+        enabled: true,
+        timeout: 30,
+        stream: false,
+        thinkingMode: "disabled"
+    )
+}
+
 @MainActor
 final class AppController: ObservableObject {
     private static let residentBookmarkKey = "aftelle.activeResidentBookmark.v1"
@@ -26,8 +42,13 @@ final class AppController: ObservableObject {
     @Published private(set) var particleColorProfile = ParticleCoreColorProfile.systemDefault
     @Published private(set) var particleSubtitleState = ParticleSubtitleState.hidden
     @Published private(set) var particleDebugSnapshot = ParticleDebugSnapshot.empty
+    @Published private(set) var providerDebugState = ProviderDebugViewState(
+        profile: DefaultTextProviderConfiguration.profile
+    )
 
     private let orchestrationKernel: OrchestrationKernel
+    private let providerKeychainStore: ProviderKeychainStore
+    private var activeProviderProfile: ProviderProfile?
     private var loadedResidentID = ""
     private var loadedSessionID = ""
     private var dialogueEntries: [AppDialogueEntryState] = []
@@ -42,14 +63,23 @@ final class AppController: ObservableObject {
         "particleSubtitle.test.2"
     ]
     private var debugSubtitleIndex = 0
+    private var providerTestRequestID: UUID?
+    private var providerConfigurationGeneration = 0
     #endif
 
     init() {
-        self.orchestrationKernel = OrchestrationKernel()
+        let credentialStore = ProviderKeychainStore()
+        providerKeychainStore = credentialStore
+        orchestrationKernel = OrchestrationKernel(
+            runtimeCore: RuntimeCore(providerCredentialReader: credentialStore)
+        )
+        restoreProviderConfiguration()
     }
 
     init(orchestrationKernel: OrchestrationKernel) {
         self.orchestrationKernel = orchestrationKernel
+        providerKeychainStore = ProviderKeychainStore()
+        restoreProviderConfiguration()
     }
 
     func start() {
@@ -230,6 +260,93 @@ final class AppController: ObservableObject {
         )
     }
 
+    func saveProviderConfiguration(_ profile: ProviderProfile) {
+        if let error = orchestrationKernel.configureTextProvider(profile: profile) {
+            providerDebugState.statusKey = statusKey(for: error)
+            providerDebugState.configurationSaved = activeProviderProfile != nil
+            providerDebugState.replyText = ""
+            return
+        }
+
+        guard let encoded = try? JSONEncoder().encode(profile) else {
+            providerDebugState.statusKey = "particleDebug.provider.status.configurationFailed"
+            providerDebugState.configurationSaved = false
+            return
+        }
+        UserDefaults.standard.set(encoded, forKey: DefaultTextProviderConfiguration.profileDefaultsKey)
+        activeProviderProfile = profile
+        providerConfigurationGeneration += 1
+        providerDebugState.profile = profile
+        providerDebugState.configurationSaved = true
+        providerDebugState.credentialSaved = providerKeychainStore.exists(for: profile.keyRef)
+        providerDebugState.statusKey = "particleDebug.provider.status.configurationSaved"
+        providerDebugState.replyText = ""
+    }
+
+    func saveProviderCredential(_ credential: String) {
+        do {
+            try providerKeychainStore.save(credential, for: providerDebugState.profile.keyRef)
+            providerConfigurationGeneration += 1
+            providerDebugState.credentialSaved = true
+            providerDebugState.statusKey = "particleDebug.provider.status.credentialSaved"
+        } catch {
+            providerDebugState.credentialSaved = providerKeychainStore.exists(
+                for: providerDebugState.profile.keyRef
+            )
+            providerDebugState.statusKey = "particleDebug.provider.status.credentialFailed"
+        }
+    }
+
+    func deleteProviderCredential() {
+        do {
+            try providerKeychainStore.delete(for: providerDebugState.profile.keyRef)
+            providerConfigurationGeneration += 1
+            providerDebugState.credentialSaved = false
+            providerDebugState.statusKey = "particleDebug.provider.status.credentialDeleted"
+        } catch {
+            providerDebugState.statusKey = "particleDebug.provider.status.credentialFailed"
+        }
+    }
+
+    func testResidentReply(inputText: String) async {
+        guard !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            providerDebugState.statusKey = "particleDebug.provider.status.inputRequired"
+            providerDebugState.replyText = ""
+            return
+        }
+
+        providerDebugState.isTesting = true
+        providerDebugState.statusKey = "particleDebug.provider.status.testing"
+        providerDebugState.replyText = ""
+        let requestID = UUID()
+        providerTestRequestID = requestID
+        let residentIDAtStart = loadedResidentID
+        let sessionIDAtStart = loadedSessionID
+        let profileAtStart = activeProviderProfile
+        let configurationGenerationAtStart = providerConfigurationGeneration
+        let result = await orchestrationKernel.testResidentReply(inputText: inputText)
+
+        guard providerTestRequestID == requestID else { return }
+        providerTestRequestID = nil
+        providerDebugState.isTesting = false
+        guard loadedResidentID == residentIDAtStart,
+              loadedSessionID == sessionIDAtStart,
+              activeProviderProfile == profileAtStart,
+              providerConfigurationGeneration == configurationGenerationAtStart else {
+            providerDebugState.statusKey = "particleDebug.provider.error.cancelled"
+            providerDebugState.replyText = ""
+            return
+        }
+        switch result {
+        case .success(let reply):
+            providerDebugState.statusKey = "particleDebug.provider.status.replyReceived"
+            providerDebugState.replyText = reply
+        case .failure(let error):
+            providerDebugState.statusKey = statusKey(for: error)
+            providerDebugState.replyText = ""
+        }
+    }
+
     private func showDebugSubtitle(at index: Int) {
         let key = debugSubtitleKeys[index]
         particleSubtitleState = ParticleSubtitleState(
@@ -239,6 +356,57 @@ final class AppController: ObservableObject {
         refreshParticleDebugSnapshot()
     }
     #endif
+
+    private func restoreProviderConfiguration() {
+        guard let data = UserDefaults.standard.data(
+            forKey: DefaultTextProviderConfiguration.profileDefaultsKey
+        ), let profile = try? JSONDecoder().decode(ProviderProfile.self, from: data) else {
+            providerDebugState.credentialSaved = providerKeychainStore.exists(
+                for: providerDebugState.profile.keyRef
+            )
+            return
+        }
+
+        providerDebugState.profile = profile
+        providerDebugState.credentialSaved = providerKeychainStore.exists(for: profile.keyRef)
+        if let error = orchestrationKernel.configureTextProvider(profile: profile) {
+            providerDebugState.configurationSaved = false
+            providerDebugState.statusKey = statusKey(for: error)
+            return
+        }
+        activeProviderProfile = profile
+        providerDebugState.configurationSaved = true
+        providerDebugState.statusKey = "particleDebug.provider.status.configurationSaved"
+    }
+
+    private func statusKey(for error: ProviderRequestError) -> String {
+        switch error {
+        case .unconfigured:
+            return "particleDebug.provider.error.unconfigured"
+        case .missingCredential:
+            return "particleDebug.provider.error.missingCredential"
+        case .invalidURL:
+            return "particleDebug.provider.error.invalidURL"
+        case .unauthorized:
+            return "particleDebug.provider.error.unauthorized"
+        case .rateLimited:
+            return "particleDebug.provider.error.rateLimited"
+        case .serverUnavailable:
+            return "particleDebug.provider.error.serverUnavailable"
+        case .timedOut:
+            return "particleDebug.provider.error.timedOut"
+        case .cancelled:
+            return "particleDebug.provider.error.cancelled"
+        case .networkFailure:
+            return "particleDebug.provider.error.networkFailure"
+        case .invalidResponse:
+            return "particleDebug.provider.error.invalidResponse"
+        case .emptyReply:
+            return "particleDebug.provider.error.emptyReply"
+        case .residentUnavailable:
+            return "particleDebug.provider.error.residentUnavailable"
+        }
+    }
 
     private func applyLoadResult(
         _ result: RuntimeLoadResult,

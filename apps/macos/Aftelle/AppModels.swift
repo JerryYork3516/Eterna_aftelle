@@ -593,6 +593,31 @@ public struct DebugPanelViewState: Equatable {
     }
 }
 
+struct ProviderDebugViewState: Equatable {
+    var profile: ProviderProfile
+    var configurationSaved: Bool
+    var credentialSaved: Bool
+    var isTesting: Bool
+    var statusKey: String
+    var replyText: String
+
+    init(
+        profile: ProviderProfile,
+        configurationSaved: Bool = false,
+        credentialSaved: Bool = false,
+        isTesting: Bool = false,
+        statusKey: String = "particleDebug.provider.status.ready",
+        replyText: String = ""
+    ) {
+        self.profile = profile
+        self.configurationSaved = configurationSaved
+        self.credentialSaved = credentialSaved
+        self.isTesting = isTesting
+        self.statusKey = statusKey
+        self.replyText = replyText
+    }
+}
+
 public struct OrchestrationKernelDiagnostics: Equatable {
     public var stateSummary: String
 
@@ -682,6 +707,14 @@ public final class OrchestrationKernel {
         prepare()
         lastDiagnostics = OrchestrationKernelDiagnostics(stateSummary: "passthrough_step")
         return runtimeCore.step(request: RuntimeStepRequest(residentID: residentID, inputText: inputText))
+    }
+
+    func configureTextProvider(profile: ProviderProfile) -> ProviderRequestError? {
+        runtimeCore.configureTextProvider(profile: profile)
+    }
+
+    func testResidentReply(inputText: String) async -> Result<String, ProviderRequestError> {
+        await runtimeCore.testResidentReply(inputText: inputText)
     }
 
     public func cancelCurrentStep() {
