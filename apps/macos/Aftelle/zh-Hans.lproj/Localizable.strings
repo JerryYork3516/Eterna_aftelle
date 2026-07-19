@@ -5,6 +5,9 @@
 "particleDebug.diagnosticsCaption" = "只读状态快照";
 "particleDebug.menu.title" = "调试";
 "app.menu.quit" = "退出 Aftelle";
+"residentInput.placeholder" = "输入消息…";
+"residentInput.send" = "发送";
+"residentInput.error.residentUnavailable" = "请先加载居民";
 "particleDebug.menu.togglePanel" = "显示/隐藏调试窗口";
 "particleDebug.menu.shellMode" = "Shell 模式";
 "particleDebug.menu.renderAdapter" = "渲染切换";

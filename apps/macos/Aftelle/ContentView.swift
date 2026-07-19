@@ -15,6 +15,7 @@ final class ParticlePresentationSettings: ObservableObject {
 struct ContentView: View {
     @ObservedObject var controller: AppController
     @ObservedObject var presentationSettings: ParticlePresentationSettings
+    @State private var residentInputText = ""
     #if DEBUG
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
@@ -49,6 +50,16 @@ struct ContentView: View {
             ParticleSubtitleOverlay(state: controller.particleSubtitleState)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
+            VStack {
+                Spacer()
+                ResidentTextInputBar(
+                    text: $residentInputText,
+                    state: controller.residentTextInputState,
+                    isResidentAvailable: controller.isResidentTextInputAvailable,
+                    submit: controller.submitResidentText
+                )
+            }
+
             #if DEBUG
             if presentationSettings.isOrientationOverlayVisible {
                 ParticleOrientationDebugOverlay(tuning: presentationSettings.tuning, timeSample: particleOrientationTimeSample)
@@ -72,6 +83,9 @@ struct ContentView: View {
                 newValue,
                 savedOverride: ParticleCoreColorProfile.hasSavedProfile()
             )
+        }
+        .onChange(of: controller.sessionState.sessionID) { _, _ in
+            residentInputText = ""
         }
         #if DEBUG
         .onAppear {
@@ -207,7 +221,62 @@ private struct ParticleSubtitleOverlay: View {
     }
 
     private func bottomPadding(for height: CGFloat) -> CGFloat {
-        min(max(height * 0.10, 44), 96)
+        min(max(height * 0.10, 44), 96) + 64
+    }
+}
+
+private struct ResidentTextInputBar: View {
+    @Binding var text: String
+    let state: ResidentTextInputViewState
+    let isResidentAvailable: Bool
+    let submit: (String) async -> Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 8) {
+                TextField(String(localized: "residentInput.placeholder"), text: $text)
+                    .textFieldStyle(.roundedBorder)
+                    .submitLabel(.send)
+                    .onSubmit(submitIfPossible)
+                    .disabled(isInputDisabled)
+
+                Button(String(localized: "residentInput.send"), action: submitIfPossible)
+                    .disabled(!canSubmit)
+            }
+
+            if let errorKey = state.errorKey {
+                Text(String(localized: String.LocalizationValue(errorKey)))
+                    .font(.caption)
+                    .foregroundStyle(.red.opacity(0.88))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+        }
+        .frame(maxWidth: 560)
+        .padding(.horizontal, 28)
+        .padding(.bottom, 22)
+    }
+
+    private var trimmedText: String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var isInputDisabled: Bool {
+        state.isSubmitting || !isResidentAvailable
+    }
+
+    private var canSubmit: Bool {
+        !trimmedText.isEmpty && !isInputDisabled
+    }
+
+    private func submitIfPossible() {
+        guard canSubmit else { return }
+        let submittedText = text
+        Task { @MainActor in
+            if await submit(submittedText) {
+                text = ""
+            }
+        }
     }
 }
 

@@ -5,6 +5,9 @@
 "particleDebug.diagnosticsCaption" = "Read-only state snapshot";
 "particleDebug.menu.title" = "Debug";
 "app.menu.quit" = "Quit Aftelle";
+"residentInput.placeholder" = "Type a message…";
+"residentInput.send" = "Send";
+"residentInput.error.residentUnavailable" = "Load a resident first";
 "particleDebug.menu.togglePanel" = "Show/Hide Debug Window";
 "particleDebug.menu.shellMode" = "Shell Mode";
 "particleDebug.menu.renderAdapter" = "Render Adapter";

@@ -42,6 +42,7 @@ final class AppController: ObservableObject {
     @Published private(set) var particleColorProfile = ParticleCoreColorProfile.systemDefault
     @Published private(set) var particleSubtitleState = ParticleSubtitleState.hidden
     @Published private(set) var particleDebugSnapshot = ParticleDebugSnapshot.empty
+    @Published private(set) var residentTextInputState = ResidentTextInputViewState()
     @Published private(set) var providerDebugState = ProviderDebugViewState(
         profile: DefaultTextProviderConfiguration.profile
     )
@@ -56,6 +57,9 @@ final class AppController: ObservableObject {
     private var effectiveParticleColorProfile = ParticleCoreColorProfile.systemDefault
     private var effectiveColorProfileSource = "systemDefault"
     private var effectiveColorProfileFallbackUsed = true
+    private var residentTextRequestID: UUID?
+    private var residentTextPresentationID: UUID?
+    private var providerConfigurationGeneration = 0
     #if DEBUG
     private let debugSubtitleKeys = [
         "particleSubtitle.test.0",
@@ -64,7 +68,6 @@ final class AppController: ObservableObject {
     ]
     private var debugSubtitleIndex = 0
     private var providerTestRequestID: UUID?
-    private var providerConfigurationGeneration = 0
     #endif
 
     init() {
@@ -181,6 +184,64 @@ final class AppController: ObservableObject {
         refreshParticleDebugSnapshot()
     }
 
+    var isResidentTextInputAvailable: Bool {
+        !loadedResidentID.isEmpty && !loadedSessionID.isEmpty
+    }
+
+    @discardableResult
+    func submitResidentText(_ inputText: String) async -> Bool {
+        let trimmedInput = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedInput.isEmpty, !residentTextInputState.isSubmitting else { return false }
+        guard isResidentTextInputAvailable else {
+            residentTextInputState.errorKey = "residentInput.error.residentUnavailable"
+            runtimeState = .idle
+            presentResidentTextVisualState("error")
+            return false
+        }
+
+        let requestID = UUID()
+        residentTextRequestID = requestID
+        residentTextPresentationID = nil
+        let residentIDAtStart = loadedResidentID
+        let sessionIDAtStart = loadedSessionID
+        let profileAtStart = activeProviderProfile
+        let configurationGenerationAtStart = providerConfigurationGeneration
+
+        residentTextInputState = ResidentTextInputViewState(isSubmitting: true)
+        runtimeState = .running
+        refreshParticleVisualState(visualStateMode: "thinking")
+        refreshParticleDebugSnapshot()
+
+        let result = await orchestrationKernel.requestResidentReply(inputText: trimmedInput)
+        guard residentTextRequestID == requestID else { return false }
+        residentTextRequestID = nil
+        residentTextInputState.isSubmitting = false
+
+        guard loadedResidentID == residentIDAtStart,
+              loadedSessionID == sessionIDAtStart,
+              activeProviderProfile == profileAtStart,
+              providerConfigurationGeneration == configurationGenerationAtStart else {
+            residentTextInputState.errorKey = statusKey(for: .cancelled)
+            runtimeState = .idle
+            presentResidentTextVisualState("error")
+            return false
+        }
+
+        switch result {
+        case .success(let reply):
+            residentTextInputState.errorKey = nil
+            particleSubtitleState = ParticleSubtitleState(text: reply, phase: .showing)
+            runtimeState = .idle
+            presentResidentTextVisualState("speaking")
+            return true
+        case .failure(let error):
+            residentTextInputState.errorKey = statusKey(for: error)
+            runtimeState = .idle
+            presentResidentTextVisualState("error")
+            return false
+        }
+    }
+
     #if DEBUG
     func setParticleAvatarMode(_ mode: ParticleAvatarMode) {
         particleAvatarMode = mode
@@ -234,6 +295,7 @@ final class AppController: ObservableObject {
     }
 
     func debugImportResident(from url: URL) {
+        invalidateResidentTextSubmission()
         startupState = .loading
         refreshParticleVisualState()
         let hasScopedAccess = url.startAccessingSecurityScopedResource()
@@ -406,6 +468,29 @@ final class AppController: ObservableObject {
         case .residentUnavailable:
             return "particleDebug.provider.error.residentUnavailable"
         }
+    }
+
+    private func presentResidentTextVisualState(_ visualStateMode: String) {
+        let presentationID = UUID()
+        residentTextPresentationID = presentationID
+        refreshParticleVisualState(visualStateMode: visualStateMode)
+        refreshParticleDebugSnapshot()
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 900_000_000)
+            guard let self,
+                  self.residentTextPresentationID == presentationID,
+                  !self.residentTextInputState.isSubmitting else { return }
+            self.residentTextPresentationID = nil
+            self.refreshParticleVisualState()
+            self.refreshParticleDebugSnapshot()
+        }
+    }
+
+    private func invalidateResidentTextSubmission() {
+        residentTextRequestID = nil
+        residentTextPresentationID = nil
+        residentTextInputState = ResidentTextInputViewState()
+        runtimeState = .idle
     }
 
     private func applyLoadResult(

@@ -618,6 +618,11 @@ struct ProviderDebugViewState: Equatable {
     }
 }
 
+struct ResidentTextInputViewState: Equatable {
+    var isSubmitting = false
+    var errorKey: String?
+}
+
 public struct OrchestrationKernelDiagnostics: Equatable {
     public var stateSummary: String
 
@@ -714,6 +719,10 @@ public final class OrchestrationKernel {
     }
 
     func testResidentReply(inputText: String) async -> Result<String, ProviderRequestError> {
+        await requestResidentReply(inputText: inputText)
+    }
+
+    func requestResidentReply(inputText: String) async -> Result<String, ProviderRequestError> {
         await runtimeCore.testResidentReply(inputText: inputText)
     }
 
