@@ -1,5 +1,9 @@
 import Combine
 import Foundation
+#if DEBUG
+import AppKit
+import UniformTypeIdentifiers
+#endif
 
 private enum DefaultTextProviderConfiguration {
     static let profileDefaultsKey = "aftelle.textProviderProfile.v1"
@@ -46,6 +50,9 @@ final class AppController: ObservableObject {
     @Published private(set) var providerDebugState = ProviderDebugViewState(
         profile: DefaultTextProviderConfiguration.profile
     )
+    #if DEBUG
+    @Published private(set) var dialogueAuditState = DialogueAuditViewState()
+    #endif
 
     private let orchestrationKernel: OrchestrationKernel
     private let providerKeychainStore: ProviderKeychainStore
@@ -211,6 +218,9 @@ final class AppController: ObservableObject {
         runtimeState = .running
         refreshParticleVisualState(visualStateMode: "thinking")
         refreshParticleDebugSnapshot()
+        #if DEBUG
+        appendDialogueAuditUser(trimmedInput)
+        #endif
 
         let result = await orchestrationKernel.requestResidentReply(inputText: trimmedInput)
         guard residentTextRequestID == requestID else { return false }
@@ -248,6 +258,9 @@ final class AppController: ObservableObject {
             sessionState.lastUserInput = trimmedInput
             sessionState.lastResidentOutput = reply
             sessionState.dialogueEntries = dialogueEntries
+            #if DEBUG
+            appendDialogueAuditResident(reply, displayName: avatarState.displayName)
+            #endif
             residentTextInputState.errorKey = nil
             particleSubtitleState = ParticleSubtitleState(text: reply, phase: .showing)
             runtimeState = .idle
@@ -262,6 +275,124 @@ final class AppController: ObservableObject {
     }
 
     #if DEBUG
+    func copyDialogueAudit() {
+        copyDialogueAudit { text in
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            return pasteboard.setString(text, forType: .string)
+        }
+    }
+
+    func copyDialogueAudit(using writer: (String) -> Bool) {
+        guard writer(dialogueAuditTranscript()) else {
+            dialogueAuditState.statusKey = "dialogueAudit.status.copyFailed"
+            return
+        }
+        dialogueAuditState.statusKey = "dialogueAudit.status.copied"
+    }
+
+    func exportDialogueAudit() {
+        let exportedAt = Date()
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.plainText]
+        panel.canCreateDirectories = true
+        panel.title = String(localized: "dialogueAudit.chooseLocation")
+        panel.nameFieldStringValue = dialogueAuditFileName(exportedAt: exportedAt)
+
+        panel.begin { [weak self] response in
+            guard response == .OK, let url = panel.url, let self else { return }
+            do {
+                try self.writeDialogueAudit(to: url, exportedAt: exportedAt)
+                self.dialogueAuditState.statusKey = "dialogueAudit.status.exported"
+            } catch {
+                self.dialogueAuditState.statusKey = "dialogueAudit.status.exportFailed"
+            }
+        }
+    }
+
+    func clearDialogueAudit() {
+        dialogueAuditState.clear()
+    }
+
+    func dialogueAuditTranscript() -> String {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.dateStyle = .none
+        formatter.timeStyle = .medium
+        return dialogueAuditState.entries.map { entry in
+            "[\(formatter.string(from: entry.timestamp))] \(entry.displayName)\n\(entry.text)"
+        }.joined(separator: "\n\n")
+    }
+
+    func dialogueAuditExportText(exportedAt: Date = Date()) -> String {
+        let residentName = currentAuditResidentDisplayName
+        let modelID = activeProviderProfile?.modelID ?? "-"
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = .current
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .medium
+        let header = [
+            String(localized: "dialogueAudit.export.title"),
+            localizedFormat("dialogueAudit.export.resident", residentName),
+            localizedFormat("dialogueAudit.export.model", modelID),
+            localizedFormat("dialogueAudit.export.time", dateFormatter.string(from: exportedAt)),
+            localizedFormat("dialogueAudit.export.count", dialogueAuditState.entries.count)
+        ].joined(separator: "\n")
+        let transcript = dialogueAuditTranscript()
+        return transcript.isEmpty ? header : "\(header)\n\n\(transcript)"
+    }
+
+    func writeDialogueAudit(to url: URL, exportedAt: Date = Date()) throws {
+        let data = Data(dialogueAuditExportText(exportedAt: exportedAt).utf8)
+        try data.write(to: url, options: [.withoutOverwriting])
+    }
+
+    private func appendDialogueAuditUser(_ text: String) {
+        dialogueAuditState.append(DialogueAuditEntry(
+            role: .user,
+            displayName: String(localized: "dialogueAudit.role.user"),
+            text: text
+        ))
+    }
+
+    private func appendDialogueAuditResident(_ text: String, displayName: String) {
+        dialogueAuditState.append(DialogueAuditEntry(
+            role: .resident,
+            displayName: displayName.isEmpty
+                ? String(localized: "dialogueAudit.role.resident")
+                : displayName,
+            text: text
+        ))
+    }
+
+    private var currentAuditResidentDisplayName: String {
+        avatarState.displayName.isEmpty
+            ? String(localized: "dialogueAudit.role.resident")
+            : avatarState.displayName
+    }
+
+    private func dialogueAuditFileName(exportedAt: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        let residentName = currentAuditResidentDisplayName.map { character in
+            "/\\:?*|\"<>".contains(character) ? "_" : character
+        }
+        return localizedFormat(
+            "dialogueAudit.fileName",
+            String(residentName),
+            formatter.string(from: exportedAt)
+        )
+    }
+
+    private func localizedFormat(_ key: String, _ arguments: CVarArg...) -> String {
+        String(
+            format: String(localized: String.LocalizationValue(key)),
+            locale: Locale.current,
+            arguments: arguments
+        )
+    }
+
     func setParticleAvatarMode(_ mode: ParticleAvatarMode) {
         particleAvatarMode = mode
         particleRenderKind = mode == .abstractBustReserved ? .abstractBustReserved : .particleCore

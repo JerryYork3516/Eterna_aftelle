@@ -504,6 +504,7 @@ struct ParticleDebugWindow: View {
         ParticleDebugPanel(
             snapshot: controller.particleDebugSnapshot,
             providerState: controller.providerDebugState,
+            dialogueAuditState: controller.dialogueAuditState,
             shellMode: controller.particleShellMode,
             renderKind: controller.particleRenderKind,
             tuning: $presentationSettings.tuning,
@@ -522,7 +523,10 @@ struct ParticleDebugWindow: View {
             saveProviderConfiguration: controller.saveProviderConfiguration,
             saveProviderCredential: controller.saveProviderCredential,
             deleteProviderCredential: controller.deleteProviderCredential,
-            testResidentReply: controller.testResidentReply
+            testResidentReply: controller.testResidentReply,
+            copyDialogueAudit: controller.copyDialogueAudit,
+            exportDialogueAudit: controller.exportDialogueAudit,
+            clearDialogueAudit: controller.clearDialogueAudit
         )
         .onAppear {
             controller.setParticleDebugPanelPresented(true)
@@ -605,6 +609,7 @@ private enum ParticleTuningGroup: String, CaseIterable, Identifiable {
 private struct ParticleDebugPanel: View {
     let snapshot: ParticleDebugSnapshot
     let providerState: ProviderDebugViewState
+    let dialogueAuditState: DialogueAuditViewState
     let shellMode: ParticleShellMode
     let renderKind: ParticleRenderKind
     @Binding var tuning: ParticleCoreTuning
@@ -619,6 +624,9 @@ private struct ParticleDebugPanel: View {
     let saveProviderCredential: (String) -> Void
     let deleteProviderCredential: () -> Void
     let testResidentReply: (String) async -> Void
+    let copyDialogueAudit: () -> Void
+    let exportDialogueAudit: () -> Void
+    let clearDialogueAudit: () -> Void
     @State private var section: ParticleDebugSection = .diagnostics
     @State private var tuningGroup: ParticleTuningGroup = .basics
 
@@ -682,13 +690,21 @@ private struct ParticleDebugPanel: View {
                     case .diagnostics:
                         ParticleDiagnosticsView(snapshot: snapshot)
                     case .provider:
-                        TextProviderDebugView(
-                            state: providerState,
-                            saveConfiguration: saveProviderConfiguration,
-                            saveCredential: saveProviderCredential,
-                            deleteCredential: deleteProviderCredential,
-                            testReply: testResidentReply
-                        )
+                        VStack(spacing: 14) {
+                            TextProviderDebugView(
+                                state: providerState,
+                                saveConfiguration: saveProviderConfiguration,
+                                saveCredential: saveProviderCredential,
+                                deleteCredential: deleteProviderCredential,
+                                testReply: testResidentReply
+                            )
+                            DialogueAuditDebugView(
+                                state: dialogueAuditState,
+                                copyAll: copyDialogueAudit,
+                                exportText: exportDialogueAudit,
+                                clear: clearDialogueAudit
+                            )
+                        }
                     case .shell:
                         ParticleShellModeView(
                             snapshot: snapshot,
@@ -811,6 +827,76 @@ private struct ParticleDebugPanel: View {
             colorProfile.save()
             refreshColorProfileSnapshot()
         }
+    }
+}
+
+private struct DialogueAuditDebugView: View {
+    let state: DialogueAuditViewState
+    let copyAll: () -> Void
+    let exportText: () -> Void
+    let clear: () -> Void
+    @State private var isExpanded = false
+
+    var body: some View {
+        DisclosureGroup(isExpanded: $isExpanded) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(localizedCount)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Text(String(localized: "dialogueAudit.privacyNotice"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if state.entries.isEmpty {
+                    Text(String(localized: "dialogueAudit.empty"))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 90)
+                } else {
+                    ScrollView(.vertical) {
+                        LazyVStack(alignment: .leading, spacing: 12) {
+                            ForEach(state.entries) { entry in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("[\(entry.timestamp.formatted(date: .omitted, time: .standard))] \(entry.displayName)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text(entry.text)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .textSelection(.enabled)
+                                }
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 260)
+                }
+
+                HStack {
+                    Button(String(localized: "dialogueAudit.copyAll"), action: copyAll)
+                    Button(String(localized: "dialogueAudit.export"), action: exportText)
+                    Spacer()
+                    Button(String(localized: "dialogueAudit.clear"), action: clear)
+                }
+                .disabled(state.entries.isEmpty)
+
+                if let statusKey = state.statusKey {
+                    Text(String(localized: String.LocalizationValue(statusKey)))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.top, 8)
+        } label: {
+            Text(String(localized: "dialogueAudit.title"))
+        }
+    }
+
+    private var localizedCount: String {
+        String(
+            format: String(localized: "dialogueAudit.count"),
+            locale: Locale.current,
+            state.entries.count
+        )
     }
 }
 

@@ -425,6 +425,55 @@ public struct AppDialogueEntryState: Equatable, Identifiable {
     }
 }
 
+#if DEBUG
+enum DialogueAuditRole: Equatable {
+    case user
+    case resident
+}
+
+struct DialogueAuditEntry: Equatable, Identifiable {
+    let id: UUID
+    let timestamp: Date
+    let role: DialogueAuditRole
+    let displayName: String
+    let text: String
+
+    init(
+        id: UUID = UUID(),
+        timestamp: Date = Date(),
+        role: DialogueAuditRole,
+        displayName: String,
+        text: String
+    ) {
+        self.id = id
+        self.timestamp = timestamp
+        self.role = role
+        self.displayName = displayName
+        self.text = text
+    }
+}
+
+struct DialogueAuditViewState: Equatable {
+    static let capacity = 200
+
+    private(set) var entries: [DialogueAuditEntry] = []
+    var statusKey: String?
+
+    mutating func append(_ entry: DialogueAuditEntry) {
+        entries.append(entry)
+        if entries.count > Self.capacity {
+            entries.removeFirst(entries.count - Self.capacity)
+        }
+        statusKey = nil
+    }
+
+    mutating func clear() {
+        entries.removeAll(keepingCapacity: true)
+        statusKey = nil
+    }
+}
+#endif
+
 public struct AppSessionState: Equatable {
     public var residentID: String
     public var sessionID: String
