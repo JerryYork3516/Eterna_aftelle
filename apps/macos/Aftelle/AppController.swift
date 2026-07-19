@@ -229,6 +229,25 @@ final class AppController: ObservableObject {
 
         switch result {
         case .success(let reply):
+            let timestamp = ISO8601DateFormatter().string(from: Date())
+            dialogueEntries.append(AppDialogueEntryState(
+                id: "user-\(UUID().uuidString)",
+                role: "user",
+                text: trimmedInput,
+                timestamp: timestamp
+            ))
+            dialogueEntries.append(AppDialogueEntryState(
+                id: "resident-\(UUID().uuidString)",
+                role: "resident",
+                text: reply,
+                timestamp: timestamp
+            ))
+            dialogueEntries = Array(dialogueEntries.suffix(8))
+            sessionState.residentID = residentIDAtStart
+            sessionState.sessionID = sessionIDAtStart
+            sessionState.lastUserInput = trimmedInput
+            sessionState.lastResidentOutput = reply
+            sessionState.dialogueEntries = dialogueEntries
             residentTextInputState.errorKey = nil
             particleSubtitleState = ParticleSubtitleState(text: reply, phase: .showing)
             runtimeState = .idle

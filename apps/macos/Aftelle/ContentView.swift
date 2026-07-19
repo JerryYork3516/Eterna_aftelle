@@ -8,7 +8,7 @@ final class ParticlePresentationSettings: ObservableObject {
     @Published var tuning = ParticleCoreTuning.loadSaved()
     @Published var colorProfile = ParticleCoreColorProfile.loadSaved() ?? .systemDefault
     #if DEBUG
-    @Published var isOrientationOverlayVisible = true
+    @Published var isOrientationOverlayVisible = false
     #endif
 }
 
@@ -47,11 +47,9 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .ignoresSafeArea()
 
-            ParticleSubtitleOverlay(state: controller.particleSubtitleState)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            VStack {
+            VStack(spacing: 12) {
                 Spacer()
+                ParticleSubtitleOverlay(state: controller.particleSubtitleState)
                 ResidentTextInputBar(
                     text: $residentInputText,
                     state: controller.residentTextInputState,
@@ -193,35 +191,23 @@ private struct ParticleSubtitleOverlay: View {
     let state: ParticleSubtitleState
 
     var body: some View {
-        GeometryReader { proxy in
-            VStack {
-                Spacer()
-
-                if !state.text.isEmpty {
-                    Text(state.text)
-                        .font(.system(size: 15, weight: .regular))
-                        .foregroundStyle(Color.white.opacity(0.78))
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.86)
-                        .truncationMode(.tail)
-                        .frame(maxWidth: max(240, proxy.size.width * 0.62))
-                        .shadow(color: .black.opacity(0.36), radius: 8, x: 0, y: 2)
-                        .opacity(state.phase == .fading ? 0 : 1)
-                        .transition(.opacity)
-                }
+        if !state.text.isEmpty {
+            ScrollView(.vertical) {
+                Text(state.text)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(Color.white.opacity(0.78))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .shadow(color: .black.opacity(0.36), radius: 8, x: 0, y: 2)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .id(state.text)
+            .frame(maxWidth: 560, maxHeight: 112)
             .padding(.horizontal, 28)
-            .padding(.bottom, bottomPadding(for: proxy.size.height))
+            .opacity(state.phase == .fading ? 0 : 1)
+            .transition(.opacity)
+            .animation(.easeInOut(duration: 0.28), value: state)
         }
-        .animation(.easeInOut(duration: 0.28), value: state)
-        .allowsHitTesting(false)
-        .accessibilityHidden(state.text.isEmpty)
-    }
-
-    private func bottomPadding(for height: CGFloat) -> CGFloat {
-        min(max(height * 0.10, 44), 96) + 64
     }
 }
 

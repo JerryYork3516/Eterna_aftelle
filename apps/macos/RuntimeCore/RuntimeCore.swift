@@ -940,10 +940,78 @@ public final class RuntimeCore {
     }
 
     func testResidentReply(inputText: String) async -> Result<String, ProviderRequestError> {
-        guard let context = compileResidentDialogueContext(currentUserInput: inputText) else {
+        guard let sessionAtStart = sessionContext,
+              let context = compileResidentDialogueContext(currentUserInput: inputText) else {
             return .failure(.residentUnavailable)
         }
-        return await executionEngine.testResidentReply(context: context)
+        let result = await executionEngine.testResidentReply(context: context)
+        guard sessionContext == sessionAtStart else { return result }
+        if case .success(let reply) = result {
+            persistResidentDialogueExchange(
+                userInput: inputText,
+                residentReply: reply,
+                session: sessionAtStart
+            )
+        }
+        return result
+    }
+
+    private func persistResidentDialogueExchange(
+        userInput: String,
+        residentReply: String,
+        session: RuntimeSessionContext
+    ) {
+        guard sessionContext == session else { return }
+        let now = Date()
+        let existingRecord = try? sessionStore.load(sessionID: session.sessionID.rawValue)
+        let lastActivity = existingRecord?.lastActivity ?? ""
+        let record = SessionStoreRecord(
+            schemaVersion: existingRecord?.schemaVersion ?? SessionStore.schemaVersion,
+            residentID: session.residentID,
+            sessionID: session.sessionID.rawValue,
+            createdAt: existingRecord?.createdAt ?? now,
+            updatedAt: now,
+            lastUserInput: userInput,
+            lastResidentOutput: residentReply,
+            lastActivity: lastActivity,
+            shutdownState: existingRecord?.shutdownState ?? .unclean,
+            recoveryRequired: existingRecord?.recoveryRequired ?? false,
+            recoveredAt: existingRecord?.recoveredAt
+        )
+        try? sessionStore.save(record: record)
+
+        let previousEntries = recentDialogueMessages(
+            limit: max(0, Self.recentDialogueMessageLimit - 2)
+        ).map {
+            SessionDialogueEntry(role: $0.role, text: $0.text, timestamp: $0.timestamp)
+        }
+        let entries = Array((previousEntries + [
+            SessionDialogueEntry(role: "user", text: userInput, timestamp: now),
+            SessionDialogueEntry(role: "resident", text: residentReply, timestamp: now)
+        ]).suffix(Self.recentDialogueMessageLimit))
+        try? sessionStore.saveDialogueEntries(entries, for: session.sessionID.rawValue)
+
+        let savedDisplayCache = try? sessionStore.loadDisplayCache()
+        let displayCache = savedDisplayCache?.residentID == session.residentID
+            && savedDisplayCache?.sessionID == session.sessionID.rawValue
+            ? savedDisplayCache
+            : nil
+        try? sessionStore.saveDisplayCache(SessionDisplayCache(
+            residentID: session.residentID,
+            sessionID: session.sessionID.rawValue,
+            lastUserInput: userInput,
+            lastResidentOutput: residentReply,
+            lastActivity: lastActivity,
+            avatarMode: displayCache?.avatarMode ?? "idle",
+            avatarPresence: displayCache?.avatarPresence ?? "unknown",
+            avatarMoodHint: displayCache?.avatarMoodHint ?? "",
+            avatarActivityHint: displayCache?.avatarActivityHint ?? "",
+            avatarParticleHint: displayCache?.avatarParticleHint ?? "",
+            shutdownState: record.shutdownState,
+            recoveryRequired: record.recoveryRequired,
+            recoveredAt: record.recoveredAt,
+            updatedAt: now
+        ))
     }
 
     private func recentDialogueMessages(limit: Int) -> [ResidentDialogueMessage] {
