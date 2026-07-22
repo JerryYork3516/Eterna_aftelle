@@ -306,11 +306,11 @@
 "runtimeOrchestration.error.resident_unavailable" = "Resident Unavailable";
 "runtimeOrchestration.error.stale_session" = "Session Changed";
 "runtimeOrchestration.step.input_received" = "Input Received";
-"runtimeOrchestration.step.resident_session_confirmed" = "Resident / Session Confirmed";
-"runtimeOrchestration.step.context_compiled" = "Dialogue Context Compiled";
-"runtimeOrchestration.step.context_selected" = "Recent Messages and Few-shot Selected";
+"runtimeOrchestration.step.resident_session_confirmed" = "Resident and Session Confirmed";
+"runtimeOrchestration.step.context_compiled" = "Context Compiled";
+"runtimeOrchestration.step.context_selected" = "Context Selected";
 "runtimeOrchestration.step.memory_checked" = "Memory Sources Checked";
-"runtimeOrchestration.step.provider_routed" = "Provider / Model Routed";
+"runtimeOrchestration.step.provider_routed" = "Provider Routed";
 "runtimeOrchestration.step.request_completed" = "Request Completed";
 "runtimeOrchestration.step.session_persisted" = "Session Written";
 "runtimeOrchestration.step.presentation_updated" = "Subtitle and Particle Updated";

@@ -668,9 +668,8 @@ final class AppController: ObservableObject {
     }
 
     private func runtimeOrchestrationLocalizedValue(_ namespace: String, _ value: String) -> String {
-        String(
-            localized: String.LocalizationValue("runtimeOrchestration.\(namespace).\(value)")
-        )
+        let key = "runtimeOrchestration.\(namespace).\(value)"
+        return Bundle.main.localizedString(forKey: key, value: key, table: nil)
     }
 
     private func completeRuntimeOrchestrationPresentation(

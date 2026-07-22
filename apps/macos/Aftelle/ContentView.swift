@@ -1174,7 +1174,8 @@ private struct RuntimeOrchestrationDebugView: View {
     }
 
     private func localizedValue(_ namespace: String, _ value: String) -> String {
-        String(localized: String.LocalizationValue("runtimeOrchestration.\(namespace).\(value)"))
+        let key = "runtimeOrchestration.\(namespace).\(value)"
+        return Bundle.main.localizedString(forKey: key, value: key, table: nil)
     }
 
     private func localizedMilliseconds(_ value: Int) -> String {
