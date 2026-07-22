@@ -426,6 +426,80 @@ public struct AppDialogueEntryState: Equatable, Identifiable {
 }
 
 #if DEBUG
+struct RuntimeOrchestrationFewShotViewState: Equatable, Identifiable {
+    let exampleID: String
+    let kind: String
+
+    var id: String { "\(kind):\(exampleID)" }
+}
+
+struct RuntimeOrchestrationStepViewState: Equatable, Identifiable {
+    let kind: String
+    let status: String
+    let durationMilliseconds: Int
+
+    var id: String { kind }
+}
+
+struct RuntimeOrchestrationInteractionViewState: Equatable, Identifiable {
+    let id: UUID
+    let residentID: String
+    let sessionID: String
+    let startedAt: Date
+    let endedAt: Date
+    let durationMilliseconds: Int
+    let dailyRulesEnabled: Bool
+    let emotionalRulesEnabled: Bool
+    let recentMessageCount: Int
+    let fewShotReferences: [RuntimeOrchestrationFewShotViewState]
+    let approvedPreferenceCount: Int
+    let providerID: String?
+    let modelID: String?
+    let adapterType: String?
+    let result: String
+    let errorCategory: String?
+    let sessionWriteStatus: String
+    let subtitleState: String
+    let particleState: String
+    let steps: [RuntimeOrchestrationStepViewState]
+
+    init(_ interaction: RuntimeOrchestrationInteraction) {
+        id = interaction.id
+        residentID = interaction.residentID
+        sessionID = interaction.sessionID
+        startedAt = interaction.startedAt
+        endedAt = interaction.endedAt
+        durationMilliseconds = interaction.durationMilliseconds
+        dailyRulesEnabled = interaction.dailyRulesEnabled
+        emotionalRulesEnabled = interaction.emotionalRulesEnabled
+        recentMessageCount = interaction.recentMessageCount
+        fewShotReferences = interaction.fewShotReferences.map {
+            RuntimeOrchestrationFewShotViewState(exampleID: $0.exampleID, kind: $0.kind)
+        }
+        approvedPreferenceCount = interaction.approvedPreferenceCount
+        providerID = interaction.provider?.providerID
+        modelID = interaction.provider?.modelID
+        adapterType = interaction.provider?.adapterType
+        result = interaction.result.rawValue
+        errorCategory = interaction.errorCategory
+        sessionWriteStatus = interaction.sessionWriteStatus.rawValue
+        subtitleState = interaction.subtitleState
+        particleState = interaction.particleState
+        steps = interaction.steps.map {
+            RuntimeOrchestrationStepViewState(
+                kind: $0.kind.rawValue,
+                status: $0.status.rawValue,
+                durationMilliseconds: $0.durationMilliseconds
+            )
+        }
+    }
+}
+
+struct RuntimeOrchestrationViewState: Equatable {
+    var interactions: [RuntimeOrchestrationInteractionViewState] = []
+    var statusKey: String?
+}
+
 enum DialogueAuditRole: Equatable {
     case user
     case resident
@@ -722,6 +796,34 @@ public final class OrchestrationKernel {
     func clearDialogueTestData() throws -> String? {
         try runtimeCore.clearDialogueTestData()
     }
+
+    func runtimeOrchestrationViewState() -> RuntimeOrchestrationViewState {
+        RuntimeOrchestrationViewState(
+            interactions: runtimeCore.runtimeOrchestrationSnapshot().map(
+                RuntimeOrchestrationInteractionViewState.init
+            )
+        )
+    }
+
+    func completeRuntimeOrchestrationPresentation(
+        interactionID: UUID,
+        expectedSessionID: String,
+        subtitleState: String,
+        particleState: String,
+        status: RuntimeOrchestrationStepStatus
+    ) {
+        runtimeCore.completeRuntimeOrchestrationPresentation(
+            interactionID: interactionID,
+            expectedSessionID: expectedSessionID,
+            subtitleState: subtitleState,
+            particleState: particleState,
+            status: status
+        )
+    }
+
+    func clearRuntimeOrchestrationRecords() {
+        runtimeCore.clearRuntimeOrchestrationRecords()
+    }
     #endif
 
     func consumeFirstAppearance(
@@ -773,12 +875,18 @@ public final class OrchestrationKernel {
         runtimeCore.configureTextProvider(profile: profile)
     }
 
-    func testResidentReply(inputText: String) async -> Result<String, ProviderRequestError> {
-        await requestResidentReply(inputText: inputText)
+    func testResidentReply(
+        inputText: String,
+        interactionID: UUID? = nil
+    ) async -> Result<String, ProviderRequestError> {
+        await requestResidentReply(inputText: inputText, interactionID: interactionID)
     }
 
-    func requestResidentReply(inputText: String) async -> Result<String, ProviderRequestError> {
-        await runtimeCore.testResidentReply(inputText: inputText)
+    func requestResidentReply(
+        inputText: String,
+        interactionID: UUID? = nil
+    ) async -> Result<String, ProviderRequestError> {
+        await runtimeCore.testResidentReply(inputText: inputText, interactionID: interactionID)
     }
 
     public func cancelCurrentStep() {

@@ -295,6 +295,16 @@ struct ResidentDialogueMessage: Equatable {
     let timestamp: Date
 }
 
+struct ResidentDialogueFewShotReference: Equatable {
+    let exampleID: String
+    let kind: String
+}
+
+private struct ResidentDialogueFewShotSelection {
+    let example: RuntimeDialogueFewShotExample
+    let kind: String
+}
+
 struct ResidentDialogueContextSummary: Equatable {
     let instructionCount: Int
     let scenarioCount: Int
@@ -323,6 +333,7 @@ struct ResidentDialogueContext: Equatable {
     let memoryPolicy: RuntimeMemoryPolicyProjection
     let scenarios: [RuntimeDialogueScenario]
     let selectedFewShots: [RuntimeDialogueFewShotExample]
+    let selectedFewShotReferences: [ResidentDialogueFewShotReference]
     let requestedFewShotSelectionMode: String
     let appliedFewShotSelectionMode: String
     let prohibitedPatterns: [RuntimeDialogueProhibitedPattern]
@@ -355,11 +366,15 @@ struct ResidentDialogueContextSource: Equatable {
                 emotionalDialogue?.fewShotSelection.base.recommendedMaxExamplesPerRequest ?? Int.max
             )
         )
-        let selectedFewShots = selectFewShots(
+        let selectedFewShotSelection = selectFewShots(
             base: eligibleFewShots(projection.fewShotExamples),
             emotional: eligibleFewShots(emotionalDialogue?.fewShotExamples ?? []),
             limit: configuredFewShotLimit
         )
+        let selectedFewShots = selectedFewShotSelection.map(\.example)
+        let selectedFewShotReferences = selectedFewShotSelection.map {
+            ResidentDialogueFewShotReference(exampleID: $0.example.exampleID, kind: $0.kind)
+        }
         let prohibitedPatterns = projection.prohibitedPatterns.filter { $0.status == "forbidden" }
             + (emotionalDialogue?.prohibitedPatterns.enumerated().map { index, reason in
                 RuntimeDialogueProhibitedPattern(
@@ -456,6 +471,7 @@ struct ResidentDialogueContextSource: Equatable {
             memoryPolicy: memoryPolicy,
             scenarios: scenarios,
             selectedFewShots: selectedFewShots,
+            selectedFewShotReferences: selectedFewShotReferences,
             requestedFewShotSelectionMode: projection.fewShotSelection.selectionMode,
             appliedFewShotSelectionMode: emotionalDialogue == nil
                 ? "deterministic_baseline"
@@ -541,15 +557,21 @@ struct ResidentDialogueContextSource: Equatable {
         base: [RuntimeDialogueFewShotExample],
         emotional: [RuntimeDialogueFewShotExample],
         limit: Int
-    ) -> [RuntimeDialogueFewShotExample] {
+    ) -> [ResidentDialogueFewShotSelection] {
         guard limit > 0 else { return [] }
-        guard !emotional.isEmpty else { return Array(base.prefix(limit)) }
-        guard !base.isEmpty else { return Array(emotional.prefix(limit)) }
+        let baseSelections = base.map { ResidentDialogueFewShotSelection(example: $0, kind: "daily") }
+        let emotionalSelections = emotional.map {
+            ResidentDialogueFewShotSelection(example: $0, kind: "emotional")
+        }
+        guard !emotionalSelections.isEmpty else { return Array(baseSelections.prefix(limit)) }
+        guard !baseSelections.isEmpty else { return Array(emotionalSelections.prefix(limit)) }
 
-        let baseCount = min(base.count, (limit + 1) / 2)
-        let emotionalCount = min(emotional.count, limit / 2)
-        var selected = Array(base.prefix(baseCount)) + Array(emotional.prefix(emotionalCount))
-        let remaining = Array(base.dropFirst(baseCount)) + Array(emotional.dropFirst(emotionalCount))
+        let baseCount = min(baseSelections.count, (limit + 1) / 2)
+        let emotionalCount = min(emotionalSelections.count, limit / 2)
+        var selected = Array(baseSelections.prefix(baseCount))
+            + Array(emotionalSelections.prefix(emotionalCount))
+        let remaining = Array(baseSelections.dropFirst(baseCount))
+            + Array(emotionalSelections.dropFirst(emotionalCount))
         selected.append(contentsOf: remaining.prefix(max(0, limit - selected.count)))
         return selected
     }
@@ -703,6 +725,81 @@ public struct RuntimeSessionRestoreResult {
     }
 }
 
+#if DEBUG
+enum RuntimeOrchestrationStepKind: String, CaseIterable {
+    case inputReceived = "input_received"
+    case residentSessionConfirmed = "resident_session_confirmed"
+    case contextCompiled = "context_compiled"
+    case contextSelected = "context_selected"
+    case memoryChecked = "memory_checked"
+    case providerRouted = "provider_routed"
+    case requestCompleted = "request_completed"
+    case sessionPersisted = "session_persisted"
+    case presentationUpdated = "presentation_updated"
+}
+
+enum RuntimeOrchestrationStepStatus: String {
+    case pending
+    case completed
+    case failed
+    case cancelled
+    case skipped
+}
+
+enum RuntimeOrchestrationResultStatus: String {
+    case success
+    case failure
+    case cancelled
+}
+
+enum RuntimeOrchestrationSessionWriteStatus: String {
+    case saved
+    case failed
+    case skipped
+}
+
+struct RuntimeOrchestrationProviderMetadata: Equatable {
+    let providerID: String
+    let modelID: String
+    let adapterType: String
+}
+
+struct RuntimeOrchestrationFewShotReference: Equatable {
+    let exampleID: String
+    let kind: String
+}
+
+struct RuntimeOrchestrationStep: Equatable {
+    let kind: RuntimeOrchestrationStepKind
+    var status: RuntimeOrchestrationStepStatus
+    var durationMilliseconds: Int
+}
+
+struct RuntimeOrchestrationInteraction: Equatable, Identifiable {
+    let id: UUID
+    let residentID: String
+    let sessionID: String
+    let startedAt: Date
+    var endedAt: Date
+    let dailyRulesEnabled: Bool
+    let emotionalRulesEnabled: Bool
+    let recentMessageCount: Int
+    let fewShotReferences: [RuntimeOrchestrationFewShotReference]
+    let approvedPreferenceCount: Int
+    let provider: RuntimeOrchestrationProviderMetadata?
+    var result: RuntimeOrchestrationResultStatus
+    var errorCategory: String?
+    var sessionWriteStatus: RuntimeOrchestrationSessionWriteStatus
+    var subtitleState: String
+    var particleState: String
+    var steps: [RuntimeOrchestrationStep]
+
+    var durationMilliseconds: Int {
+        max(0, Int(endedAt.timeIntervalSince(startedAt) * 1_000))
+    }
+}
+#endif
+
 public final class RuntimeCore {
     static let recentDialogueMessageLimit = 8
     static let fewShotSelectionLimit = 4
@@ -721,6 +818,11 @@ public final class RuntimeCore {
     private(set) var currentDialogueContextSource: ResidentDialogueContextSource?
     private var handledFirstAppearanceResidentIDs: Set<String> = []
     private var clockState = RuntimeClockState()
+    #if DEBUG
+    private static let runtimeOrchestrationCapacity = 50
+    private var runtimeOrchestrationRecords: [RuntimeOrchestrationInteraction] = []
+    private var runtimeOrchestrationProviderMetadata: RuntimeOrchestrationProviderMetadata?
+    #endif
 
     public init(
         drLoader: DRLoader = DRLoader(),
@@ -1069,23 +1171,194 @@ public final class RuntimeCore {
     }
 
     func configureTextProvider(profile: ProviderProfile) -> ProviderRequestError? {
-        executionEngine.configureTextProvider(profile: profile)
+        let error = executionEngine.configureTextProvider(profile: profile)
+        #if DEBUG
+        if error == nil {
+            runtimeOrchestrationProviderMetadata = profile.enabled
+                ? RuntimeOrchestrationProviderMetadata(
+                    providerID: profile.providerID,
+                    modelID: profile.modelID,
+                    adapterType: profile.adapterType
+                )
+                : nil
+        }
+        #endif
+        return error
     }
 
-    func testResidentReply(inputText: String) async -> Result<String, ProviderRequestError> {
-        guard let sessionAtStart = sessionContext,
-              let context = compileResidentDialogueContext(currentUserInput: inputText) else {
+    func testResidentReply(
+        inputText: String,
+        interactionID: UUID? = nil
+    ) async -> Result<String, ProviderRequestError> {
+        #if DEBUG
+        let orchestrationID = interactionID ?? UUID()
+        let orchestrationStartedAt = Date()
+        let orchestrationProviderMetadata = runtimeOrchestrationProviderMetadata
+        let orchestrationEmotionalRulesEnabled =
+            currentDialogueContextSource?.projection.emotionalDialogue?.enabled == true
+        var orchestrationSteps = [runtimeOrchestrationStep(
+            .inputReceived,
+            status: .completed,
+            startedAt: orchestrationStartedAt
+        )]
+        let sessionConfirmationStartedAt = Date()
+        #endif
+
+        guard let sessionAtStart = sessionContext else {
+            #if DEBUG
+            orchestrationSteps.append(runtimeOrchestrationStep(
+                .residentSessionConfirmed,
+                status: .failed,
+                startedAt: sessionConfirmationStartedAt
+            ))
+            appendRuntimeOrchestrationRecord(
+                id: orchestrationID,
+                session: nil,
+                startedAt: orchestrationStartedAt,
+                context: nil,
+                result: .failure(.residentUnavailable),
+                sessionWriteStatus: .skipped,
+                steps: orchestrationSteps,
+                presentationPending: true,
+                providerMetadata: orchestrationProviderMetadata,
+                emotionalRulesEnabled: orchestrationEmotionalRulesEnabled
+            )
+            #endif
             return .failure(.residentUnavailable)
         }
+
+        #if DEBUG
+        orchestrationSteps.append(runtimeOrchestrationStep(
+            .residentSessionConfirmed,
+            status: .completed,
+            startedAt: sessionConfirmationStartedAt
+        ))
+        let contextCompilationStartedAt = Date()
+        #endif
+        guard let context = compileResidentDialogueContext(currentUserInput: inputText) else {
+            #if DEBUG
+            orchestrationSteps.append(runtimeOrchestrationStep(
+                .contextCompiled,
+                status: .failed,
+                startedAt: contextCompilationStartedAt
+            ))
+            appendRuntimeOrchestrationRecord(
+                id: orchestrationID,
+                session: sessionAtStart,
+                startedAt: orchestrationStartedAt,
+                context: nil,
+                result: .failure(.residentUnavailable),
+                sessionWriteStatus: .skipped,
+                steps: orchestrationSteps,
+                presentationPending: true,
+                providerMetadata: orchestrationProviderMetadata,
+                emotionalRulesEnabled: orchestrationEmotionalRulesEnabled
+            )
+            #endif
+            return .failure(.residentUnavailable)
+        }
+
+        #if DEBUG
+        orchestrationSteps.append(runtimeOrchestrationStep(
+            .contextCompiled,
+            status: .completed,
+            startedAt: contextCompilationStartedAt
+        ))
+        orchestrationSteps.append(runtimeOrchestrationStep(
+            .contextSelected,
+            status: .completed,
+            startedAt: Date()
+        ))
+        orchestrationSteps.append(runtimeOrchestrationStep(
+            .memoryChecked,
+            status: .completed,
+            startedAt: Date()
+        ))
+        orchestrationSteps.append(runtimeOrchestrationStep(
+            .providerRouted,
+            status: orchestrationProviderMetadata == nil ? .failed : .completed,
+            startedAt: Date()
+        ))
+        let requestStartedAt = Date()
+        #endif
         let result = await executionEngine.testResidentReply(context: context)
-        guard sessionContext == sessionAtStart else { return result }
+
+        #if DEBUG
+        orchestrationSteps.append(runtimeOrchestrationStep(
+            .requestCompleted,
+            status: runtimeOrchestrationStepStatus(for: result),
+            startedAt: requestStartedAt
+        ))
+        #endif
+        guard sessionContext == sessionAtStart else {
+            #if DEBUG
+            orchestrationSteps.append(runtimeOrchestrationStep(
+                .sessionPersisted,
+                status: .skipped,
+                startedAt: Date()
+            ))
+            orchestrationSteps.append(runtimeOrchestrationStep(
+                .presentationUpdated,
+                status: .skipped,
+                startedAt: Date()
+            ))
+            appendRuntimeOrchestrationRecord(
+                id: orchestrationID,
+                session: sessionAtStart,
+                startedAt: orchestrationStartedAt,
+                context: context,
+                result: .failure(.cancelled),
+                errorCategoryOverride: "stale_session",
+                sessionWriteStatus: .skipped,
+                steps: orchestrationSteps,
+                presentationPending: false,
+                providerMetadata: orchestrationProviderMetadata,
+                emotionalRulesEnabled: orchestrationEmotionalRulesEnabled
+            )
+            #endif
+            return result
+        }
+
+        var sessionWriteSucceeded = false
+        #if DEBUG
+        let sessionWriteStartedAt = Date()
+        #endif
         if case .success(let reply) = result {
-            persistResidentDialogueExchange(
+            sessionWriteSucceeded = persistResidentDialogueExchange(
                 userInput: inputText,
                 residentReply: reply,
                 session: sessionAtStart
             )
         }
+        #if DEBUG
+        let sessionWriteStatus: RuntimeOrchestrationSessionWriteStatus
+        let sessionStepStatus: RuntimeOrchestrationStepStatus
+        switch result {
+        case .success:
+            sessionWriteStatus = sessionWriteSucceeded ? .saved : .failed
+            sessionStepStatus = sessionWriteSucceeded ? .completed : .failed
+        case .failure:
+            sessionWriteStatus = .skipped
+            sessionStepStatus = .skipped
+        }
+        orchestrationSteps.append(runtimeOrchestrationStep(
+            .sessionPersisted,
+            status: sessionStepStatus,
+            startedAt: sessionWriteStartedAt
+        ))
+        appendRuntimeOrchestrationRecord(
+            id: orchestrationID,
+            session: sessionAtStart,
+            startedAt: orchestrationStartedAt,
+            context: context,
+            result: result,
+            sessionWriteStatus: sessionWriteStatus,
+            steps: orchestrationSteps,
+            presentationPending: true,
+            providerMetadata: orchestrationProviderMetadata,
+            emotionalRulesEnabled: orchestrationEmotionalRulesEnabled
+        )
+        #endif
         return result
     }
 
@@ -1093,8 +1366,9 @@ public final class RuntimeCore {
         userInput: String,
         residentReply: String,
         session: RuntimeSessionContext
-    ) {
-        guard sessionContext == session else { return }
+    ) -> Bool {
+        guard sessionContext == session else { return false }
+        var writeSucceeded = true
         let now = Date()
         let existingRecord = try? sessionStore.load(sessionID: session.sessionID.rawValue)
         let lastActivity = existingRecord?.lastActivity ?? ""
@@ -1111,7 +1385,11 @@ public final class RuntimeCore {
             recoveryRequired: existingRecord?.recoveryRequired ?? false,
             recoveredAt: existingRecord?.recoveredAt
         )
-        try? sessionStore.save(record: record)
+        do {
+            try sessionStore.save(record: record)
+        } catch {
+            writeSucceeded = false
+        }
 
         let previousEntries = recentDialogueMessages(
             limit: max(0, Self.recentDialogueMessageLimit - 2)
@@ -1122,29 +1400,38 @@ public final class RuntimeCore {
             SessionDialogueEntry(role: "user", text: userInput, timestamp: now),
             SessionDialogueEntry(role: "resident", text: residentReply, timestamp: now)
         ]).suffix(Self.recentDialogueMessageLimit))
-        try? sessionStore.saveDialogueEntries(entries, for: session.sessionID.rawValue)
+        do {
+            try sessionStore.saveDialogueEntries(entries, for: session.sessionID.rawValue)
+        } catch {
+            writeSucceeded = false
+        }
 
         let savedDisplayCache = try? sessionStore.loadDisplayCache()
         let displayCache = savedDisplayCache?.residentID == session.residentID
             && savedDisplayCache?.sessionID == session.sessionID.rawValue
             ? savedDisplayCache
             : nil
-        try? sessionStore.saveDisplayCache(SessionDisplayCache(
-            residentID: session.residentID,
-            sessionID: session.sessionID.rawValue,
-            lastUserInput: userInput,
-            lastResidentOutput: residentReply,
-            lastActivity: lastActivity,
-            avatarMode: displayCache?.avatarMode ?? "idle",
-            avatarPresence: displayCache?.avatarPresence ?? "unknown",
-            avatarMoodHint: displayCache?.avatarMoodHint ?? "",
-            avatarActivityHint: displayCache?.avatarActivityHint ?? "",
-            avatarParticleHint: displayCache?.avatarParticleHint ?? "",
-            shutdownState: record.shutdownState,
-            recoveryRequired: record.recoveryRequired,
-            recoveredAt: record.recoveredAt,
-            updatedAt: now
-        ))
+        do {
+            try sessionStore.saveDisplayCache(SessionDisplayCache(
+                residentID: session.residentID,
+                sessionID: session.sessionID.rawValue,
+                lastUserInput: userInput,
+                lastResidentOutput: residentReply,
+                lastActivity: lastActivity,
+                avatarMode: displayCache?.avatarMode ?? "idle",
+                avatarPresence: displayCache?.avatarPresence ?? "unknown",
+                avatarMoodHint: displayCache?.avatarMoodHint ?? "",
+                avatarActivityHint: displayCache?.avatarActivityHint ?? "",
+                avatarParticleHint: displayCache?.avatarParticleHint ?? "",
+                shutdownState: record.shutdownState,
+                recoveryRequired: record.recoveryRequired,
+                recoveredAt: record.recoveredAt,
+                updatedAt: now
+            ))
+        } catch {
+            writeSucceeded = false
+        }
+        return writeSucceeded
     }
 
     private func recentDialogueMessages(limit: Int) -> [ResidentDialogueMessage] {
@@ -1161,6 +1448,44 @@ public final class RuntimeCore {
     }
 
     #if DEBUG
+    func runtimeOrchestrationSnapshot() -> [RuntimeOrchestrationInteraction] {
+        runtimeOrchestrationRecords
+    }
+
+    func completeRuntimeOrchestrationPresentation(
+        interactionID: UUID,
+        expectedSessionID: String,
+        subtitleState: String,
+        particleState: String,
+        status: RuntimeOrchestrationStepStatus
+    ) {
+        guard let index = runtimeOrchestrationRecords.firstIndex(where: { $0.id == interactionID }),
+              runtimeOrchestrationRecords[index].sessionID == expectedSessionID,
+              (sessionContext?.sessionID.rawValue ?? "") == expectedSessionID else {
+            return
+        }
+        let completedAt = Date()
+        let presentationStartedAt = runtimeOrchestrationRecords[index].endedAt
+        let duration = max(0, Int(completedAt.timeIntervalSince(presentationStartedAt) * 1_000))
+        if let stepIndex = runtimeOrchestrationRecords[index].steps.firstIndex(where: {
+            $0.kind == .presentationUpdated
+        }) {
+            runtimeOrchestrationRecords[index].steps[stepIndex].status = status
+            runtimeOrchestrationRecords[index].steps[stepIndex].durationMilliseconds = duration
+        }
+        runtimeOrchestrationRecords[index].subtitleState = runtimeOrchestrationPresentationState(
+            subtitleState
+        )
+        runtimeOrchestrationRecords[index].particleState = runtimeOrchestrationPresentationState(
+            particleState
+        )
+        runtimeOrchestrationRecords[index].endedAt = completedAt
+    }
+
+    func clearRuntimeOrchestrationRecords() {
+        runtimeOrchestrationRecords.removeAll(keepingCapacity: true)
+    }
+
     func clearDialogueTestData() throws -> String? {
         let residentID = currentResidentIdentity?.residentID
         try sessionStore.clearDialogueTestData(
@@ -1178,6 +1503,136 @@ public final class RuntimeCore {
         memoryController.setActiveResidentID(residentID)
         cancellationState = .none
         return sessionID.rawValue
+    }
+
+    private func appendRuntimeOrchestrationRecord(
+        id: UUID,
+        session: RuntimeSessionContext?,
+        startedAt: Date,
+        context: ResidentDialogueContext?,
+        result: Result<String, ProviderRequestError>,
+        errorCategoryOverride: String? = nil,
+        sessionWriteStatus: RuntimeOrchestrationSessionWriteStatus,
+        steps: [RuntimeOrchestrationStep],
+        presentationPending: Bool,
+        providerMetadata: RuntimeOrchestrationProviderMetadata?,
+        emotionalRulesEnabled: Bool
+    ) {
+        let normalizedSteps = RuntimeOrchestrationStepKind.allCases.map { kind in
+            if let step = steps.first(where: { $0.kind == kind }) {
+                return step
+            }
+            return RuntimeOrchestrationStep(
+                kind: kind,
+                status: kind == .presentationUpdated && presentationPending ? .pending : .skipped,
+                durationMilliseconds: 0
+            )
+        }
+        let interaction = RuntimeOrchestrationInteraction(
+            id: id,
+            residentID: session?.residentID ?? currentResidentIdentity?.residentID ?? "",
+            sessionID: session?.sessionID.rawValue ?? "",
+            startedAt: startedAt,
+            endedAt: Date(),
+            dailyRulesEnabled: context != nil,
+            emotionalRulesEnabled: context != nil && emotionalRulesEnabled,
+            recentMessageCount: context?.summary.recentMessageCount ?? 0,
+            fewShotReferences: context?.selectedFewShotReferences.map {
+                RuntimeOrchestrationFewShotReference(exampleID: $0.exampleID, kind: $0.kind)
+            } ?? [],
+            approvedPreferenceCount: context?.summary.approvedPreferenceCount ?? 0,
+            provider: providerMetadata,
+            result: runtimeOrchestrationResultStatus(for: result),
+            errorCategory: errorCategoryOverride ?? runtimeOrchestrationErrorCategory(for: result),
+            sessionWriteStatus: sessionWriteStatus,
+            subtitleState: presentationPending ? "pending" : "skipped",
+            particleState: presentationPending ? "pending" : "skipped",
+            steps: normalizedSteps
+        )
+        runtimeOrchestrationRecords.append(interaction)
+        if runtimeOrchestrationRecords.count > Self.runtimeOrchestrationCapacity {
+            runtimeOrchestrationRecords.removeFirst(
+                runtimeOrchestrationRecords.count - Self.runtimeOrchestrationCapacity
+            )
+        }
+    }
+
+    private func runtimeOrchestrationStep(
+        _ kind: RuntimeOrchestrationStepKind,
+        status: RuntimeOrchestrationStepStatus,
+        startedAt: Date
+    ) -> RuntimeOrchestrationStep {
+        RuntimeOrchestrationStep(
+            kind: kind,
+            status: status,
+            durationMilliseconds: max(0, Int(Date().timeIntervalSince(startedAt) * 1_000))
+        )
+    }
+
+    private func runtimeOrchestrationStepStatus(
+        for result: Result<String, ProviderRequestError>
+    ) -> RuntimeOrchestrationStepStatus {
+        switch result {
+        case .success:
+            return .completed
+        case .failure(.cancelled):
+            return .cancelled
+        case .failure:
+            return .failed
+        }
+    }
+
+    private func runtimeOrchestrationResultStatus(
+        for result: Result<String, ProviderRequestError>
+    ) -> RuntimeOrchestrationResultStatus {
+        switch result {
+        case .success:
+            return .success
+        case .failure(.cancelled):
+            return .cancelled
+        case .failure:
+            return .failure
+        }
+    }
+
+    private func runtimeOrchestrationErrorCategory(
+        for result: Result<String, ProviderRequestError>
+    ) -> String? {
+        guard case .failure(let error) = result else { return nil }
+        switch error {
+        case .unconfigured:
+            return "unconfigured"
+        case .missingCredential:
+            return "missing_credential"
+        case .invalidURL:
+            return "invalid_url"
+        case .unauthorized:
+            return "unauthorized"
+        case .rateLimited:
+            return "rate_limited"
+        case .serverUnavailable:
+            return "server_unavailable"
+        case .timedOut:
+            return "timed_out"
+        case .cancelled:
+            return "cancelled"
+        case .networkFailure:
+            return "network_failure"
+        case .invalidResponse:
+            return "invalid_response"
+        case .emptyReply:
+            return "empty_reply"
+        case .residentUnavailable:
+            return "resident_unavailable"
+        }
+    }
+
+    private func runtimeOrchestrationPresentationState(_ value: String) -> String {
+        let allowed = [
+            "pending", "hidden", "showing", "fading", "idle", "loading", "thinking",
+            "speaking", "error", "exit", "unchanged", "skipped", "unknown"
+        ]
+        return allowed.contains(value) ? value : "unknown"
     }
     #endif
 

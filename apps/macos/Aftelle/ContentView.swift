@@ -505,6 +505,7 @@ struct ParticleDebugWindow: View {
             snapshot: controller.particleDebugSnapshot,
             providerState: controller.providerDebugState,
             dialogueAuditState: controller.dialogueAuditState,
+            runtimeOrchestrationState: controller.runtimeOrchestrationState,
             shellMode: controller.particleShellMode,
             renderKind: controller.particleRenderKind,
             tuning: $presentationSettings.tuning,
@@ -527,7 +528,10 @@ struct ParticleDebugWindow: View {
             copyDialogueAudit: controller.copyDialogueAudit,
             exportDialogueAudit: controller.exportDialogueAudit,
             clearDialogueAudit: controller.clearDialogueAudit,
-            clearDialogueTestData: controller.clearDialogueTestData
+            clearDialogueTestData: controller.clearDialogueTestData,
+            copyRuntimeOrchestration: controller.copyRuntimeOrchestrationInteraction,
+            exportRuntimeOrchestration: controller.exportRuntimeOrchestrationInteraction,
+            clearRuntimeOrchestration: controller.clearRuntimeOrchestrationRecords
         )
         .onAppear {
             controller.setParticleDebugPanelPresented(true)
@@ -611,6 +615,7 @@ private struct ParticleDebugPanel: View {
     let snapshot: ParticleDebugSnapshot
     let providerState: ProviderDebugViewState
     let dialogueAuditState: DialogueAuditViewState
+    let runtimeOrchestrationState: RuntimeOrchestrationViewState
     let shellMode: ParticleShellMode
     let renderKind: ParticleRenderKind
     @Binding var tuning: ParticleCoreTuning
@@ -629,6 +634,9 @@ private struct ParticleDebugPanel: View {
     let exportDialogueAudit: () -> Void
     let clearDialogueAudit: () -> Void
     let clearDialogueTestData: () -> Void
+    let copyRuntimeOrchestration: (UUID) -> Void
+    let exportRuntimeOrchestration: (UUID) -> Void
+    let clearRuntimeOrchestration: () -> Void
     @State private var section: ParticleDebugSection = .diagnostics
     @State private var tuningGroup: ParticleTuningGroup = .basics
 
@@ -706,6 +714,12 @@ private struct ParticleDebugPanel: View {
                                 exportText: exportDialogueAudit,
                                 clear: clearDialogueAudit,
                                 clearTestData: clearDialogueTestData
+                            )
+                            RuntimeOrchestrationDebugView(
+                                state: runtimeOrchestrationState,
+                                copyInteraction: copyRuntimeOrchestration,
+                                exportInteraction: exportRuntimeOrchestration,
+                                clear: clearRuntimeOrchestration
                             )
                         }
                     case .shell:
@@ -918,6 +932,210 @@ private struct DialogueAuditDebugView: View {
             format: String(localized: "dialogueAudit.count"),
             locale: Locale.current,
             state.entries.count
+        )
+    }
+}
+
+private struct RuntimeOrchestrationDebugView: View {
+    let state: RuntimeOrchestrationViewState
+    let copyInteraction: (UUID) -> Void
+    let exportInteraction: (UUID) -> Void
+    let clear: () -> Void
+    @State private var isExpanded = false
+
+    var body: some View {
+        DisclosureGroup(isExpanded: $isExpanded) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(localizedCount)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(String(localized: "runtimeOrchestration.privacyNotice"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if state.interactions.isEmpty {
+                    Text(String(localized: "runtimeOrchestration.empty"))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 90)
+                } else {
+                    LazyVStack(alignment: .leading, spacing: 10) {
+                        ForEach(Array(state.interactions.reversed())) { interaction in
+                            interactionView(interaction)
+                        }
+                    }
+                }
+
+                HStack {
+                    Spacer()
+                    Button(String(localized: "runtimeOrchestration.clear"), action: clear)
+                        .disabled(state.interactions.isEmpty)
+                }
+
+                if let statusKey = state.statusKey {
+                    Text(String(localized: String.LocalizationValue(statusKey)))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.top, 8)
+        } label: {
+            Text(String(localized: "runtimeOrchestration.title"))
+        }
+    }
+
+    private func interactionView(
+        _ interaction: RuntimeOrchestrationInteractionViewState
+    ) -> some View {
+        DisclosureGroup {
+            VStack(alignment: .leading, spacing: 6) {
+                detailRow("runtimeOrchestration.field.interactionID", interaction.id.uuidString)
+                detailRow("runtimeOrchestration.field.residentID", interaction.residentID)
+                detailRow("runtimeOrchestration.field.sessionID", interaction.sessionID)
+                detailRow(
+                    "runtimeOrchestration.field.startedAt",
+                    interaction.startedAt.formatted(date: .abbreviated, time: .standard)
+                )
+                detailRow(
+                    "runtimeOrchestration.field.endedAt",
+                    interaction.endedAt.formatted(date: .abbreviated, time: .standard)
+                )
+                detailRow(
+                    "runtimeOrchestration.field.duration",
+                    localizedMilliseconds(interaction.durationMilliseconds)
+                )
+                detailRow(
+                    "runtimeOrchestration.field.dailyRules",
+                    localizedValue("boolean", interaction.dailyRulesEnabled ? "enabled" : "disabled")
+                )
+                detailRow(
+                    "runtimeOrchestration.field.emotionalRules",
+                    localizedValue(
+                        "boolean",
+                        interaction.emotionalRulesEnabled ? "enabled" : "disabled"
+                    )
+                )
+                detailRow(
+                    "runtimeOrchestration.field.recentMessages",
+                    String(interaction.recentMessageCount)
+                )
+                detailRow(
+                    "runtimeOrchestration.field.fewShotCount",
+                    String(interaction.fewShotReferences.count)
+                )
+                ForEach(interaction.fewShotReferences) { reference in
+                    detailRow(
+                        "runtimeOrchestration.field.fewShot",
+                        "\(reference.exampleID) · \(localizedValue("fewShotKind", reference.kind))"
+                    )
+                }
+                detailRow(
+                    "runtimeOrchestration.field.preferenceCount",
+                    String(interaction.approvedPreferenceCount)
+                )
+                detailRow(
+                    "runtimeOrchestration.field.provider",
+                    interaction.providerID ?? String(localized: "runtimeOrchestration.unavailable")
+                )
+                detailRow(
+                    "runtimeOrchestration.field.model",
+                    interaction.modelID ?? String(localized: "runtimeOrchestration.unavailable")
+                )
+                detailRow(
+                    "runtimeOrchestration.field.adapter",
+                    interaction.adapterType ?? String(localized: "runtimeOrchestration.unavailable")
+                )
+                detailRow(
+                    "runtimeOrchestration.field.result",
+                    localizedValue("result", interaction.result)
+                )
+                detailRow(
+                    "runtimeOrchestration.field.error",
+                    interaction.errorCategory.map { localizedValue("error", $0) }
+                        ?? String(localized: "runtimeOrchestration.none")
+                )
+                detailRow(
+                    "runtimeOrchestration.field.sessionWrite",
+                    localizedValue("sessionWrite", interaction.sessionWriteStatus)
+                )
+                detailRow(
+                    "runtimeOrchestration.field.subtitle",
+                    localizedValue("presentation", interaction.subtitleState)
+                )
+                detailRow(
+                    "runtimeOrchestration.field.particle",
+                    localizedValue("presentation", interaction.particleState)
+                )
+
+                Divider()
+                Text(String(localized: "runtimeOrchestration.timeline"))
+                    .font(.caption.weight(.semibold))
+                ForEach(interaction.steps) { step in
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(localizedValue("step", step.kind))
+                        Spacer(minLength: 8)
+                        Text(localizedValue("status", step.status))
+                            .foregroundStyle(.secondary)
+                        Text(localizedMilliseconds(step.durationMilliseconds))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.caption)
+                }
+
+                HStack {
+                    Button(String(localized: "runtimeOrchestration.copy")) {
+                        copyInteraction(interaction.id)
+                    }
+                    Button(String(localized: "runtimeOrchestration.export")) {
+                        exportInteraction(interaction.id)
+                    }
+                }
+            }
+            .padding(.top, 6)
+        } label: {
+            HStack {
+                Text(String(interaction.id.uuidString.prefix(8)))
+                    .monospaced()
+                Spacer()
+                Text(localizedValue("result", interaction.result))
+                    .foregroundStyle(.secondary)
+                Text(localizedMilliseconds(interaction.durationMilliseconds))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+            .font(.caption)
+        }
+    }
+
+    private func detailRow(_ key: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(String(localized: String.LocalizationValue(key)))
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 8)
+            Text(value)
+                .multilineTextAlignment(.trailing)
+                .textSelection(.enabled)
+        }
+        .font(.caption)
+    }
+
+    private func localizedValue(_ namespace: String, _ value: String) -> String {
+        String(localized: String.LocalizationValue("runtimeOrchestration.\(namespace).\(value)"))
+    }
+
+    private func localizedMilliseconds(_ value: Int) -> String {
+        String(
+            format: String(localized: "runtimeOrchestration.milliseconds"),
+            locale: Locale.current,
+            value
+        )
+    }
+
+    private var localizedCount: String {
+        String(
+            format: String(localized: "runtimeOrchestration.count"),
+            locale: Locale.current,
+            state.interactions.count
         )
     }
 }

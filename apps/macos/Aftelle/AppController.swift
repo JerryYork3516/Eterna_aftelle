@@ -52,6 +52,7 @@ final class AppController: ObservableObject {
     )
     #if DEBUG
     @Published private(set) var dialogueAuditState = DialogueAuditViewState()
+    @Published private(set) var runtimeOrchestrationState = RuntimeOrchestrationViewState()
     #endif
 
     private let orchestrationKernel: OrchestrationKernel
@@ -225,11 +226,25 @@ final class AppController: ObservableObject {
         #endif
 
         let requestTask = Task {
-            await orchestrationKernel.requestResidentReply(inputText: trimmedInput)
+            await orchestrationKernel.requestResidentReply(
+                inputText: trimmedInput,
+                interactionID: requestID
+            )
         }
         residentTextTask = requestTask
         let result = await requestTask.value
-        guard residentTextRequestID == requestID else { return false }
+        guard residentTextRequestID == requestID else {
+            #if DEBUG
+            completeRuntimeOrchestrationPresentation(
+                interactionID: requestID,
+                expectedSessionID: sessionIDAtStart,
+                subtitleState: "skipped",
+                particleState: "skipped",
+                status: .skipped
+            )
+            #endif
+            return false
+        }
         residentTextRequestID = nil
         residentTextTask = nil
         residentTextInputState.isSubmitting = false
@@ -241,6 +256,15 @@ final class AppController: ObservableObject {
             residentTextInputState.errorKey = statusKey(for: .cancelled)
             runtimeState = .idle
             presentResidentTextVisualState("error")
+            #if DEBUG
+            completeRuntimeOrchestrationPresentation(
+                interactionID: requestID,
+                expectedSessionID: sessionIDAtStart,
+                subtitleState: String(describing: particleSubtitleState.phase),
+                particleState: String(describing: particleVisualState),
+                status: .completed
+            )
+            #endif
             return false
         }
 
@@ -272,11 +296,29 @@ final class AppController: ObservableObject {
             particleSubtitleState = ParticleSubtitleState(text: reply, phase: .showing)
             runtimeState = .idle
             presentResidentTextVisualState("speaking")
+            #if DEBUG
+            completeRuntimeOrchestrationPresentation(
+                interactionID: requestID,
+                expectedSessionID: sessionIDAtStart,
+                subtitleState: String(describing: particleSubtitleState.phase),
+                particleState: String(describing: particleVisualState),
+                status: .completed
+            )
+            #endif
             return true
         case .failure(let error):
             residentTextInputState.errorKey = statusKey(for: error)
             runtimeState = .idle
             presentResidentTextVisualState("error")
+            #if DEBUG
+            completeRuntimeOrchestrationPresentation(
+                interactionID: requestID,
+                expectedSessionID: sessionIDAtStart,
+                subtitleState: String(describing: particleSubtitleState.phase),
+                particleState: String(describing: particleVisualState),
+                status: .completed
+            )
+            #endif
             return false
         }
     }
@@ -319,6 +361,175 @@ final class AppController: ObservableObject {
 
     func clearDialogueAudit() {
         dialogueAuditState.clear()
+    }
+
+    func copyRuntimeOrchestrationInteraction(_ interactionID: UUID) {
+        copyRuntimeOrchestrationInteraction(interactionID) { text in
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            return pasteboard.setString(text, forType: .string)
+        }
+    }
+
+    func copyRuntimeOrchestrationInteraction(
+        _ interactionID: UUID,
+        using writer: (String) -> Bool
+    ) {
+        guard let text = runtimeOrchestrationTranscript(interactionID: interactionID),
+              writer(text) else {
+            runtimeOrchestrationState.statusKey = "runtimeOrchestration.status.copyFailed"
+            return
+        }
+        runtimeOrchestrationState.statusKey = "runtimeOrchestration.status.copied"
+    }
+
+    func exportRuntimeOrchestrationInteraction(_ interactionID: UUID) {
+        guard runtimeOrchestrationState.interactions.contains(where: { $0.id == interactionID }) else {
+            runtimeOrchestrationState.statusKey = "runtimeOrchestration.status.exportFailed"
+            return
+        }
+        let exportedAt = Date()
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.plainText]
+        panel.canCreateDirectories = true
+        panel.title = String(localized: "runtimeOrchestration.chooseLocation")
+        panel.nameFieldStringValue = runtimeOrchestrationFileName(
+            interactionID: interactionID,
+            exportedAt: exportedAt
+        )
+
+        panel.begin { [weak self] response in
+            guard response == .OK, let url = panel.url, let self else { return }
+            do {
+                try self.writeRuntimeOrchestrationInteraction(
+                    interactionID,
+                    to: url,
+                    exportedAt: exportedAt
+                )
+                self.runtimeOrchestrationState.statusKey = "runtimeOrchestration.status.exported"
+            } catch {
+                self.runtimeOrchestrationState.statusKey = "runtimeOrchestration.status.exportFailed"
+            }
+        }
+    }
+
+    func clearRuntimeOrchestrationRecords() {
+        orchestrationKernel.clearRuntimeOrchestrationRecords()
+        runtimeOrchestrationState = RuntimeOrchestrationViewState(
+            statusKey: "runtimeOrchestration.status.cleared"
+        )
+    }
+
+    func runtimeOrchestrationTranscript(
+        interactionID: UUID,
+        exportedAt: Date = Date()
+    ) -> String? {
+        guard let interaction = runtimeOrchestrationState.interactions.first(where: {
+            $0.id == interactionID
+        }) else {
+            return nil
+        }
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = .current
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .medium
+        let fewShotLines = interaction.fewShotReferences.map {
+            localizedFormat(
+                "runtimeOrchestration.export.fewShot",
+                $0.exampleID,
+                runtimeOrchestrationLocalizedValue("fewShotKind", $0.kind)
+            )
+        }
+        let stepLines = interaction.steps.map {
+            localizedFormat(
+                "runtimeOrchestration.export.step",
+                runtimeOrchestrationLocalizedValue("step", $0.kind),
+                runtimeOrchestrationLocalizedValue("status", $0.status),
+                $0.durationMilliseconds
+            )
+        }
+        let lines = [
+            String(localized: "runtimeOrchestration.export.title"),
+            localizedFormat("runtimeOrchestration.export.interactionID", interaction.id.uuidString),
+            localizedFormat("runtimeOrchestration.export.residentID", interaction.residentID),
+            localizedFormat("runtimeOrchestration.export.sessionID", interaction.sessionID),
+            localizedFormat(
+                "runtimeOrchestration.export.startedAt",
+                dateFormatter.string(from: interaction.startedAt)
+            ),
+            localizedFormat(
+                "runtimeOrchestration.export.endedAt",
+                dateFormatter.string(from: interaction.endedAt)
+            ),
+            localizedFormat("runtimeOrchestration.export.duration", interaction.durationMilliseconds),
+            localizedFormat(
+                "runtimeOrchestration.export.dailyRules",
+                runtimeOrchestrationLocalizedValue(
+                    "boolean",
+                    interaction.dailyRulesEnabled ? "enabled" : "disabled"
+                )
+            ),
+            localizedFormat(
+                "runtimeOrchestration.export.emotionalRules",
+                runtimeOrchestrationLocalizedValue(
+                    "boolean",
+                    interaction.emotionalRulesEnabled ? "enabled" : "disabled"
+                )
+            ),
+            localizedFormat("runtimeOrchestration.export.recentMessages", interaction.recentMessageCount),
+            localizedFormat("runtimeOrchestration.export.fewShotCount", interaction.fewShotReferences.count)
+        ] + fewShotLines + [
+            localizedFormat(
+                "runtimeOrchestration.export.preferenceCount",
+                interaction.approvedPreferenceCount
+            ),
+            localizedFormat("runtimeOrchestration.export.provider", interaction.providerID ?? "-"),
+            localizedFormat("runtimeOrchestration.export.model", interaction.modelID ?? "-"),
+            localizedFormat("runtimeOrchestration.export.adapter", interaction.adapterType ?? "-"),
+            localizedFormat(
+                "runtimeOrchestration.export.result",
+                runtimeOrchestrationLocalizedValue("result", interaction.result)
+            ),
+            localizedFormat(
+                "runtimeOrchestration.export.error",
+                interaction.errorCategory.map {
+                    runtimeOrchestrationLocalizedValue("error", $0)
+                } ?? "-"
+            ),
+            localizedFormat(
+                "runtimeOrchestration.export.sessionWrite",
+                runtimeOrchestrationLocalizedValue("sessionWrite", interaction.sessionWriteStatus)
+            ),
+            localizedFormat(
+                "runtimeOrchestration.export.subtitle",
+                runtimeOrchestrationLocalizedValue("presentation", interaction.subtitleState)
+            ),
+            localizedFormat(
+                "runtimeOrchestration.export.particle",
+                runtimeOrchestrationLocalizedValue("presentation", interaction.particleState)
+            ),
+            localizedFormat(
+                "runtimeOrchestration.export.exportedAt",
+                dateFormatter.string(from: exportedAt)
+            ),
+            "",
+            String(localized: "runtimeOrchestration.export.timeline")
+        ] + stepLines
+        return lines.joined(separator: "\n")
+    }
+
+    func writeRuntimeOrchestrationInteraction(
+        _ interactionID: UUID,
+        to url: URL,
+        exportedAt: Date = Date()
+    ) throws {
+        guard let text = runtimeOrchestrationTranscript(
+            interactionID: interactionID,
+            exportedAt: exportedAt
+        ) else {
+            throw CocoaError(.fileNoSuchFile)
+        }
+        try Data(text.utf8).write(to: url, options: .withoutOverwriting)
     }
 
     func clearDialogueTestData() {
@@ -442,6 +653,47 @@ final class AppController: ObservableObject {
         )
     }
 
+    private func runtimeOrchestrationFileName(
+        interactionID: UUID,
+        exportedAt: Date
+    ) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.dateFormat = "yyyyMMdd_HHmmss"
+        return localizedFormat(
+            "runtimeOrchestration.fileName",
+            String(interactionID.uuidString.prefix(8)),
+            formatter.string(from: exportedAt)
+        )
+    }
+
+    private func runtimeOrchestrationLocalizedValue(_ namespace: String, _ value: String) -> String {
+        String(
+            localized: String.LocalizationValue("runtimeOrchestration.\(namespace).\(value)")
+        )
+    }
+
+    private func completeRuntimeOrchestrationPresentation(
+        interactionID: UUID,
+        expectedSessionID: String,
+        subtitleState: String,
+        particleState: String,
+        status: RuntimeOrchestrationStepStatus
+    ) {
+        orchestrationKernel.completeRuntimeOrchestrationPresentation(
+            interactionID: interactionID,
+            expectedSessionID: expectedSessionID,
+            subtitleState: subtitleState,
+            particleState: particleState,
+            status: status
+        )
+        refreshRuntimeOrchestrationState()
+    }
+
+    private func refreshRuntimeOrchestrationState() {
+        runtimeOrchestrationState = orchestrationKernel.runtimeOrchestrationViewState()
+    }
+
     func setParticleAvatarMode(_ mode: ParticleAvatarMode) {
         particleAvatarMode = mode
         particleRenderKind = mode == .abstractBustReserved ? .abstractBustReserved : .particleCore
@@ -460,6 +712,9 @@ final class AppController: ObservableObject {
 
     func setParticleDebugPanelPresented(_ isPresented: Bool) {
         isParticleDebugPanelPresented = isPresented
+        if isPresented {
+            refreshRuntimeOrchestrationState()
+        }
     }
 
     func setParticleShellMode(_ mode: ParticleShellMode) {
@@ -586,12 +841,24 @@ final class AppController: ObservableObject {
         let profileAtStart = activeProviderProfile
         let configurationGenerationAtStart = providerConfigurationGeneration
         let requestTask = Task {
-            await orchestrationKernel.testResidentReply(inputText: inputText)
+            await orchestrationKernel.testResidentReply(
+                inputText: inputText,
+                interactionID: requestID
+            )
         }
         providerTestTask = requestTask
         let result = await requestTask.value
 
-        guard providerTestRequestID == requestID else { return }
+        guard providerTestRequestID == requestID else {
+            completeRuntimeOrchestrationPresentation(
+                interactionID: requestID,
+                expectedSessionID: sessionIDAtStart,
+                subtitleState: "skipped",
+                particleState: "skipped",
+                status: .skipped
+            )
+            return
+        }
         providerTestRequestID = nil
         providerTestTask = nil
         providerDebugState.isTesting = false
@@ -601,6 +868,13 @@ final class AppController: ObservableObject {
               providerConfigurationGeneration == configurationGenerationAtStart else {
             providerDebugState.statusKey = "particleDebug.provider.error.cancelled"
             providerDebugState.replyText = ""
+            completeRuntimeOrchestrationPresentation(
+                interactionID: requestID,
+                expectedSessionID: sessionIDAtStart,
+                subtitleState: "unchanged",
+                particleState: String(describing: particleVisualState),
+                status: .skipped
+            )
             return
         }
         switch result {
@@ -611,6 +885,13 @@ final class AppController: ObservableObject {
             providerDebugState.statusKey = statusKey(for: error)
             providerDebugState.replyText = ""
         }
+        completeRuntimeOrchestrationPresentation(
+            interactionID: requestID,
+            expectedSessionID: sessionIDAtStart,
+            subtitleState: "unchanged",
+            particleState: String(describing: particleVisualState),
+            status: .skipped
+        )
     }
 
     private func showDebugSubtitle(at index: Int) {
