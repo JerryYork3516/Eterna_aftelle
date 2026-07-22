@@ -20,6 +20,8 @@
 "particleDebug.colorAdjustment" = "Color Adjustment";
 "particleDebug.provider" = "Provider";
 "particleDebug.providerCaption" = "Debug-only text provider configuration";
+"particleDebug.provider.apiConfiguration" = "API Configuration";
+"particleDebug.provider.dialogueTest" = "Dialogue Test";
 "particleDebug.provider.configuration" = "Provider Profile";
 "particleDebug.provider.providerID" = "Provider";
 "particleDebug.provider.modelID" = "Model";
@@ -198,6 +200,7 @@
 "particleSubtitle.test.1" = "Still thinking.";
 "particleSubtitle.test.2" = "The signal is quiet.";
 "dialogueAudit.title" = "Dialogue Review";
+"dialogueAudit.menuTitle" = "Dialogue History";
 "dialogueAudit.count" = "Current records: %d";
 "dialogueAudit.copyAll" = "Copy All";
 "dialogueAudit.export" = "Export Text";

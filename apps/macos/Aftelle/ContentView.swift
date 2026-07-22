@@ -847,6 +847,60 @@ private struct ParticleDebugPanel: View {
     }
 }
 
+private struct DebugCollapsibleMenu<Content: View>: View {
+    let titleKey: String
+    @Binding var isExpanded: Bool
+    private let content: Content
+
+    init(
+        titleKey: String,
+        isExpanded: Binding<Bool>,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.titleKey = titleKey
+        _isExpanded = isExpanded
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.16)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    Text(String(localized: String.LocalizationValue(titleKey)))
+                        .font(.headline)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.secondary.opacity(isExpanded ? 0.16 : 0.09))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.secondary.opacity(0.16), lineWidth: 1)
+            )
+
+            if isExpanded {
+                content
+                    .padding(.horizontal, 4)
+                    .padding(.top, 10)
+            }
+        }
+    }
+}
+
 private struct DialogueAuditDebugView: View {
     let state: DialogueAuditViewState
     let copyAll: () -> Void
@@ -857,7 +911,10 @@ private struct DialogueAuditDebugView: View {
     @State private var isClearConfirmationPresented = false
 
     var body: some View {
-        DisclosureGroup(isExpanded: $isExpanded) {
+        DebugCollapsibleMenu(
+            titleKey: "dialogueAudit.menuTitle",
+            isExpanded: $isExpanded
+        ) {
             VStack(alignment: .leading, spacing: 10) {
                 Text(localizedCount)
                     .font(.caption)
@@ -910,9 +967,6 @@ private struct DialogueAuditDebugView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .padding(.top, 8)
-        } label: {
-            Text(String(localized: "dialogueAudit.title"))
         }
         .alert(
             String(localized: "dialogueAudit.clearTestData.confirmTitle"),
@@ -944,7 +998,10 @@ private struct RuntimeOrchestrationDebugView: View {
     @State private var isExpanded = false
 
     var body: some View {
-        DisclosureGroup(isExpanded: $isExpanded) {
+        DebugCollapsibleMenu(
+            titleKey: "runtimeOrchestration.title",
+            isExpanded: $isExpanded
+        ) {
             VStack(alignment: .leading, spacing: 10) {
                 Text(localizedCount)
                     .font(.caption)
@@ -977,9 +1034,6 @@ private struct RuntimeOrchestrationDebugView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .padding(.top, 8)
-        } label: {
-            Text(String(localized: "runtimeOrchestration.title"))
         }
     }
 
@@ -1150,6 +1204,8 @@ private struct TextProviderDebugView: View {
     @State private var profile: ProviderProfile
     @State private var credentialInput = ""
     @State private var testInput = ""
+    @State private var isConfigurationExpanded = true
+    @State private var isTestExpanded = false
 
     init(
         state: ProviderDebugViewState,
@@ -1167,6 +1223,24 @@ private struct TextProviderDebugView: View {
     }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            DebugCollapsibleMenu(
+                titleKey: "particleDebug.provider.apiConfiguration",
+                isExpanded: $isConfigurationExpanded
+            ) {
+                configurationContent
+            }
+
+            DebugCollapsibleMenu(
+                titleKey: "particleDebug.provider.dialogueTest",
+                isExpanded: $isTestExpanded
+            ) {
+                dialogueTestContent
+            }
+        }
+    }
+
+    private var configurationContent: some View {
         VStack(alignment: .leading, spacing: 14) {
             GroupBox(String(localized: "particleDebug.provider.configuration")) {
                 VStack(alignment: .leading, spacing: 10) {
@@ -1229,7 +1303,11 @@ private struct TextProviderDebugView: View {
                 }
                 .padding(.top, 4)
             }
+        }
+    }
 
+    private var dialogueTestContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
             GroupBox(String(localized: "particleDebug.provider.test")) {
                 VStack(alignment: .leading, spacing: 10) {
                     TextField(

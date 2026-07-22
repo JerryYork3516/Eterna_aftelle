@@ -20,6 +20,8 @@
 "particleDebug.colorAdjustment" = "颜色调整";
 "particleDebug.provider" = "Provider";
 "particleDebug.providerCaption" = "仅用于 Debug 的文本 Provider 配置";
+"particleDebug.provider.apiConfiguration" = "API 配置";
+"particleDebug.provider.dialogueTest" = "对话测试";
 "particleDebug.provider.configuration" = "Provider Profile";
 "particleDebug.provider.providerID" = "供应方";
 "particleDebug.provider.modelID" = "模型";
@@ -198,6 +200,7 @@
 "particleSubtitle.test.1" = "Still thinking.";
 "particleSubtitle.test.2" = "The signal is quiet.";
 "dialogueAudit.title" = "对话审核";
+"dialogueAudit.menuTitle" = "对话历史记录";
 "dialogueAudit.count" = "当前记录：%d 条";
 "dialogueAudit.copyAll" = "复制全部";
 "dialogueAudit.export" = "导出文本";
