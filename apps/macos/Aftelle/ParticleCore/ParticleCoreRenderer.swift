@@ -34,7 +34,7 @@ struct ParticleCoreFrameUniforms {
     var breathingAmount: Float
     var breathingTime: Float
     var flowStrength: Float
-    var flowSpeed: Float
+    var flowTime: Float
     var flowDirection: Float
     var flowSeed: Float
     var flowBrightnessStrength: Float
@@ -73,9 +73,14 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
     private var particleBuffer: MTLBuffer
     private let uniformsBuffer: MTLBuffer
     private let startTime = CACurrentMediaTime()
+    private var previousMotionElapsed: Float = 0
+    private var flowTime: Float = 0
     private var stateStartTime = CACurrentMediaTime()
     private var metricsStartTime = CACurrentMediaTime()
     private var metricsFrameCount = 0
+    private var metricsFlowStepMin = Float.greatestFiniteMagnitude
+    private var metricsFlowStepMax: Float = 0
+    private var metricsFlowStepNegativeCount = 0
     private var targetMousePosition = SIMD2<Float>(repeating: 0)
     private var targetMouseVelocity = SIMD2<Float>(repeating: 0)
     private var targetMouseInfluence: Float = 0
@@ -184,6 +189,18 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         updateSmoothedVisualState()
         let speedPhaseRate: Float = 0.025
         let motionElapsed = 0.42 * elapsed + (0.08 / speedPhaseRate) * (1 - cos(elapsed * speedPhaseRate))
+        let motionStep = min(max(motionElapsed - previousMotionElapsed, 0), 0.05)
+        previousMotionElapsed = motionElapsed
+        let flowStep = motionStep
+            * 0.92
+            * currentStateFlowSpeed()
+            * centeredControl(tuning.flowSpeed, maximum: 2.75)
+        flowTime += flowStep
+        metricsFlowStepMin = min(metricsFlowStepMin, flowStep)
+        metricsFlowStepMax = max(metricsFlowStepMax, flowStep)
+        if flowStep < 0 {
+            metricsFlowStepNegativeCount += 1
+        }
         let resolution = SIMD2<Float>(Float(drawableSize.width), Float(drawableSize.height))
         let tunedBreathTime = motionElapsed * Float(tuning.breathingSpeed * 2)
         let breathingAmount = centeredControl(tuning.breathingAmount, maximum: 2.2)
@@ -220,7 +237,7 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             breathingAmount: breathingAmount,
             breathingTime: tunedBreathTime,
             flowStrength: Float(tuning.flowStrength),
-            flowSpeed: Float(tuning.flowSpeed),
+            flowTime: flowTime,
             flowDirection: Float(tuning.flowDirection),
             flowSeed: Float(tuning.flowSeed),
             flowBrightnessStrength: Float(tuning.flowBrightnessStrength),
@@ -377,6 +394,12 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
         let fps = Double(metricsFrameCount) / max(interval, 0.001)
         metricsFrameCount = 0
         metricsStartTime = now
+        let flowStepMin = metricsFlowStepMin == Float.greatestFiniteMagnitude ? 0 : metricsFlowStepMin
+        let flowStepMax = metricsFlowStepMax
+        let flowStepNegativeCount = metricsFlowStepNegativeCount
+        metricsFlowStepMin = Float.greatestFiniteMagnitude
+        metricsFlowStepMax = 0
+        metricsFlowStepNegativeCount = 0
         let drawableSize = "\(Int(view.drawableSize.width))x\(Int(view.drawableSize.height))"
         let mouseActive = smoothMouseInfluence > 0.01 || targetMouseInfluence > 0.01
         let metrics = ParticleRenderMetrics(
@@ -395,7 +418,22 @@ final class ParticleCoreRenderer: NSObject, MTKViewDelegate {
             interactionStrength: Double(smoothMouseInfluence)
         )
         debugMetricsHandler?(metrics)
-        print("[ParticleCore] snapshot fps=\(String(format: "%.1f", fps)) particleCount=\(model.particles.count) drawableSize=\(drawableSize) preferredFPS=\(view.preferredFramesPerSecond) visualState=\(visualState) previousVisualState=\(previousVisualState) stateElapsedTime=\(String(format: "%.2f", stateElapsedTime)) reason=\(lastTransitionReason) mouseInside=\(mouseActive) interactionStrength=\(String(format: "%.2f", smoothMouseInfluence))")
+        print("[ParticleCore] snapshot fps=\(String(format: "%.1f", fps)) particleCount=\(model.particles.count) drawableSize=\(drawableSize) preferredFPS=\(view.preferredFramesPerSecond) visualState=\(visualState) previousVisualState=\(previousVisualState) stateElapsedTime=\(String(format: "%.2f", stateElapsedTime)) reason=\(lastTransitionReason) mouseInside=\(mouseActive) interactionStrength=\(String(format: "%.2f", smoothMouseInfluence)) flowTime=\(String(format: "%.3f", flowTime)) flowStepMin=\(String(format: "%.5f", flowStepMin)) flowStepMax=\(String(format: "%.5f", flowStepMax)) flowStepNegativeCount=\(flowStepNegativeCount)")
+    }
+
+    private func currentStateFlowSpeed() -> Float {
+        let thinking = easedStateStrength(smoothThinkingStrength)
+        let speaking = easedStateStrength(smoothSpeakingStrength)
+        let error = easedStateStrength(smoothErrorStrength)
+        let previewPlaceholder = min(1, max(error, smoothExitStrength))
+        return (1 - 0.40 * thinking)
+            * (1 + 0.16 * speaking)
+            * (1 - 0.04 * previewPlaceholder)
+    }
+
+    private func easedStateStrength(_ value: Float) -> Float {
+        let clamped = min(1, max(0, value))
+        return clamped * clamped * (3 - 2 * clamped)
     }
 
     private func centeredControl(_ value: Double, maximum: Float) -> Float {

@@ -31,7 +31,7 @@ struct ParticleCoreFrameUniforms {
     float breathingAmount;
     float breathingTime;
     float flowStrength;
-    float flowSpeed;
+    float flowTime;
     float flowDirection;
     float flowSeed;
     float flowBrightnessStrength;
@@ -316,7 +316,6 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float ridgeSeedPhase = 0.74;
     float ridgeVisibility = saturate(tuneRidgeStrength);
     float tuneFlowStructure = centeredControl(uniforms.flowStrength, 2.65);
-    float tuneFlowSpeed = centeredControl(uniforms.flowSpeed, 2.75);
     float tuneFlowBrightness = centeredControl(uniforms.flowBrightnessStrength, 2.85);
     float tuneRotationSpeed = centeredControl(uniforms.rotationSpeed, 2.40);
     float tuneEdgeDust = centeredControl(uniforms.edgeDustAmount, 2.20);
@@ -353,7 +352,6 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float errorGlobalPulse = smoothstep(0.22, 0.86, 0.5 + 0.5 * sin(t * 1.34 + 0.4));
     float speakingEdgeLift = mix(1.0, 1.24 + speakingPulse * 0.24, speaking * edge);
     float loadingEdgeSettle = mix(1.0, 0.68, loading * edge);
-    float fieldSpeed = mix(1.0, 0.60, thinking) * mix(1.0, 1.16, speaking) * mix(1.0, 0.96, previewPlaceholder);
     float edgeSettle = mix(1.0, 0.25, thinking) * loadingEdgeSettle * mix(1.0, 0.92, saturate(error + exitState));
     float stateFocus = mix(1.0, 1.28, thinking);
     float localBreath = (0.0065 * sin(uniforms.breathingTime * (0.29 + particleSeed * 0.11) + localPhase)
@@ -372,10 +370,10 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float radialDrift = localBreath * centerMotionGate * (0.42 + edge * 0.72)
         + globalReference * (0.62 + centerMotionGate * 0.38)
         + edgeMembrane;
-    float fieldTime = t * 0.92 * fieldSpeed * tuneFlowSpeed;
+    float fieldTime = uniforms.flowTime;
     float flowSeedPhase = (saturate(uniforms.flowSeed) - 0.5) * 6.2831853;
     float flowPatternTime = fieldTime + flowSeedPhase * 0.24;
-    float loadingFlowTime = fieldTime * mix(1.0, 1.58, loading);
+    float loadingFlowTime = fieldTime * 1.58;
     float midBand = 0.0;
     float2 globalAxis = cardinalDirection(uniforms.flowDirection);
     float2 globalSide = float2(-globalAxis.y, globalAxis.x);
