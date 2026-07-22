@@ -232,12 +232,6 @@ final class OpenAICompatibleAdapter {
     private static func messages(for context: ResidentDialogueContext) -> [ChatCompletionMessage] {
         var result = [ChatCompletionMessage(role: "system", content: systemMessage(for: context))]
 
-        for example in context.selectedFewShots.prefix(4) {
-            result.append(contentsOf: example.turns.compactMap { turn in
-                guard let role = providerRole(for: turn.role) else { return nil }
-                return ChatCompletionMessage(role: role, content: turn.text)
-            })
-        }
         result.append(contentsOf: context.recentMessages.suffix(8).compactMap { message in
             guard let role = providerRole(for: message.role) else { return nil }
             return ChatCompletionMessage(role: role, content: message.text)
@@ -286,12 +280,46 @@ final class OpenAICompatibleAdapter {
         })
         sections.append(contentsOf: context.contextUsagePolicy.allowedSources.map(\.instruction))
         sections.append(contentsOf: context.contextUsagePolicy.forbiddenSources.map(\.instruction))
+        sections.append("""
+        User fact source priority:
+        1. The current user's explicit input.
+        2. User messages from the current session.
+        3. Explicitly authorized preference memory included in the current runtime context.
+        4. When none of these sources provides evidence, state uncertainty or say that you do not remember.
+        Resident replies, fictional behavior examples, resident identity, personality, setting, and background are not user facts.
+        """)
+        if let fewShotSection = fewShotSection(for: context) {
+            sections.append(fewShotSection)
+        }
         sections.append("When the available context is insufficient: \(context.fallbackText)")
 
         return sections
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
             .joined(separator: "\n")
+    }
+
+    private static func fewShotSection(for context: ResidentDialogueContext) -> String? {
+        let examples = context.selectedFewShots.prefix(4)
+        guard !examples.isEmpty else { return nil }
+
+        var lines = [
+            "BEGIN FICTIONAL BEHAVIOR EXAMPLES",
+            "Every example in this section is fictional and is only a reference for tone, style, and boundaries.",
+            "No example is part of the current user's history, facts, or memory."
+        ]
+        for (index, example) in examples.enumerated() {
+            lines.append("BEGIN FICTIONAL BEHAVIOR EXAMPLE \(index + 1)")
+            lines.append("This fictional behavior example is only for tone, style, and boundary reference; it is not current user history, fact, or memory.")
+            lines.append(contentsOf: example.turns.compactMap { turn in
+                guard let role = providerRole(for: turn.role) else { return nil }
+                let label = role == "user" ? "Fictional example user" : "Fictional example resident"
+                return "\(label): \(turn.text)"
+            })
+            lines.append("END FICTIONAL BEHAVIOR EXAMPLE \(index + 1)")
+        }
+        lines.append("END FICTIONAL BEHAVIOR EXAMPLES")
+        return lines.joined(separator: "\n")
     }
 
     private static func providerRole(for role: String) -> String? {

@@ -109,6 +109,71 @@ struct RuntimeDialogueFallbackBehavior: Equatable {
     let constraints: [String]
 }
 
+struct RuntimeEmotionalDialoguePolicies: Equatable {
+    let acknowledgementInstruction: String
+    let listeningOrAdviceInstruction: String
+    let maxFollowUpQuestions: Int
+    let stopWhenUserDeclines: Bool
+    let confirmAdviceNeedFirst: Bool
+    let preserveUserChoice: Bool
+    let adviceStyle: String
+    let riskPriority: String
+    let riskSupportTargets: [String]
+    let bypassAdviceConfirmationForRisk: Bool
+    let doNotEscalateOrdinaryLowMood: Bool
+}
+
+struct RuntimeEmotionalDialogueScenario: Equatable {
+    let sceneID: String
+    let intent: String
+    let responseStrategy: String
+    let followUpAllowed: Bool
+    let adviceAllowed: Bool
+    let recommendedLength: String
+    let prohibitedBehaviors: [String]
+    let linkedPolicyIDs: [String]
+    let authorityReferenceIDs: [String]
+    let riskLevel: String
+}
+
+struct RuntimeEmotionalNegativeExample: Equatable {
+    let exampleID: String
+    let sceneID: String
+    let turns: [RuntimeDialogueExampleTurn]
+    let usage: String
+    let status: String
+    let generationAllowed: Bool
+    let notFixedResponse: Bool
+    let notKeywordMatching: Bool
+    let whyForbidden: String
+    let preferredResponse: String
+}
+
+struct RuntimeEmotionalFewShotSelection: Equatable {
+    let base: RuntimeDialogueFewShotSelection
+    let generationAllowedStatuses: [String]
+    let prohibitedExamplesUsage: String
+    let injectNegativeExamples: Bool
+    let usePreferredResponseForGeneration: Bool
+}
+
+struct RuntimeEmotionalDialogueProjection: Equatable {
+    let schemaVersion: String
+    let domainType: String
+    let enabled: Bool
+    let usage: String
+    let notFixedResponse: Bool
+    let notKeywordMatching: Bool
+    let systemInstructionAddendum: String
+    let responseSequence: [RuntimeDialogueInstruction]
+    let policies: RuntimeEmotionalDialoguePolicies
+    let scenarios: [RuntimeEmotionalDialogueScenario]
+    let fewShotSelection: RuntimeEmotionalFewShotSelection
+    let fewShotExamples: [RuntimeDialogueFewShotExample]
+    let prohibitedPatterns: [String]
+    let negativeExamples: [RuntimeEmotionalNegativeExample]
+}
+
 struct RuntimeDialogueProjection: Equatable {
     let schemaVersion: String
     let projectionType: String
@@ -138,6 +203,7 @@ struct RuntimeDialogueProjection: Equatable {
     let prohibitedPatterns: [RuntimeDialogueProhibitedPattern]
     let contextUsagePolicy: RuntimeDialogueContextUsagePolicy
     let fallbackBehavior: RuntimeDialogueFallbackBehavior
+    let emotionalDialogue: RuntimeEmotionalDialogueProjection?
 }
 
 private struct InvalidDRFieldError: Error {
@@ -473,7 +539,8 @@ public final class DRLoader {
             fewShotExamples: try parseFewShotExamples(from: projection, path: path),
             prohibitedPatterns: try parseProhibitedPatterns(from: projection, path: path),
             contextUsagePolicy: try parseContextUsagePolicy(from: projection, path: path),
-            fallbackBehavior: try parseFallbackBehavior(from: projection, path: path)
+            fallbackBehavior: try parseFallbackBehavior(from: projection, path: path),
+            emotionalDialogue: try parseEmotionalDialogue(from: projection, path: path)
         )
     }
 
@@ -654,6 +721,352 @@ public final class DRLoader {
             text: try requiredValue("text", in: object, as: String.self, path: "\(fallbackPath).text"),
             constraints: try requiredValue("constraints", in: object, as: [String].self, path: "\(fallbackPath).constraints")
         )
+    }
+
+    private func parseEmotionalDialogue(
+        from projection: [String: Any],
+        path: String
+    ) throws -> RuntimeEmotionalDialogueProjection? {
+        let emotionalPath = "\(path).emotional_dialogue"
+        guard let emotional = try optionalObject("emotional_dialogue", in: projection, path: emotionalPath) else {
+            return nil
+        }
+
+        let schemaVersion = try requiredValue("schema_version", in: emotional, as: String.self, path: "\(emotionalPath).schema_version")
+        let domainType = try requiredValue("domain_type", in: emotional, as: String.self, path: "\(emotionalPath).domain_type")
+        let usage = try requiredValue("usage", in: emotional, as: String.self, path: "\(emotionalPath).usage")
+        let notFixedResponse = try requiredValue("not_fixed_response", in: emotional, as: Bool.self, path: "\(emotionalPath).not_fixed_response")
+        let notKeywordMatching = try requiredValue("not_keyword_matching", in: emotional, as: Bool.self, path: "\(emotionalPath).not_keyword_matching")
+        guard schemaVersion == "0.1" else {
+            throw DRLoaderError.unsupportedVersion("emotional dialogue schema")
+        }
+        guard domainType == "emotional_dialogue" else {
+            throw DRLoaderError.conflictingField("\(emotionalPath).domain_type")
+        }
+        guard usage == "behavior_guidance_only" else {
+            throw DRLoaderError.conflictingField("\(emotionalPath).usage")
+        }
+        guard notFixedResponse else {
+            throw DRLoaderError.conflictingField("\(emotionalPath).not_fixed_response")
+        }
+        guard notKeywordMatching else {
+            throw DRLoaderError.conflictingField("\(emotionalPath).not_keyword_matching")
+        }
+
+        let responseSequenceObjects = try requiredObjectArray(
+            "response_sequence",
+            in: emotional,
+            path: "\(emotionalPath).response_sequence"
+        )
+        let responseSequence = try responseSequenceObjects.enumerated().map { index, object in
+            let itemPath = "\(emotionalPath).response_sequence.\(index)"
+            let stepID = try requiredValue("step_id", in: object, as: String.self, path: "\(itemPath).step_id")
+            return RuntimeDialogueInstruction(
+                instruction: try requiredValue("instruction", in: object, as: String.self, path: "\(itemPath).instruction"),
+                sourceRuleRefs: [stepID]
+            )
+        }
+        let selection = try parseEmotionalFewShotSelection(from: emotional, path: emotionalPath)
+
+        return RuntimeEmotionalDialogueProjection(
+            schemaVersion: schemaVersion,
+            domainType: domainType,
+            enabled: try requiredValue("enabled", in: emotional, as: Bool.self, path: "\(emotionalPath).enabled"),
+            usage: usage,
+            notFixedResponse: notFixedResponse,
+            notKeywordMatching: notKeywordMatching,
+            systemInstructionAddendum: try requiredValue(
+                "system_instruction_addendum",
+                in: emotional,
+                as: String.self,
+                path: "\(emotionalPath).system_instruction_addendum"
+            ),
+            responseSequence: responseSequence,
+            policies: try parseEmotionalPolicies(from: emotional, path: emotionalPath),
+            scenarios: try parseEmotionalScenarios(from: emotional, path: emotionalPath),
+            fewShotSelection: selection,
+            fewShotExamples: try parseEmotionalFewShotExamples(from: emotional, path: emotionalPath),
+            prohibitedPatterns: try requiredValue(
+                "prohibited_patterns",
+                in: emotional,
+                as: [String].self,
+                path: "\(emotionalPath).prohibited_patterns"
+            ),
+            negativeExamples: try parseEmotionalNegativeExamples(from: emotional, path: emotionalPath)
+        )
+    }
+
+    private func parseEmotionalPolicies(
+        from emotional: [String: Any],
+        path: String
+    ) throws -> RuntimeEmotionalDialoguePolicies {
+        let policiesPath = "\(path).policies"
+        let policies = try requiredObject("policies", in: emotional, path: policiesPath)
+        let acknowledgement = try requiredObject("acknowledgement", in: policies, path: "\(policiesPath).acknowledgement")
+        let listeningOrAdvice = try requiredObject("listening_or_advice", in: policies, path: "\(policiesPath).listening_or_advice")
+        let followUp = try requiredObject("follow_up", in: policies, path: "\(policiesPath).follow_up")
+        let advice = try requiredObject("advice", in: policies, path: "\(policiesPath).advice")
+        let riskEscalation = try requiredObject("risk_escalation", in: policies, path: "\(policiesPath).risk_escalation")
+        let maxFollowUpQuestions = try requiredValue(
+            "max_questions_per_response",
+            in: followUp,
+            as: Int.self,
+            path: "\(policiesPath).follow_up.max_questions_per_response"
+        )
+        guard maxFollowUpQuestions >= 0 else {
+            throw DRLoaderError.conflictingField("\(policiesPath).follow_up.max_questions_per_response")
+        }
+        return RuntimeEmotionalDialoguePolicies(
+            acknowledgementInstruction: try requiredValue(
+                "instruction",
+                in: acknowledgement,
+                as: String.self,
+                path: "\(policiesPath).acknowledgement.instruction"
+            ),
+            listeningOrAdviceInstruction: try requiredValue(
+                "instruction",
+                in: listeningOrAdvice,
+                as: String.self,
+                path: "\(policiesPath).listening_or_advice.instruction"
+            ),
+            maxFollowUpQuestions: maxFollowUpQuestions,
+            stopWhenUserDeclines: try requiredValue(
+                "stop_when_user_declines",
+                in: followUp,
+                as: Bool.self,
+                path: "\(policiesPath).follow_up.stop_when_user_declines"
+            ),
+            confirmAdviceNeedFirst: try requiredValue(
+                "confirm_need_first",
+                in: advice,
+                as: Bool.self,
+                path: "\(policiesPath).advice.confirm_need_first"
+            ),
+            preserveUserChoice: try requiredValue(
+                "preserve_user_choice",
+                in: advice,
+                as: Bool.self,
+                path: "\(policiesPath).advice.preserve_user_choice"
+            ),
+            adviceStyle: try requiredValue("style", in: advice, as: String.self, path: "\(policiesPath).advice.style"),
+            riskPriority: try requiredValue(
+                "priority",
+                in: riskEscalation,
+                as: String.self,
+                path: "\(policiesPath).risk_escalation.priority"
+            ),
+            riskSupportTargets: try requiredValue(
+                "support_targets",
+                in: riskEscalation,
+                as: [String].self,
+                path: "\(policiesPath).risk_escalation.support_targets"
+            ),
+            bypassAdviceConfirmationForRisk: try requiredValue(
+                "bypass_advice_confirmation",
+                in: riskEscalation,
+                as: Bool.self,
+                path: "\(policiesPath).risk_escalation.bypass_advice_confirmation"
+            ),
+            doNotEscalateOrdinaryLowMood: try requiredValue(
+                "do_not_escalate_ordinary_low_mood",
+                in: riskEscalation,
+                as: Bool.self,
+                path: "\(policiesPath).risk_escalation.do_not_escalate_ordinary_low_mood"
+            )
+        )
+    }
+
+    private func parseEmotionalScenarios(
+        from emotional: [String: Any],
+        path: String
+    ) throws -> [RuntimeEmotionalDialogueScenario] {
+        let scenariosPath = "\(path).scenarios"
+        let objects = try requiredObjectArray("scenarios", in: emotional, path: scenariosPath)
+        return try objects.enumerated().map { index, object in
+            let itemPath = "\(scenariosPath).\(index)"
+            return RuntimeEmotionalDialogueScenario(
+                sceneID: try requiredValue("scene_id", in: object, as: String.self, path: "\(itemPath).scene_id"),
+                intent: try requiredValue("intent", in: object, as: String.self, path: "\(itemPath).intent"),
+                responseStrategy: try requiredValue("response_strategy", in: object, as: String.self, path: "\(itemPath).response_strategy"),
+                followUpAllowed: try requiredValue("follow_up_allowed", in: object, as: Bool.self, path: "\(itemPath).follow_up_allowed"),
+                adviceAllowed: try requiredValue("advice_allowed", in: object, as: Bool.self, path: "\(itemPath).advice_allowed"),
+                recommendedLength: try requiredValue("recommended_length", in: object, as: String.self, path: "\(itemPath).recommended_length"),
+                prohibitedBehaviors: try requiredValue(
+                    "prohibited_behaviors",
+                    in: object,
+                    as: [String].self,
+                    path: "\(itemPath).prohibited_behaviors"
+                ),
+                linkedPolicyIDs: try requiredValue("linked_policy_ids", in: object, as: [String].self, path: "\(itemPath).linked_policy_ids"),
+                authorityReferenceIDs: try requiredValue(
+                    "authority_reference_ids",
+                    in: object,
+                    as: [String].self,
+                    path: "\(itemPath).authority_reference_ids"
+                ),
+                riskLevel: try requiredValue("risk_level", in: object, as: String.self, path: "\(itemPath).risk_level")
+            )
+        }
+    }
+
+    private func parseEmotionalFewShotSelection(
+        from emotional: [String: Any],
+        path: String
+    ) throws -> RuntimeEmotionalFewShotSelection {
+        let selectionPath = "\(path).few_shot_selection"
+        let object = try requiredObject("few_shot_selection", in: emotional, path: selectionPath)
+        let base = RuntimeDialogueFewShotSelection(
+            usage: try requiredValue("usage", in: object, as: String.self, path: "\(selectionPath).usage"),
+            notFixedResponse: try requiredValue("not_fixed_response", in: object, as: Bool.self, path: "\(selectionPath).not_fixed_response"),
+            notKeywordMatching: try requiredValue("not_keyword_matching", in: object, as: Bool.self, path: "\(selectionPath).not_keyword_matching"),
+            selectionMode: try requiredValue("selection_mode", in: object, as: String.self, path: "\(selectionPath).selection_mode"),
+            recommendedMaxExamplesPerRequest: try requiredValue(
+                "recommended_max_examples_per_request",
+                in: object,
+                as: Int.self,
+                path: "\(selectionPath).recommended_max_examples_per_request"
+            ),
+            studioPerformsTokenTrimming: try requiredValue(
+                "studio_performs_token_trimming",
+                in: object,
+                as: Bool.self,
+                path: "\(selectionPath).studio_performs_token_trimming"
+            )
+        )
+        let generationAllowedStatuses = try requiredValue(
+            "generation_allowed_statuses",
+            in: object,
+            as: [String].self,
+            path: "\(selectionPath).generation_allowed_statuses"
+        )
+        let prohibitedExamplesUsage = try requiredValue(
+            "prohibited_examples_usage",
+            in: object,
+            as: String.self,
+            path: "\(selectionPath).prohibited_examples_usage"
+        )
+        let injectNegativeExamples = try requiredValue(
+            "inject_negative_examples",
+            in: object,
+            as: Bool.self,
+            path: "\(selectionPath).inject_negative_examples"
+        )
+        guard base.usage == "behavior_guidance_only" else {
+            throw DRLoaderError.conflictingField("\(selectionPath).usage")
+        }
+        guard base.notFixedResponse else {
+            throw DRLoaderError.conflictingField("\(selectionPath).not_fixed_response")
+        }
+        guard base.notKeywordMatching else {
+            throw DRLoaderError.conflictingField("\(selectionPath).not_keyword_matching")
+        }
+        guard (0...4).contains(base.recommendedMaxExamplesPerRequest) else {
+            throw DRLoaderError.conflictingField("\(selectionPath).recommended_max_examples_per_request")
+        }
+        guard Set(generationAllowedStatuses) == Set(["recommended"]) else {
+            throw DRLoaderError.conflictingField("\(selectionPath).generation_allowed_statuses")
+        }
+        guard prohibitedExamplesUsage == "evaluation_only" else {
+            throw DRLoaderError.conflictingField("\(selectionPath).prohibited_examples_usage")
+        }
+        guard !injectNegativeExamples else {
+            throw DRLoaderError.conflictingField("\(selectionPath).inject_negative_examples")
+        }
+        return RuntimeEmotionalFewShotSelection(
+            base: base,
+            generationAllowedStatuses: generationAllowedStatuses,
+            prohibitedExamplesUsage: prohibitedExamplesUsage,
+            injectNegativeExamples: injectNegativeExamples,
+            usePreferredResponseForGeneration: try requiredValue(
+                "use_preferred_response_for_generation",
+                in: object,
+                as: Bool.self,
+                path: "\(selectionPath).use_preferred_response_for_generation"
+            )
+        )
+    }
+
+    private func parseEmotionalFewShotExamples(
+        from emotional: [String: Any],
+        path: String
+    ) throws -> [RuntimeDialogueFewShotExample] {
+        let examplesPath = "\(path).few_shot_examples"
+        let objects = try requiredObjectArray("few_shot_examples", in: emotional, path: examplesPath)
+        return try objects.enumerated().map { index, object in
+            let itemPath = "\(examplesPath).\(index)"
+            let exampleID = try requiredValue("example_id", in: object, as: String.self, path: "\(itemPath).example_id")
+            let sceneID = try requiredValue("scene_id", in: object, as: String.self, path: "\(itemPath).scene_id")
+            let usage = try requiredValue("usage", in: object, as: String.self, path: "\(itemPath).usage")
+            let status = try requiredValue("status", in: object, as: String.self, path: "\(itemPath).status")
+            let notFixedResponse = try requiredValue("not_fixed_response", in: object, as: Bool.self, path: "\(itemPath).not_fixed_response")
+            let notKeywordMatching = try requiredValue("not_keyword_matching", in: object, as: Bool.self, path: "\(itemPath).not_keyword_matching")
+            guard status == "recommended" else { throw DRLoaderError.conflictingField("\(itemPath).status") }
+            guard usage == "behavior_guidance_only" else { throw DRLoaderError.conflictingField("\(itemPath).usage") }
+            guard notFixedResponse else { throw DRLoaderError.conflictingField("\(itemPath).not_fixed_response") }
+            guard notKeywordMatching else { throw DRLoaderError.conflictingField("\(itemPath).not_keyword_matching") }
+            return RuntimeDialogueFewShotExample(
+                exampleID: exampleID,
+                label: sceneID,
+                sceneID: sceneID,
+                turns: try parseEmotionalExampleTurns(from: object, path: itemPath),
+                usage: usage,
+                notFixedResponse: notFixedResponse,
+                notKeywordMatching: notKeywordMatching
+            )
+        }
+    }
+
+    private func parseEmotionalNegativeExamples(
+        from emotional: [String: Any],
+        path: String
+    ) throws -> [RuntimeEmotionalNegativeExample] {
+        let examplesPath = "\(path).negative_examples"
+        let objects = try requiredObjectArray("negative_examples", in: emotional, path: examplesPath)
+        return try objects.enumerated().map { index, object in
+            let itemPath = "\(examplesPath).\(index)"
+            let usage = try requiredValue("usage", in: object, as: String.self, path: "\(itemPath).usage")
+            let status = try requiredValue("status", in: object, as: String.self, path: "\(itemPath).status")
+            let generationAllowed = try requiredValue("generation_allowed", in: object, as: Bool.self, path: "\(itemPath).generation_allowed")
+            let notFixedResponse = try requiredValue("not_fixed_response", in: object, as: Bool.self, path: "\(itemPath).not_fixed_response")
+            let notKeywordMatching = try requiredValue("not_keyword_matching", in: object, as: Bool.self, path: "\(itemPath).not_keyword_matching")
+            guard usage == "evaluation_only" else { throw DRLoaderError.conflictingField("\(itemPath).usage") }
+            guard status == "prohibited" else { throw DRLoaderError.conflictingField("\(itemPath).status") }
+            guard !generationAllowed else { throw DRLoaderError.conflictingField("\(itemPath).generation_allowed") }
+            guard notFixedResponse else { throw DRLoaderError.conflictingField("\(itemPath).not_fixed_response") }
+            guard notKeywordMatching else { throw DRLoaderError.conflictingField("\(itemPath).not_keyword_matching") }
+            return RuntimeEmotionalNegativeExample(
+                exampleID: try requiredValue("example_id", in: object, as: String.self, path: "\(itemPath).example_id"),
+                sceneID: try requiredValue("scene_id", in: object, as: String.self, path: "\(itemPath).scene_id"),
+                turns: try parseEmotionalExampleTurns(from: object, path: itemPath),
+                usage: usage,
+                status: status,
+                generationAllowed: generationAllowed,
+                notFixedResponse: notFixedResponse,
+                notKeywordMatching: notKeywordMatching,
+                whyForbidden: try requiredValue("why_forbidden", in: object, as: String.self, path: "\(itemPath).why_forbidden"),
+                preferredResponse: try requiredValue("preferred_response", in: object, as: String.self, path: "\(itemPath).preferred_response")
+            )
+        }
+    }
+
+    private func parseEmotionalExampleTurns(
+        from object: [String: Any],
+        path: String
+    ) throws -> [RuntimeDialogueExampleTurn] {
+        let turnsPath = "\(path).turns"
+        let objects = try requiredObjectArray("turns", in: object, path: turnsPath)
+        guard !objects.isEmpty else { throw DRLoaderError.missingField(turnsPath) }
+        return try objects.enumerated().map { index, turn in
+            let itemPath = "\(turnsPath).\(index)"
+            let role = try requiredValue("role", in: turn, as: String.self, path: "\(itemPath).role")
+            guard ["user", "assistant", "resident"].contains(role) else {
+                throw DRLoaderError.conflictingField("\(itemPath).role")
+            }
+            return RuntimeDialogueExampleTurn(
+                role: role,
+                text: try requiredValue("text", in: turn, as: String.self, path: "\(itemPath).text")
+            )
+        }
     }
 
     private func requiredObject(

@@ -346,24 +346,83 @@ struct ResidentDialogueContextSource: Equatable {
         recentMessageLimit: Int,
         fewShotLimit: Int
     ) -> ResidentDialogueContext {
-        let selectedFewShots = Array(
-            projection.fewShotExamples
-                .filter {
-                    $0.usage == "behavior_guidance_only"
-                        && $0.notFixedResponse
-                        && $0.notKeywordMatching
-                }
-                .prefix(max(0, min(fewShotLimit, projection.fewShotSelection.recommendedMaxExamplesPerRequest)))
+        let emotionalDialogue = projection.emotionalDialogue.flatMap { $0.enabled ? $0 : nil }
+        let configuredFewShotLimit = max(
+            0,
+            min(
+                fewShotLimit,
+                projection.fewShotSelection.recommendedMaxExamplesPerRequest,
+                emotionalDialogue?.fewShotSelection.base.recommendedMaxExamplesPerRequest ?? Int.max
+            )
+        )
+        let selectedFewShots = selectFewShots(
+            base: eligibleFewShots(projection.fewShotExamples),
+            emotional: eligibleFewShots(emotionalDialogue?.fewShotExamples ?? []),
+            limit: configuredFewShotLimit
         )
         let prohibitedPatterns = projection.prohibitedPatterns.filter { $0.status == "forbidden" }
+            + (emotionalDialogue?.prohibitedPatterns.enumerated().map { index, reason in
+                RuntimeDialogueProhibitedPattern(
+                    patternID: "emotional_dialogue.prohibited.\(index)",
+                    reason: reason,
+                    examples: [],
+                    sourceRuleRefs: [],
+                    status: "forbidden"
+                )
+            } ?? [])
+        let scenarios = projection.scenarios + (emotionalDialogue?.scenarios.map {
+            RuntimeDialogueScenario(
+                sceneID: $0.sceneID,
+                intent: $0.intent,
+                responseStrategy: $0.responseStrategy,
+                followUpAllowed: $0.followUpAllowed,
+                adviceAllowed: $0.adviceAllowed,
+                recommendedLength: $0.recommendedLength,
+                prohibitedBehaviors: $0.prohibitedBehaviors,
+                linkedPolicyIDs: $0.linkedPolicyIDs,
+                sourceRuleRefs: $0.authorityReferenceIDs
+            )
+        } ?? [])
+        let systemInstruction = mergedText(
+            [projection.systemInstruction] + emotionalSystemInstructions(emotionalDialogue)
+        )
+        let responseStyle = mergedInstruction(
+            projection.responseStyle,
+            additions: emotionalDialogue.map {
+                [$0.policies.acknowledgementInstruction, $0.policies.listeningOrAdviceInstruction]
+            } ?? []
+        )
+        let responseOrder = mergedInstruction(
+            projection.responseOrder,
+            additions: emotionalDialogue?.responseSequence.map(\.instruction) ?? []
+        )
+        let followUpPolicy = mergedInstruction(
+            projection.followUpPolicy,
+            additions: emotionalDialogue.map {
+                [
+                    "Emotional dialogue follow-up question limit per response: \($0.policies.maxFollowUpQuestions).",
+                    "Stop emotional follow-up when the user declines: \($0.policies.stopWhenUserDeclines)."
+                ]
+            } ?? []
+        )
+        let advicePolicy = mergedInstruction(
+            projection.advicePolicy,
+            additions: emotionalDialogue.map {
+                [
+                    $0.policies.adviceStyle,
+                    "Confirm that emotional advice is wanted before advising: \($0.policies.confirmAdviceNeedFirst).",
+                    "Preserve the user's choice in emotional advice: \($0.policies.preserveUserChoice)."
+                ]
+            } ?? []
+        )
         let boundedRecentMessages = Array(recentMessages.suffix(max(0, recentMessageLimit)))
         let instructionTexts = [
-            projection.systemInstruction,
+            systemInstruction,
             projection.languagePolicy.instruction,
-            projection.responseStyle.instruction,
-            projection.responseOrder.instruction,
-            projection.followUpPolicy.instruction,
-            projection.advicePolicy.instruction,
+            responseStyle.instruction,
+            responseOrder.instruction,
+            followUpPolicy.instruction,
+            advicePolicy.instruction,
             projection.silencePolicy.instruction,
             projection.endingPolicy.instruction,
             projection.relationshipPolicy.instruction,
@@ -374,6 +433,7 @@ struct ResidentDialogueContextSource: Equatable {
             instructionTexts: instructionTexts,
             selectedFewShots: selectedFewShots,
             prohibitedPatterns: prohibitedPatterns,
+            scenarios: scenarios,
             recentMessages: boundedRecentMessages,
             currentUserInput: currentUserInput
         )
@@ -381,12 +441,12 @@ struct ResidentDialogueContextSource: Equatable {
         return ResidentDialogueContext(
             identity: identity,
             locale: projection.locale,
-            systemInstruction: projection.systemInstruction,
+            systemInstruction: systemInstruction,
             languagePolicy: projection.languagePolicy,
-            responseStyle: projection.responseStyle,
-            responseOrder: projection.responseOrder,
-            followUpPolicy: projection.followUpPolicy,
-            advicePolicy: projection.advicePolicy,
+            responseStyle: responseStyle,
+            responseOrder: responseOrder,
+            followUpPolicy: followUpPolicy,
+            advicePolicy: advicePolicy,
             silencePolicy: projection.silencePolicy,
             endingPolicy: projection.endingPolicy,
             relationshipPolicy: projection.relationshipPolicy,
@@ -394,10 +454,12 @@ struct ResidentDialogueContextSource: Equatable {
             memoryUsagePolicy: projection.memoryUsagePolicy,
             initialRelationship: initialRelationship,
             memoryPolicy: memoryPolicy,
-            scenarios: projection.scenarios,
+            scenarios: scenarios,
             selectedFewShots: selectedFewShots,
             requestedFewShotSelectionMode: projection.fewShotSelection.selectionMode,
-            appliedFewShotSelectionMode: "deterministic_baseline",
+            appliedFewShotSelectionMode: emotionalDialogue == nil
+                ? "deterministic_baseline"
+                : "deterministic_balanced_baseline",
             prohibitedPatterns: prohibitedPatterns,
             contextUsagePolicy: projection.contextUsagePolicy,
             recentMessages: boundedRecentMessages,
@@ -406,7 +468,7 @@ struct ResidentDialogueContextSource: Equatable {
             fallbackText: projection.fallbackBehavior.text,
             summary: ResidentDialogueContextSummary(
                 instructionCount: instructionTexts.count,
-                scenarioCount: projection.scenarios.count,
+                scenarioCount: scenarios.count,
                 selectedFewShotCount: selectedFewShots.count,
                 recentMessageCount: boundedRecentMessages.count,
                 approvedPreferenceCount: 0,
@@ -420,6 +482,7 @@ struct ResidentDialogueContextSource: Equatable {
         instructionTexts: [String],
         selectedFewShots: [RuntimeDialogueFewShotExample],
         prohibitedPatterns: [RuntimeDialogueProhibitedPattern],
+        scenarios: [RuntimeDialogueScenario],
         recentMessages: [ResidentDialogueMessage],
         currentUserInput: String
     ) -> Int {
@@ -432,7 +495,7 @@ struct ResidentDialogueContextSource: Equatable {
             identity.residentDescription,
             identity.residentDisclosure
         ].compactMap { $0 } + identity.domainFocus
-        let scenarioTexts = projection.scenarios.flatMap {
+        let scenarioTexts = scenarios.flatMap {
             [$0.sceneID, $0.intent, $0.responseStrategy, $0.recommendedLength]
                 + $0.prohibitedBehaviors
         }
@@ -462,6 +525,76 @@ struct ResidentDialogueContextSource: Equatable {
             + recentMessages.flatMap { [$0.role, $0.text] }
             + [currentUserInput, projection.fallbackBehavior.text]
         return allTexts.reduce(0) { $0 + $1.count }
+    }
+
+    private func eligibleFewShots(
+        _ examples: [RuntimeDialogueFewShotExample]
+    ) -> [RuntimeDialogueFewShotExample] {
+        examples.filter {
+            $0.usage == "behavior_guidance_only"
+                && $0.notFixedResponse
+                && $0.notKeywordMatching
+        }
+    }
+
+    private func selectFewShots(
+        base: [RuntimeDialogueFewShotExample],
+        emotional: [RuntimeDialogueFewShotExample],
+        limit: Int
+    ) -> [RuntimeDialogueFewShotExample] {
+        guard limit > 0 else { return [] }
+        guard !emotional.isEmpty else { return Array(base.prefix(limit)) }
+        guard !base.isEmpty else { return Array(emotional.prefix(limit)) }
+
+        let baseCount = min(base.count, (limit + 1) / 2)
+        let emotionalCount = min(emotional.count, limit / 2)
+        var selected = Array(base.prefix(baseCount)) + Array(emotional.prefix(emotionalCount))
+        let remaining = Array(base.dropFirst(baseCount)) + Array(emotional.dropFirst(emotionalCount))
+        selected.append(contentsOf: remaining.prefix(max(0, limit - selected.count)))
+        return selected
+    }
+
+    private func mergedInstruction(
+        _ base: RuntimeDialogueInstruction,
+        additions: [String]
+    ) -> RuntimeDialogueInstruction {
+        RuntimeDialogueInstruction(
+            instruction: mergedText([base.instruction] + additions),
+            sourceRuleRefs: base.sourceRuleRefs
+        )
+    }
+
+    private func mergedText(_ values: [String]) -> String {
+        values
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
+    }
+
+    private func emotionalSystemInstructions(
+        _ emotional: RuntimeEmotionalDialogueProjection?
+    ) -> [String] {
+        guard let emotional else { return [] }
+        let riskPolicy = emotional.policies
+        let riskInstruction = [
+            "Emotional safety priority: \(riskPolicy.riskPriority).",
+            "Emotional safety support targets: \(riskPolicy.riskSupportTargets.joined(separator: ", ")).",
+            "Bypass ordinary advice confirmation for high-risk safety: \(riskPolicy.bypassAdviceConfirmationForRisk).",
+            "Do not escalate ordinary low mood as high risk: \(riskPolicy.doNotEscalateOrdinaryLowMood)."
+        ].joined(separator: " ")
+        let scenarios = emotional.scenarios.map { scenario in
+            [
+                "Emotional scenario: \(scenario.sceneID).",
+                "Risk level: \(scenario.riskLevel).",
+                "Intent: \(scenario.intent).",
+                "Response strategy: \(scenario.responseStrategy).",
+                "Follow-up allowed: \(scenario.followUpAllowed).",
+                "Advice allowed: \(scenario.adviceAllowed).",
+                "Recommended length: \(scenario.recommendedLength).",
+                "Prohibited behaviors: \(scenario.prohibitedBehaviors.joined(separator: "; "))."
+            ].joined(separator: " ")
+        }
+        return [emotional.systemInstructionAddendum, riskInstruction] + scenarios
     }
 }
 
