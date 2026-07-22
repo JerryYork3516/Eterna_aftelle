@@ -217,3 +217,10 @@
 "dialogueAudit.export.time" = "导出时间：%@";
 "dialogueAudit.export.count" = "消息数量：%d";
 "dialogueAudit.fileName" = "Aftelle_对话审核_%@_%@.txt";
+"dialogueAudit.clearTestData" = "彻底清理对话测试数据";
+"dialogueAudit.clearTestData.confirmTitle" = "确认清理对话测试数据？";
+"dialogueAudit.clearTestData.message" = "此操作会清除当前居民的会话历史、恢复快照和 Debug 对话审核记录，并创建一个全新的空会话。不会删除居民文件、API Key 或显式偏好记忆。此操作无法撤销。";
+"dialogueAudit.clearTestData.cancel" = "取消";
+"dialogueAudit.clearTestData.confirm" = "确认清理";
+"dialogueAudit.status.testDataCleared" = "对话测试数据已清理，已创建新会话。";
+"dialogueAudit.status.testDataClearFailed" = "对话测试数据清理失败。";

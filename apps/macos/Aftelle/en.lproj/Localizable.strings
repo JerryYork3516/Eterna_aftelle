@@ -217,3 +217,10 @@
 "dialogueAudit.export.time" = "Exported: %@";
 "dialogueAudit.export.count" = "Message Count: %d";
 "dialogueAudit.fileName" = "Aftelle_Dialogue_Audit_%@_%@.txt";
+"dialogueAudit.clearTestData" = "Permanently Clear Dialogue Test Data";
+"dialogueAudit.clearTestData.confirmTitle" = "Clear Dialogue Test Data?";
+"dialogueAudit.clearTestData.message" = "This clears the current resident's session history, recovery snapshots, and Debug dialogue review records, then creates a new empty session. It does not delete the resident file, API key, or explicit preference memory. This action cannot be undone.";
+"dialogueAudit.clearTestData.cancel" = "Cancel";
+"dialogueAudit.clearTestData.confirm" = "Clear";
+"dialogueAudit.status.testDataCleared" = "Dialogue test data cleared. A new session was created.";
+"dialogueAudit.status.testDataClearFailed" = "Unable to clear dialogue test data.";

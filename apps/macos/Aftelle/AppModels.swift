@@ -718,6 +718,12 @@ public final class OrchestrationKernel {
         return result
     }
 
+    #if DEBUG
+    func clearDialogueTestData() throws -> String? {
+        try runtimeCore.clearDialogueTestData()
+    }
+    #endif
+
     func consumeFirstAppearance(
         for residentID: String,
         userInitiated: Bool

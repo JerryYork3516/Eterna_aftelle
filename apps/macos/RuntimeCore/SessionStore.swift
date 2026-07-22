@@ -185,6 +185,41 @@ public final class SessionStore {
         try data.write(to: historyURL(for: sessionID), options: [.atomic])
     }
 
+    #if DEBUG
+    func clearDialogueTestData(residentID: String?, currentSessionID: String?) throws {
+        guard fileManager.fileExists(atPath: baseURL.path) else { return }
+        guard let residentID, !residentID.isEmpty else {
+            try fileManager.removeItem(at: baseURL)
+            return
+        }
+
+        var sessionIDs = Set<String>()
+        if let currentSessionID, !currentSessionID.isEmpty {
+            sessionIDs.insert(currentSessionID)
+        }
+        let urls = try fileManager.contentsOfDirectory(
+            at: baseURL,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )
+        for url in urls where url.pathExtension == "json" {
+            guard let data = try? Data(contentsOf: url),
+                  let record = try? decoder.decode(SessionStoreRecord.self, from: data),
+                  record.residentID == residentID else {
+                continue
+            }
+            sessionIDs.insert(record.sessionID)
+        }
+        for sessionID in sessionIDs {
+            try removeIfPresent(fileURL(for: sessionID))
+            try removeIfPresent(historyURL(for: sessionID))
+        }
+        if let displayCache = try? loadDisplayCache(), displayCache.residentID == residentID {
+            try removeIfPresent(displayCacheURL)
+        }
+    }
+    #endif
+
     private func ensureDirectoryExists() throws {
         if !fileManager.fileExists(atPath: baseURL.path) {
             try fileManager.createDirectory(at: baseURL, withIntermediateDirectories: true)
@@ -202,4 +237,11 @@ public final class SessionStore {
     private func historyURL(for sessionID: String) -> URL {
         baseURL.appendingPathComponent("\(sessionID).history.json", isDirectory: false)
     }
+
+    #if DEBUG
+    private func removeIfPresent(_ url: URL) throws {
+        guard fileManager.fileExists(atPath: url.path) else { return }
+        try fileManager.removeItem(at: url)
+    }
+    #endif
 }

@@ -1160,6 +1160,27 @@ public final class RuntimeCore {
         }
     }
 
+    #if DEBUG
+    func clearDialogueTestData() throws -> String? {
+        let residentID = currentResidentIdentity?.residentID
+        try sessionStore.clearDialogueTestData(
+            residentID: residentID,
+            currentSessionID: sessionContext?.sessionID.rawValue
+        )
+        guard let residentID, !residentID.isEmpty else {
+            sessionContext = nil
+            cancellationState = .none
+            return nil
+        }
+
+        let sessionID = RuntimeSessionID.make()
+        sessionContext = RuntimeSessionContext(residentID: residentID, sessionID: sessionID)
+        memoryController.setActiveResidentID(residentID)
+        cancellationState = .none
+        return sessionID.rawValue
+    }
+    #endif
+
     public func readMemoryValue(for key: String, residentID: String) -> String? {
         guard canAccessPreferenceMemory(residentID: residentID) else { return nil }
         return memoryController.loadValue(for: key, residentID: residentID)

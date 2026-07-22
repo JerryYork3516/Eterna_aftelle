@@ -65,6 +65,7 @@ final class AppController: ObservableObject {
     private var effectiveColorProfileSource = "systemDefault"
     private var effectiveColorProfileFallbackUsed = true
     private var residentTextRequestID: UUID?
+    private var residentTextTask: Task<Result<String, ProviderRequestError>, Never>?
     private var residentTextPresentationID: UUID?
     private var providerConfigurationGeneration = 0
     #if DEBUG
@@ -75,6 +76,7 @@ final class AppController: ObservableObject {
     ]
     private var debugSubtitleIndex = 0
     private var providerTestRequestID: UUID?
+    private var providerTestTask: Task<Result<String, ProviderRequestError>, Never>?
     #endif
 
     init() {
@@ -222,9 +224,14 @@ final class AppController: ObservableObject {
         appendDialogueAuditUser(trimmedInput)
         #endif
 
-        let result = await orchestrationKernel.requestResidentReply(inputText: trimmedInput)
+        let requestTask = Task {
+            await orchestrationKernel.requestResidentReply(inputText: trimmedInput)
+        }
+        residentTextTask = requestTask
+        let result = await requestTask.value
         guard residentTextRequestID == requestID else { return false }
         residentTextRequestID = nil
+        residentTextTask = nil
         residentTextInputState.isSubmitting = false
 
         guard loadedResidentID == residentIDAtStart,
@@ -312,6 +319,48 @@ final class AppController: ObservableObject {
 
     func clearDialogueAudit() {
         dialogueAuditState.clear()
+    }
+
+    func clearDialogueTestData() {
+        invalidateResidentTextSubmission()
+        providerTestRequestID = nil
+        providerTestTask?.cancel()
+        providerTestTask = nil
+        providerDebugState.isTesting = false
+        providerDebugState.replyText = ""
+        providerDebugState.statusKey = "particleDebug.provider.status.ready"
+
+        do {
+            let newSessionID = try orchestrationKernel.clearDialogueTestData()
+            loadedSessionID = newSessionID ?? ""
+            dialogueEntries.removeAll(keepingCapacity: true)
+            if let newSessionID {
+                sessionState = AppSessionState(residentID: loadedResidentID, sessionID: newSessionID)
+                residentState.sessionID = newSessionID
+                residentState.lastActivitySummary = ""
+                residentState.lastUpdatedAt = ISO8601DateFormatter().string(from: Date())
+            } else {
+                loadedResidentID = ""
+                residentID = "resident_id: -"
+                displayName = "display_name: -"
+                sessionState = AppSessionState()
+                residentState = AppResidentState()
+                avatarState = AppAvatarState()
+                runtimeStatus = "Runtime status: not loaded"
+                fixtureStatus = "DR fixture: not loaded"
+                startupState = .idle
+            }
+            particleSubtitleState = .hidden
+            residentTextInputState = ResidentTextInputViewState()
+            runtimeState = .idle
+            dialogueAuditState.clear()
+            dialogueAuditState.statusKey = "dialogueAudit.status.testDataCleared"
+            refreshDebugPanelState()
+            refreshParticleVisualState()
+            refreshParticleDebugSnapshot()
+        } catch {
+            dialogueAuditState.statusKey = "dialogueAudit.status.testDataClearFailed"
+        }
     }
 
     func dialogueAuditTranscript() -> String {
@@ -536,10 +585,15 @@ final class AppController: ObservableObject {
         let sessionIDAtStart = loadedSessionID
         let profileAtStart = activeProviderProfile
         let configurationGenerationAtStart = providerConfigurationGeneration
-        let result = await orchestrationKernel.testResidentReply(inputText: inputText)
+        let requestTask = Task {
+            await orchestrationKernel.testResidentReply(inputText: inputText)
+        }
+        providerTestTask = requestTask
+        let result = await requestTask.value
 
         guard providerTestRequestID == requestID else { return }
         providerTestRequestID = nil
+        providerTestTask = nil
         providerDebugState.isTesting = false
         guard loadedResidentID == residentIDAtStart,
               loadedSessionID == sessionIDAtStart,
@@ -638,6 +692,8 @@ final class AppController: ObservableObject {
 
     private func invalidateResidentTextSubmission() {
         residentTextRequestID = nil
+        residentTextTask?.cancel()
+        residentTextTask = nil
         residentTextPresentationID = nil
         residentTextInputState = ResidentTextInputViewState()
         runtimeState = .idle

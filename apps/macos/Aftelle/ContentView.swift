@@ -526,7 +526,8 @@ struct ParticleDebugWindow: View {
             testResidentReply: controller.testResidentReply,
             copyDialogueAudit: controller.copyDialogueAudit,
             exportDialogueAudit: controller.exportDialogueAudit,
-            clearDialogueAudit: controller.clearDialogueAudit
+            clearDialogueAudit: controller.clearDialogueAudit,
+            clearDialogueTestData: controller.clearDialogueTestData
         )
         .onAppear {
             controller.setParticleDebugPanelPresented(true)
@@ -627,6 +628,7 @@ private struct ParticleDebugPanel: View {
     let copyDialogueAudit: () -> Void
     let exportDialogueAudit: () -> Void
     let clearDialogueAudit: () -> Void
+    let clearDialogueTestData: () -> Void
     @State private var section: ParticleDebugSection = .diagnostics
     @State private var tuningGroup: ParticleTuningGroup = .basics
 
@@ -702,7 +704,8 @@ private struct ParticleDebugPanel: View {
                                 state: dialogueAuditState,
                                 copyAll: copyDialogueAudit,
                                 exportText: exportDialogueAudit,
-                                clear: clearDialogueAudit
+                                clear: clearDialogueAudit,
+                                clearTestData: clearDialogueTestData
                             )
                         }
                     case .shell:
@@ -835,7 +838,9 @@ private struct DialogueAuditDebugView: View {
     let copyAll: () -> Void
     let exportText: () -> Void
     let clear: () -> Void
+    let clearTestData: () -> Void
     @State private var isExpanded = false
+    @State private var isClearConfirmationPresented = false
 
     var body: some View {
         DisclosureGroup(isExpanded: $isExpanded) {
@@ -879,6 +884,12 @@ private struct DialogueAuditDebugView: View {
                 }
                 .disabled(state.entries.isEmpty)
 
+                Button(role: .destructive) {
+                    isClearConfirmationPresented = true
+                } label: {
+                    Text(String(localized: "dialogueAudit.clearTestData"))
+                }
+
                 if let statusKey = state.statusKey {
                     Text(String(localized: String.LocalizationValue(statusKey)))
                         .font(.caption)
@@ -888,6 +899,17 @@ private struct DialogueAuditDebugView: View {
             .padding(.top, 8)
         } label: {
             Text(String(localized: "dialogueAudit.title"))
+        }
+        .alert(
+            String(localized: "dialogueAudit.clearTestData.confirmTitle"),
+            isPresented: $isClearConfirmationPresented
+        ) {
+            Button(String(localized: "dialogueAudit.clearTestData.cancel"), role: .cancel) {}
+            Button(String(localized: "dialogueAudit.clearTestData.confirm"), role: .destructive) {
+                clearTestData()
+            }
+        } message: {
+            Text(String(localized: "dialogueAudit.clearTestData.message"))
         }
     }
 
