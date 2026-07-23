@@ -350,9 +350,9 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float errorFracture = smoothstep(0.48, 0.90, 0.5 + 0.5 * sin(t * 0.72 + angle * 9.40 - depth * 3.80 + particleSeed * 3.60));
     float errorEdgePulse = smoothstep(0.50, 0.91, 0.5 + 0.5 * cos(t * 0.78 + angle * 11.40 + phaseB * 0.22));
     float errorGlobalPulse = smoothstep(0.22, 0.86, 0.5 + 0.5 * sin(t * 1.34 + 0.4));
-    float speakingEdgeLift = mix(1.0, 1.24 + speakingPulse * 0.24, speaking * edge);
-    float loadingEdgeSettle = mix(1.0, 0.68, loading * edge);
-    float edgeSettle = mix(1.0, 0.25, thinking) * loadingEdgeSettle * mix(1.0, 0.92, saturate(error + exitState));
+    float speakingEdgeLift = mix(1.0, 1.32 + speakingPulse * 0.30, speaking * edge);
+    float loadingEdgeSettle = mix(1.0, 0.52, loading * edge);
+    float edgeSettle = mix(1.0, 0.18, thinking) * loadingEdgeSettle * mix(1.0, 0.92, saturate(error + exitState));
     float stateFocus = mix(1.0, 1.28, thinking);
     float localBreath = (0.0065 * sin(uniforms.breathingTime * (0.29 + particleSeed * 0.11) + localPhase)
         + 0.0035 * sin(uniforms.breathingTime * (0.17 + seedB * 0.07) + phaseB))
@@ -494,8 +494,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         * (0.46 + interior * 0.34 + midBand * 0.54 + edge * 0.08)
         * (1.0 - smoothstep(0.78, 0.98, stableRadius));
     float focusWave = sin(sheetTravel * 3.8 - sheetCross * 0.85 + viewBody.z * 2.2 - fieldTime * 0.42 + globalWave);
-    p += surfaceFlowAxis * focusWave * (0.008 + midBand * 0.022 + interior * 0.014) * focusGate;
-    p -= normalize(p + float2(0.001, 0.001)) * (0.014 + midBand * 0.020 + interior * 0.011) * focusGate;
+    p += surfaceFlowAxis * focusWave * (0.010 + midBand * 0.026 + interior * 0.018) * focusGate;
+    p -= normalize(p + float2(0.001, 0.001)) * (0.020 + midBand * 0.026 + interior * 0.016) * focusGate;
     float loadingLoopGate = loading
         * (0.44 + interior * 0.42 + midBand * 0.54 + edge * 0.12)
         * (1.0 - smoothstep(0.86, 1.04, stableRadius));
@@ -504,15 +504,15 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float loadingLane = smoothstep(0.24, 0.90, 0.5 + 0.5 * (loadingRing * 0.62 + loadingLayer * 0.38));
     p += surfaceFlowSide
         * loadingRing
-        * (0.010 + interior * 0.018 + midBand * 0.034 + frontSheetGate * 0.012)
+        * (0.014 + interior * 0.026 + midBand * 0.044 + frontSheetGate * 0.012)
         * loadingLoopGate;
     p += surfaceFlowAxis
         * loadingLayer
-        * (0.007 + interior * 0.014 + midBand * 0.027 + frontSpreadGate * 0.009)
+        * (0.010 + interior * 0.020 + midBand * 0.036 + frontSpreadGate * 0.009)
         * loadingLoopGate;
     p += normalize(p + float2(0.001, 0.001))
         * (loadingCycle - 0.5)
-        * (0.005 + midBand * 0.013 + interior * 0.010)
+        * (0.007 + midBand * 0.016 + interior * 0.014)
         * loadingLoopGate;
     float errorDisruptionGate = error
         * frontSurfaceGate
@@ -551,17 +551,17 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float speakingPulseSigned = speakingPulse - 0.42;
     p += normalize(p + float2(0.001, 0.001))
         * speakingPulseSigned
-        * (0.008 + interior * 0.016 + midBand * 0.022 + edge * 0.014)
+        * (0.011 + interior * 0.021 + midBand * 0.029 + edge * 0.018)
         * speakingFlowGate;
     p += surfaceFlowAxis
         * speakingPulseSigned
-        * (0.006 + interior * 0.008 + midBand * 0.016 + frontSpreadGate * 0.016)
+        * (0.008 + interior * 0.011 + midBand * 0.021 + frontSpreadGate * 0.020)
         * speakingFlowGate;
-    float speakingExpansion = speaking * (0.026 + speakingPulse * 0.018 + midBand * 0.010 + edge * 0.010);
-    float loadingHold = loading * (0.024 + midBand * 0.009 - loadingGlobalPulse * 0.008);
-    float errorHold = error * (0.018 + errorGlobalPulse * 0.018);
+    float speakingExpansion = speaking * (0.040 + speakingPulse * 0.028 + midBand * 0.012 + edge * 0.014);
+    float loadingHold = loading * (0.042 + midBand * 0.010 + edge * 0.006 - loadingGlobalPulse * 0.010);
+    float errorHold = error * (0.026 + errorGlobalPulse * 0.030);
     float placeholderScale = 1.0 - errorHold - exitState * 0.008;
-    p *= (1.0 - thinking * 0.092 + speakingExpansion - loadingHold) * placeholderScale;
+    p *= (1.0 - thinking * 0.125 + speakingExpansion - loadingHold) * placeholderScale;
     float centerExitZone = 1.0 - smoothstep(0.16, 0.38, lengthP);
     float midExitZone = smoothstep(0.18, 0.42, lengthP) * (1.0 - smoothstep(0.58, 0.82, lengthP));
     float edgeExitZone = smoothstep(0.48, 0.76, lengthP);
@@ -948,14 +948,14 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
         smoothstep(0.42, 0.10, in.frontness) * (1.0 - ridge * 0.48),
         in.edgePresence * (0.64 + backPresence * 0.18) * (1.0 - ridge * 0.22)
     ));
-    coverage *= mix(1.0, 0.58, thinking * outerDim);
+    coverage *= mix(1.0, 0.50, thinking * outerDim);
     float loadingRidgeLight = loading * frontLight * saturate((loadingCycle * 0.48 + loadingLane * 0.52) * (ridge * 0.76 + in.flow * 0.58 + surfaceLight * 0.22));
-    coverage *= mix(1.0, 1.28, loadingRidgeLight);
-    coverage = saturate(coverage + loadingRidgeLight * 0.080);
-    coverage *= mix(1.0, 0.82, loading * outerDim * (1.0 - ridge * 0.52));
+    coverage *= mix(1.0, 1.38, loadingRidgeLight);
+    coverage = saturate(coverage + loadingRidgeLight * 0.100);
+    coverage *= mix(1.0, 0.72, loading * outerDim * (1.0 - ridge * 0.52));
     float speakingRidgeLight = speaking * speakingPulse * frontLight * saturate(ridge * 0.68 + in.flow * 0.40 + surfaceLight * 0.22);
-    coverage *= mix(1.0, 1.080, speakingRidgeLight);
-    coverage *= mix(1.0, 0.98, speaking * outerDim * (1.0 - ridge * 0.46));
+    coverage *= mix(1.0, 1.16, speakingRidgeLight);
+    coverage *= mix(1.0, 0.94, speaking * outerDim * (1.0 - ridge * 0.46));
     float errorRidgeShadow = error * frontLight * saturate((errorInterrupt * 0.52 + errorFracture * 0.58) * (ridge * 0.78 + in.flow * 0.36 + surfaceLight * 0.30));
     coverage *= mix(1.0, 0.50, errorRidgeShadow);
     coverage *= mix(1.0, 0.70, error * outerDim * (1.0 - ridge * 0.44));
@@ -967,7 +967,7 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float highlight = saturate(litFront * 0.38 + ionRidge * 2.08 + ridgeGlow * 3.18 + surfaceWake * 0.24);
     highlight = saturate(highlight + thinking * (ridge * 0.13 + in.flow * 0.070) * frontLight);
     highlight = saturate(highlight + loadingRidgeLight * (0.24 + ridge * 0.22));
-    highlight = saturate(highlight + speakingRidgeLight * (0.16 + ridge * 0.18));
+    highlight = saturate(highlight + speakingRidgeLight * (0.22 + ridge * 0.22));
     highlight *= mix(1.0, 0.58, errorRidgeShadow);
     highlight = saturate(highlight + error * errorFracture * frontLight * ridge * 0.060);
     highlight = saturate(highlight + ionPresence * frontLight * (0.16 + ridge * 0.26));
@@ -983,12 +983,12 @@ fragment half4 particleFragment(ParticleVertexOut in [[stage_in]],
     float compressedDepthLight = 0.16 + depthLight * 0.84;
     float surfaceTone = 0.38 + litSurface * 0.62;
     half3 dim = mix(back, frontBase, half(compressedDepthLight * surfaceTone));
-    dim *= half(mix(1.0, 0.86, thinking * outerDim));
+    dim *= half(mix(1.0, 0.80, thinking * outerDim));
     dim *= half(mix(1.0, 0.78, error * (0.34 + outerDim * 0.76)));
     dim *= half(mix(1.0, 0.34 + exitDust * 0.10, exitLocalFade));
     half3 bright = mix(half3(in.highlightColor.rgb), ridgeTint, half(saturate(ridge * 0.28 + in.flow * 0.16)));
     half3 color = mix(dim, bright, half(highlight));
-    color = mix(color, half3(0.64, 0.66, 0.70), half(error * errorInterrupt * 0.14));
+    color = mix(color, half3(0.64, 0.66, 0.70), half(error * errorInterrupt * 0.22));
     color = mix(color, wakeTint, half(surfaceWake * (0.20 + frontLight * 0.80) * 0.12));
     color = mix(color, half3(0.52, 0.54, 0.58), half(exitState * exitBreak * 0.08));
     color *= half(brightness);
