@@ -442,6 +442,12 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     p = viewBody.xy * perspective;
     float2 stableScreenPosition = p;
     float stableRadius = length(stableScreenPosition);
+    lengthP = stableRadius;
+    edge = smoothstep(0.28, 0.64, lengthP);
+    interior = 1.0 - smoothstep(0.18, 0.58, lengthP);
+    angle = atan2(p.y, p.x);
+    radial = normalize(p + float2(0.001, 0.001));
+    tangent = float2(-radial.y, radial.x);
     float3 shellNormalView = normalize(rotateBody(normalize(shapeLocal), bodySpinAngles));
     float silhouetteGrazing = 1.0 - abs(shellNormalView.z);
     float base360Rim = smoothstep(0.34, 0.82, silhouetteGrazing);

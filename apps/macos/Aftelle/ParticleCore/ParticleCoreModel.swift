@@ -73,13 +73,16 @@ struct ParticleCoreModel {
             let theta = Float(u * .pi * 2)
             let z = Float(1 - 2 * v)
             let shell = sqrt(max(0, 1 - z * z))
+            let baseX = shell * cos(theta)
             let baseDepth = shell * sin(theta)
-            let foldOffset = 0.14 * sin((theta * 3.0 + z * 4.7) * featureFrequency + shapePhase)
-                + 0.09 * sin((theta * 6.0 - z * 2.6) * featureFrequency - shapePhase * 0.72)
-                + 0.05 * sin((theta * 11.0 + z * 5.1) * featureFrequency + shapePhase * 1.31)
-            let fold = 1 + foldOffset * tunedShapeStrength
-            var x = (shell * cos(theta) * 0.58 + baseDepth * 0.075 * tunedShapeStrength) * fold
-            var y = (z * 0.44 + 0.035 * tunedShapeStrength * sin((theta * 2.0 + baseDepth * 3.0) * featureFrequency + shapePhase * 0.61)) * fold
+            let foldOffset = 0.14 * sin((baseX * 3.0 + z * 4.7 + baseDepth * 2.2) * featureFrequency + shapePhase)
+                + 0.09 * sin((baseX * 5.6 - z * 2.6 - baseDepth * 3.1) * featureFrequency - shapePhase * 0.72)
+                + 0.05 * sin((baseX * 8.4 + z * 5.1 + baseDepth * 4.0) * featureFrequency + shapePhase * 1.31)
+            let balancedFoldOffset = foldOffset / (1 + abs(foldOffset) * 5.0)
+            let fold = 1 + balancedFoldOffset * tunedShapeStrength
+            let verticalDetail = sin((baseX * 2.8 + z * 1.7 + baseDepth * 3.0) * featureFrequency + shapePhase * 0.61)
+            var x = (baseX * 0.58 + baseDepth * 0.075 * tunedShapeStrength) * fold
+            var y = (z * 0.44 + 0.035 * tunedShapeStrength * verticalDetail) * fold
             var depth = baseDepth * fold
             let projectedRadius = sqrt(x * x / 0.62 / 0.62 + y * y / 0.48 / 0.48)
             let outlineBand = max(0, min(1, (projectedRadius - 0.62) / 0.32))
@@ -115,14 +118,18 @@ struct ParticleCoreModel {
             let tangentialClusterAmplitude = 1
                 + (0.80 + scatterCluster * 0.40 - 1) * tunedScatterClusterStrength
             let strongScatter = strongScatterSample < strongScatterProbability
+            let poleScatterBlend = min(1, max(0, (abs(z) - 0.90) / 0.09))
+            let poleScatterStability = poleScatterBlend * poleScatterBlend * (3 - 2 * poleScatterBlend)
             let radialScatter = (strongScatter ? 0.105 : 0.034)
                 * pow(Float(radialScatterSample), 1.45)
                 * tunedScatterStrength
                 * scatterClusterAmplitude
+                * (1 - poleScatterStability * 0.75)
             let tangentialScatter = (Float(tangentialScatterSample) - 0.5)
                 * 0.048
                 * tunedScatterStrength
                 * tangentialClusterAmplitude
+                * (1 - poleScatterStability * 0.20)
             bodyPosition += shellNormal * radialScatter + shellTangent * tangentialScatter
             x = bodyPosition.x
             y = bodyPosition.y
