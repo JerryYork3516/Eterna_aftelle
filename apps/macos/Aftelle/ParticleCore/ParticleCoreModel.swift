@@ -62,14 +62,23 @@ struct ParticleCoreModel {
         let scatterClusterFrequency = 3.4 - tunedScatterClusterScale * 2.0
 
         let candidateCount = Int(Double(count) * 1.8)
+        let latitudeBlockSize = 256
         var candidateIndex = 0
+        var latitudeStride = 1
+        var latitudeOffset = 0
 
         while values.count < count {
             let index = candidateIndex
             candidateIndex += 1
             let golden = 0.6180339887498949
             let u = (Double(index) * golden + generator.nextUnit() * 0.022).truncatingRemainder(dividingBy: 1)
-            let v = (Double(index % candidateCount) + 0.5) / Double(candidateCount)
+            let latitudeIndex = index % latitudeBlockSize
+            if latitudeIndex == 0 {
+                latitudeStride = Int(generator.next() % UInt64(latitudeBlockSize / 2)) * 2 + 1
+                latitudeOffset = Int(generator.next() % UInt64(latitudeBlockSize))
+            }
+            let latitudeStratum = (latitudeIndex * latitudeStride + latitudeOffset) % latitudeBlockSize
+            let v = (Double(latitudeStratum) + generator.nextUnit()) / Double(latitudeBlockSize)
             let theta = Float(u * .pi * 2)
             let z = Float(1 - 2 * v)
             let shell = sqrt(max(0, 1 - z * z))
@@ -118,18 +127,14 @@ struct ParticleCoreModel {
             let tangentialClusterAmplitude = 1
                 + (0.80 + scatterCluster * 0.40 - 1) * tunedScatterClusterStrength
             let strongScatter = strongScatterSample < strongScatterProbability
-            let poleScatterBlend = min(1, max(0, (abs(z) - 0.90) / 0.09))
-            let poleScatterStability = poleScatterBlend * poleScatterBlend * (3 - 2 * poleScatterBlend)
             let radialScatter = (strongScatter ? 0.105 : 0.034)
                 * pow(Float(radialScatterSample), 1.45)
                 * tunedScatterStrength
                 * scatterClusterAmplitude
-                * (1 - poleScatterStability * 0.75)
             let tangentialScatter = (Float(tangentialScatterSample) - 0.5)
                 * 0.048
                 * tunedScatterStrength
                 * tangentialClusterAmplitude
-                * (1 - poleScatterStability * 0.20)
             bodyPosition += shellNormal * radialScatter + shellTangent * tangentialScatter
             x = bodyPosition.x
             y = bodyPosition.y
