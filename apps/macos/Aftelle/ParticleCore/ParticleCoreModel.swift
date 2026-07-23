@@ -87,15 +87,18 @@ struct ParticleCoreModel {
             let foldOffset = 0.14 * sin((baseX * 3.0 + z * 4.7 + baseDepth * 2.2) * featureFrequency + shapePhase)
                 + 0.09 * sin((baseX * 5.6 - z * 2.6 - baseDepth * 3.1) * featureFrequency - shapePhase * 0.72)
                 + 0.05 * sin((baseX * 8.4 + z * 5.1 + baseDepth * 4.0) * featureFrequency + shapePhase * 1.31)
-            let balancedFoldOffset = foldOffset / (1 + abs(foldOffset) * 5.0)
+            let outwardFold = max(0, foldOffset)
+            let inwardFold = min(0, foldOffset)
+            let balancedFoldOffset = outwardFold / (1 + outwardFold * 6.2) * 0.95
+                + inwardFold / (1 + abs(inwardFold) * 5.0) * 0.90
             let fold = 1 + balancedFoldOffset * tunedShapeStrength
             let verticalDetail = sin((baseX * 2.8 + z * 1.7 + baseDepth * 3.0) * featureFrequency + shapePhase * 0.61)
-            var x = (baseX * 0.58 + baseDepth * 0.075 * tunedShapeStrength) * fold
-            var y = (z * 0.44 + 0.035 * tunedShapeStrength * verticalDetail) * fold
+            var x = (baseX * 0.57 + baseDepth * 0.035 * tunedShapeStrength) * fold
+            var y = (z * 0.45 + 0.028 * tunedShapeStrength * verticalDetail) * fold
             var depth = baseDepth * fold
             let projectedRadius = sqrt(x * x / 0.62 / 0.62 + y * y / 0.48 / 0.48)
             let outlineBand = max(0, min(1, (projectedRadius - 0.62) / 0.32))
-            let depthScale: Float = 0.58
+            let depthScale: Float = 0.56
             var bodyPosition = SIMD3<Float>(x, y, depth * depthScale)
             let shellNormal = simd_normalize(bodyPosition)
             let tangentReference = abs(shellNormal.z) < 0.92
@@ -140,13 +143,26 @@ struct ParticleCoreModel {
             y = bodyPosition.y
             depth = bodyPosition.z / depthScale
             let silhouette = max(0, min(1, 1 - abs(baseDepth) * 1.85))
-            let threadA = pow(max(0, 0.5 + 0.5 * sin(theta * 3.0 + z * 4.4 + baseDepth * 2.6)), 4)
-            let threadB = pow(max(0, 0.5 + 0.5 * sin(theta * 5.0 - z * 3.1)), 5)
+            let threadPhaseA = (
+                baseX * 2.0
+                    + z * 3.2
+                    - baseDepth * 1.6
+                    + baseX * z * 1.4
+                    + z * baseDepth * 0.8
+            ) * featureFrequency + shapePhase * 0.52
+            let threadPhaseB = (
+                -baseX * 2.7
+                    + z * 1.6
+                    + baseDepth * 2.3
+                    + baseX * baseDepth * 1.2
+                    - z * z * 0.9
+            ) * featureFrequency - shapePhase * 0.41
+            let threadA = pow(abs(sin(threadPhaseA)), 16)
+            let threadB = pow(abs(sin(threadPhaseB)), 20)
             let grain = 0.5 + 0.5 * sin(theta * 13.0 + z * 8.7 + baseDepth * 3.1)
-            let thread = max(threadA, threadB)
-            let ridge = min(1, silhouette * 0.24 + thread * 0.08 + outlineBand * 0.22 + grain * 0.10)
+            let ridge = min(1, max(threadA * 0.95, threadB * 0.84) + grain * 0.04)
             let edgeWeight = max(0, min(1, 0.18 + abs(baseDepth) * 0.72 + (1 - silhouette) * 0.34 + outlineBand * 0.16))
-            let ridgeKeep = 0.36 + Double(silhouette) * 0.10 + Double(outlineBand) * 0.24
+            let ridgeKeep = 0.44 + Double(ridge) * 0.16
             if generator.nextUnit() > ridgeKeep && candidateIndex < candidateCount * 3 {
                 continue
             }

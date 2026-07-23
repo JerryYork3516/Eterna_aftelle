@@ -287,11 +287,11 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float2 p = particle.xy;
     float ridge = saturate(particle.z);
     float depth = particle.w;
-    float3 stableShapeLocal = float3(particle.x, particle.y, depth * 0.58);
+    float3 stableShapeLocal = float3(particle.x, particle.y, depth * 0.56);
     float stableShellRadius = length(float3(
-        stableShapeLocal.x / 0.58,
-        stableShapeLocal.y / 0.44,
-        stableShapeLocal.z / 0.58
+        stableShapeLocal.x / 0.57,
+        stableShapeLocal.y / 0.45,
+        stableShapeLocal.z / 0.56
     ));
     float staticProtrusion = smoothstep(1.04, 1.18, stableShellRadius);
     float id = float(vid);
@@ -419,7 +419,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         : float3(0.0, bodySpinAngle, 0.0);
     float centerReliefGate = 1.0 - smoothstep(0.26, 0.62, lengthP);
     float centerDepthRelief = (globalWave * 0.78 + localMorph * 0.22) * centerReliefGate * 0.032 * tuneFlowStructure;
-    float bodyDepth = depth * 0.58 + centerDepthRelief + globalWave * (0.018 + midBand * 0.052 + edge * 0.050) * tuneFlowStructure + centerFollow * 0.012;
+    float bodyDepth = depth * 0.56 + centerDepthRelief + globalWave * (0.018 + midBand * 0.052 + edge * 0.050) * tuneFlowStructure + centerFollow * 0.012;
     float3 shapeLocal = float3(p.x, p.y, bodyDepth);
     float activeInterior = interior * centerMotionGate;
     float3 materialFlow = materialFlowField(shapeLocal, flowPatternTime, particleSeed, seedB, edge, activeInterior, midBand, globalWave, globalAxis, globalSide);
@@ -661,7 +661,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     float denseSection = smoothstep(0.46, 0.84, sectionA * 0.36 + sectionB * 0.30 + cloudDensity * 0.50);
     float sparseCavity = smoothstep(0.62, 0.94, (1.0 - sectionC) * 0.46 + (1.0 - cloudDensity) * 0.38)
         * (interior * 0.20 + midBand * 0.16);
-    float baseShapeRidge = smoothstep(0.76, 0.94, ridge) * staticProtrusion;
+    float baseShapeRidge = smoothstep(0.76, 0.94, ridge) * (0.58 + staticProtrusion * 0.42);
     float protrusionCrest = smoothstep(0.56, 0.84, currentProtrusion);
     float ridgeLinePhaseA = animatedCross * 5.0
         + animatedTravel * 1.15
@@ -706,8 +706,8 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + ridgeSeedPhase * 0.42
     )));
     float structuralSpine = saturate(
-        baseShapeRidge * 0.14
-        + dynamicRidge * 0.92
+        baseShapeRidge * 0.30
+        + dynamicRidge * 0.82
     );
     float densityFlow = smoothstep(0.42, 0.91, 0.5 + 0.5 * sin(animatedTravel * 7.1 - animatedCross * 2.5 + flowSpace.z * 3.6 - fieldTime * 0.78 + globalWave));
     float densitySheet = 0.5 + 0.5 * cos(animatedCross * 4.2 - animatedTravel * 1.1 + flowSpace.z * 3.2 + fieldTime * 0.48 + globalWave * 0.7);
@@ -732,7 +732,7 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + structuralSpine * 0.20
         - sparseCavity * 0.080);
     float localRidge = saturate(
-        baseShapeRidge * 0.12
+        baseShapeRidge * 0.24
         + structuralSpine * 0.66
         + ridgeFlow * 0.34
         + layerDensity * protrusionCrest * ridgeLine * 0.05
