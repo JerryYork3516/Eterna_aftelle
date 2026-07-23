@@ -358,6 +358,8 @@ enum ParticleCoreRotationDirection: CaseIterable, Identifiable {
 }
 
 enum ParticleCoreSpinDirection: CaseIterable, Identifiable {
+    case up
+    case down
     case left
     case right
 
@@ -365,6 +367,10 @@ enum ParticleCoreSpinDirection: CaseIterable, Identifiable {
 
     var localizedKey: String {
         switch self {
+        case .up:
+            return "particleDebug.direction.up"
+        case .down:
+            return "particleDebug.direction.down"
         case .left:
             return "particleDebug.direction.left"
         case .right:
@@ -374,6 +380,10 @@ enum ParticleCoreSpinDirection: CaseIterable, Identifiable {
 
     var tuningValue: Double {
         switch self {
+        case .up:
+            return 1.0 / 3.0
+        case .down:
+            return 2.0 / 3.0
         case .left:
             return 0
         case .right:
@@ -381,8 +391,21 @@ enum ParticleCoreSpinDirection: CaseIterable, Identifiable {
         }
     }
 
+    var spinSign: Double {
+        switch self {
+        case .up, .left:
+            return -1
+        case .down, .right:
+            return 1
+        }
+    }
+
+    var rotatesVertically: Bool {
+        self == .up || self == .down
+    }
+
     static func nearest(to value: Double) -> ParticleCoreSpinDirection {
-        value < 0.5 ? .left : .right
+        allCases.min { abs($0.tuningValue - value) < abs($1.tuningValue - value) } ?? .right
     }
 }
 

@@ -410,8 +410,13 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
     p += (globalAxis * centerFollow + globalSide * centerFollow * 0.45) * (0.006 + midBand * 0.014);
 
     float rotationTime = t * 0.76 * tuneRotationSpeed;
-    float spinDirection = saturate(uniforms.rotationDirection) < 0.5 ? -1.0 : 1.0;
-    float earthSpinAngle = rotationTime * spinDirection * 3.0;
+    float rotationBucket = floor(saturate(uniforms.rotationDirection) * 3.0 + 0.5);
+    float spinDirection = rotationBucket < 1.5 ? -1.0 : 1.0;
+    float bodySpinAngle = rotationTime * spinDirection * 3.0;
+    bool rotatesVertically = rotationBucket > 0.5 && rotationBucket < 2.5;
+    float3 bodySpinAngles = rotatesVertically
+        ? float3(bodySpinAngle, 0.0, 0.0)
+        : float3(0.0, bodySpinAngle, 0.0);
     float centerReliefGate = 1.0 - smoothstep(0.26, 0.62, lengthP);
     float centerDepthRelief = (globalWave * 0.78 + localMorph * 0.22) * centerReliefGate * 0.032 * tuneFlowStructure;
     float bodyDepth = depth * 0.58 + centerDepthRelief + globalWave * (0.018 + midBand * 0.052 + edge * 0.050) * tuneFlowStructure + centerFollow * 0.012;
@@ -432,12 +437,12 @@ vertex ParticleVertexOut particleVertex(const device float4 *particles [[buffer(
         + dynamicProtrusion * 0.72
     );
     float3 viewBody = shapeLocal + flowDisplacement;
-    viewBody = rotateY(viewBody, earthSpinAngle);
+    viewBody = rotateBody(viewBody, bodySpinAngles);
     float perspective = clamp(1.0 / (1.0 - viewBody.z * 0.30), 0.84, 1.20);
     p = viewBody.xy * perspective;
     float2 stableScreenPosition = p;
     float stableRadius = length(stableScreenPosition);
-    float3 shellNormalView = normalize(rotateY(normalize(shapeLocal), earthSpinAngle));
+    float3 shellNormalView = normalize(rotateBody(normalize(shapeLocal), bodySpinAngles));
     float silhouetteGrazing = 1.0 - abs(shellNormalView.z);
     float base360Rim = smoothstep(0.34, 0.82, silhouetteGrazing);
     float shellSurfaceContinuity = saturate(max(

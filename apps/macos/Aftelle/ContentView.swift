@@ -309,19 +309,21 @@ private struct ParticleOrientationDebugOverlay: View {
     private func rotationState(at motionTime: TimeInterval) -> ParticleRotationState {
         let tuneRotationSpeed = centeredControl(tuning.rotationSpeed, maximum: 2.40)
         let rotationTime = motionTime * 0.76 * tuneRotationSpeed
-        let spinDirection = min(1, max(0, tuning.rotationDirection)) < 0.5 ? -1.0 : 1.0
-        let earthSpinAngle = rotationTime * spinDirection * 3.0
+        let direction = ParticleCoreSpinDirection.nearest(to: tuning.rotationDirection)
+        let bodySpinAngle = rotationTime * direction.spinSign * 3.0
         return ParticleRotationState(
             rotationTime: rotationTime,
-            earthSpinAngle: earthSpinAngle,
-            angularVelocityPerMotionSecond: 0.76 * tuneRotationSpeed * spinDirection * 3.0
+            bodySpinAngle: bodySpinAngle,
+            angularVelocityPerMotionSecond: 0.76 * tuneRotationSpeed * direction.spinSign * 3.0,
+            direction: direction
         )
     }
 
     private struct ParticleRotationState {
         let rotationTime: TimeInterval
-        let earthSpinAngle: Double
+        let bodySpinAngle: Double
         let angularVelocityPerMotionSecond: Double
+        let direction: ParticleCoreSpinDirection
     }
 
     private func drawAxisSet(in canvas: inout GraphicsContext, origin: CGPoint, length: CGFloat, motionTime: TimeInterval, lineWidth: CGFloat) {
@@ -365,7 +367,9 @@ private struct ParticleOrientationDebugOverlay: View {
     }
 
     private func projectedAxisPoint(_ vector: SIMD3<Double>, rotationState: ParticleRotationState, origin: CGPoint, length: CGFloat) -> (point: CGPoint, scale: CGFloat, opacity: Double) {
-        let viewed = rotateY(vector, rotationState.earthSpinAngle)
+        let viewed = rotationState.direction.rotatesVertically
+            ? rotateX(vector, rotationState.bodySpinAngle)
+            : rotateY(vector, rotationState.bodySpinAngle)
         let bodyPerspective = max(0.84, min(1.20, 1.0 / (1.0 - viewed.z * 0.30)))
         let depth = 3.2 - viewed.z
         let depthPerspective = 2.8 / max(1.4, depth)
@@ -378,6 +382,16 @@ private struct ParticleOrientationDebugOverlay: View {
             ),
             scale,
             opacity
+        )
+    }
+
+    private func rotateX(_ vector: SIMD3<Double>, _ angle: Double) -> SIMD3<Double> {
+        let c = cos(angle)
+        let s = sin(angle)
+        return SIMD3<Double>(
+            vector.x,
+            vector.y * c - vector.z * s,
+            vector.y * s + vector.z * c
         )
     }
 
@@ -413,7 +427,7 @@ private struct ParticleOrientationDebugOverlay: View {
         path.addLine(to: end)
         canvas.stroke(path, with: .color(.white.opacity(0.32)), lineWidth: 1)
 
-        for marker in rotationMarkers(isReversed: angularVelocity < 0) {
+        for marker in rotationMarkers(direction: rotationState.direction) {
             let fraction = CGFloat(marker.degrees / 360.0)
             let x = start.x + (end.x - start.x) * fraction
             let markerTime = duration * marker.degrees / 360.0
@@ -425,7 +439,7 @@ private struct ParticleOrientationDebugOverlay: View {
             drawAxisLabel(String(format: "%.2fs", markerTime), at: CGPoint(x: x, y: y + 34), in: &canvas)
         }
 
-        let phase = abs(rotationState.earthSpinAngle).truncatingRemainder(dividingBy: 2.0 * Double.pi)
+        let phase = abs(rotationState.bodySpinAngle).truncatingRemainder(dividingBy: 2.0 * Double.pi)
         let playheadFraction = CGFloat(phase / (2.0 * Double.pi))
         let playheadX = start.x + (end.x - start.x) * playheadFraction
         var playhead = Path()
@@ -446,8 +460,28 @@ private struct ParticleOrientationDebugOverlay: View {
         let opacity: Double
     }
 
-    private func rotationMarkers(isReversed: Bool) -> [RotationMarker] {
-        [
+    private func rotationMarkers(direction: ParticleCoreSpinDirection) -> [RotationMarker] {
+        if direction.rotatesVertically {
+            let firstDirectionKey = direction == .up
+                ? "particleDebug.direction.up"
+                : "particleDebug.direction.down"
+            let oppositeDirectionKey = direction == .up
+                ? "particleDebug.direction.down"
+                : "particleDebug.direction.up"
+            return [
+                RotationMarker(degrees: 0, label: "0°\n\(String(localized: "particleDebug.orientation.front"))", tickHeight: 11, lineWidth: 1.5, opacity: 0.64),
+                RotationMarker(degrees: 45, label: "45°\n\(String(localized: String.LocalizationValue(firstDirectionKey)))", tickHeight: 7, lineWidth: 1.0, opacity: 0.36),
+                RotationMarker(degrees: 90, label: "90°\n\(String(localized: String.LocalizationValue(firstDirectionKey)))", tickHeight: 9, lineWidth: 1.2, opacity: 0.50),
+                RotationMarker(degrees: 135, label: "135°", tickHeight: 6, lineWidth: 1.0, opacity: 0.28),
+                RotationMarker(degrees: 180, label: "180°\n\(String(localized: "particleDebug.orientation.back"))", tickHeight: 10, lineWidth: 1.3, opacity: 0.56),
+                RotationMarker(degrees: 225, label: "225°", tickHeight: 6, lineWidth: 1.0, opacity: 0.28),
+                RotationMarker(degrees: 270, label: "270°\n\(String(localized: String.LocalizationValue(oppositeDirectionKey)))", tickHeight: 9, lineWidth: 1.2, opacity: 0.50),
+                RotationMarker(degrees: 315, label: "315°\n\(String(localized: String.LocalizationValue(oppositeDirectionKey)))", tickHeight: 7, lineWidth: 1.0, opacity: 0.36),
+                RotationMarker(degrees: 360, label: "360°\n\(String(localized: "particleDebug.orientation.front"))", tickHeight: 11, lineWidth: 1.5, opacity: 0.64)
+            ]
+        }
+        let isReversed = direction == .left
+        return [
             RotationMarker(degrees: 0, label: "0°\n\(String(localized: "particleDebug.orientation.front"))", tickHeight: 11, lineWidth: 1.5, opacity: 0.64),
             RotationMarker(degrees: 45, label: "45°\n\(String(localized: isReversed ? "particleDebug.orientation.left45" : "particleDebug.orientation.right45"))", tickHeight: 7, lineWidth: 1.0, opacity: 0.36),
             RotationMarker(degrees: 90, label: "90°\n\(String(localized: isReversed ? "particleDebug.orientation.leftSide" : "particleDebug.orientation.rightSide"))", tickHeight: 9, lineWidth: 1.2, opacity: 0.50),
